@@ -102,12 +102,15 @@ function updateAlertFeed(alerts) {
   }
 
   feed.innerHTML = alerts.map(a => `
-    <div class="alert-item sev-${a.severity}" onclick="openAlertModal(${a.id})">
+    <div class="alert-item sev-${a.severity}"
+         onclick="window.location='/alerts'" style="cursor:pointer;">
       <span class="alert-icon">${sevIcon(a.severity)}</span>
       <div class="alert-body">
-        <div class="alert-type">${a.alert_type.replace('_', ' ').toUpperCase()}</div>
+        <div class="alert-type">${a.alert_type.replace(/_/g,' ').toUpperCase()}</div>
         <div class="alert-desc">${a.description}</div>
-        <div class="alert-meta">${a.src_ip ? `<span class="text-mono">${a.src_ip}</span>` : ''}</div>
+        <div class="alert-meta">
+          ${a.src_ip ? `<span class="text-mono">${a.src_ip}</span>` : ''}
+        </div>
       </div>
       <span class="alert-time">${relativeTime(a.timestamp)}</span>
     </div>

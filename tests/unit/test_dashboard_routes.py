@@ -114,3 +114,38 @@ def test_api_dns_empty(client):
 def test_config_view_returns_200(client):
     res = client.get("/config")
     assert res.status_code == 200
+
+
+def test_api_alert_detail(client):
+    repository.insert_alert("port_scan", "high", "Scan from 1.2.3.4",
+                             src_ip="1.2.3.4", raw_data={"ports": [22, 80, 443]})
+    alerts = repository.get_all_alerts()
+    alert_id = alerts[0]["id"]
+    res = client.get(f"/api/alerts/{alert_id}/detail")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["alert_type"] == "port_scan"
+    assert "raw_data_parsed" in data
+    assert data["raw_data_parsed"]["ports"] == [22, 80, 443]
+
+
+def test_api_alert_detail_not_found(client):
+    res = client.get("/api/alerts/99999/detail")
+    assert res.status_code == 404
+
+
+def test_api_report_content_not_found(client):
+    res = client.get("/api/reports/99999/content")
+    assert res.status_code == 404
+
+
+def test_api_report_content_inline(client, tmp_path):
+    html_file = tmp_path / "report.html"
+    html_file.write_text("<html><body>Test Report</body></html>")
+    repository.insert_report("daily", str(html_file), "html",
+                              "2026-05-14T00:00:00", "2026-05-14T23:59:59")
+    reports = repository.get_reports()
+    report_id = reports[0]["id"]
+    res = client.get(f"/api/reports/{report_id}/content")
+    assert res.status_code == 200
+    assert b"Test Report" in res.data

@@ -114,6 +114,71 @@ def api_generate_report():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@bp.route("/api/reports/<int:report_id>/content")
+def api_report_content(report_id: int):
+    """Return raw HTML of a generated report for inline viewing."""
+    reports = repository.get_reports(limit=200)
+    report = next((r for r in reports if r["id"] == report_id), None)
+    if not report:
+        return "Report not found", 404
+    file_path = report.get("file_path", "")
+    fmt = report.get("format", "html")
+    if fmt != "html" or not file_path:
+        # For PDF reports, regenerate HTML on-the-fly for viewing
+        from homenetguard.reports.report_generator import ReportGenerator
+        from homenetguard.reports.html_renderer import render_report_html
+        from datetime import UTC, datetime
+        cfg = current_app.config.get("HNG_CONFIG", {})
+        period_start = report.get("period_start")
+        period_end = report.get("period_end")
+        since = datetime.fromisoformat(period_start) if period_start else datetime.now(UTC)
+        gen = ReportGenerator(cfg)
+        data = gen._collect_data(since, datetime.fromisoformat(period_end) if period_end else datetime.now(UTC))
+        data.update({"report_type": report.get("report_type", "daily"),
+                     "period_start": period_start or "", "period_end": period_end or ""})
+        html = render_report_html(data)
+        from flask import Response
+        return Response(html, mimetype="text/html")
+
+    from pathlib import Path
+    from flask import Response
+    path = Path(file_path)
+    if not path.exists():
+        return "Report file not found on disk", 404
+    return Response(path.read_text(encoding="utf-8"), mimetype="text/html")
+
+
+@bp.route("/api/alerts/<int:alert_id>/detail")
+def api_alert_detail(alert_id: int):
+    """Return enriched alert detail with geo + reputation data."""
+    import json
+    alerts = repository.get_all_alerts(limit=1000)
+    alert = next((a for a in alerts if a["id"] == alert_id), None)
+    if not alert:
+        return jsonify({"error": "Not found"}), 404
+
+    detail = dict(alert)
+
+    # Parse raw_data JSON
+    raw = detail.get("raw_data")
+    if raw:
+        try:
+            detail["raw_data_parsed"] = json.loads(raw)
+        except (ValueError, TypeError):
+            detail["raw_data_parsed"] = {}
+    else:
+        detail["raw_data_parsed"] = {}
+
+    # Enrich with reputation + geo for src/dst IPs
+    for ip_key in ("src_ip", "dst_ip"):
+        ip = detail.get(ip_key)
+        if ip:
+            rep = repository.get_ip_reputation(ip)
+            detail[f"{ip_key}_reputation"] = rep
+
+    return jsonify(detail)
+
+
 @bp.route("/api/geo-data")
 def api_geo_data():
     flows = repository.get_recent_flows(limit=200)

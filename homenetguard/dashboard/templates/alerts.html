@@ -6,7 +6,27 @@
   <span class="page-title">ALERTS</span>
   <div style="display:flex;gap:8px;">
     <button class="btn btn-danger" onclick="clearAllAlerts()">Clear All</button>
-    <button class="btn btn-ghost" onclick="exportAlerts()">Export CSV</button>
+    <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
+  </div>
+</div>
+
+<!-- Summary badges -->
+<div class="grid-4" style="margin-bottom:var(--gap);">
+  <div class="kpi-card kpi-danger">
+    <div class="kpi-label">CRITICAL</div>
+    <div class="kpi-value danger" id="cnt-critical">—</div>
+  </div>
+  <div class="kpi-card kpi-warn">
+    <div class="kpi-label">HIGH</div>
+    <div class="kpi-value" style="color:var(--severity-high);" id="cnt-high">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">MEDIUM</div>
+    <div class="kpi-value" style="color:var(--severity-medium);font-size:1.4rem;" id="cnt-medium">—</div>
+  </div>
+  <div class="kpi-card kpi-cyan">
+    <div class="kpi-label">LOW</div>
+    <div class="kpi-value" style="color:var(--severity-low);font-size:1.4rem;" id="cnt-low">—</div>
   </div>
 </div>
 
@@ -22,80 +42,387 @@
     <select class="filter-select" id="filter-type" onchange="loadAlerts()">
       <option value="">All types</option>
       <option value="port_scan">Port Scan</option>
-      <option value="flood">Flood</option>
+      <option value="flood">Flood / DoS</option>
       <option value="blacklisted_ip">Blacklisted IP</option>
       <option value="dns_anomaly">DNS Anomaly</option>
       <option value="beaconing">Beaconing</option>
       <option value="arp_spoofing">ARP Spoofing</option>
     </select>
+    <select class="filter-select" id="filter-ack" onchange="loadAlerts()">
+      <option value="unacked">Unacknowledged</option>
+      <option value="all">All alerts</option>
+    </select>
     <span class="text-muted" id="alert-count" style="align-self:center;font-size:0.72rem;"></span>
   </div>
-  <div class="table-scroll" style="max-height:70vh;">
+  <div class="table-scroll" style="max-height:65vh;">
     <table class="data-table">
       <thead>
         <tr>
           <th>ID</th><th>TIME</th><th>TYPE</th><th>SEV</th>
-          <th>SRC IP</th><th>DESCRIPTION</th><th>ACK</th>
+          <th>SRC IP</th><th>DST IP</th><th>DESCRIPTION</th><th>STATUS</th>
         </tr>
       </thead>
       <tbody id="alerts-tbody">
-        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+        <tr><td colspan="8" class="empty-state">Loading...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
+<!-- Threat Detail Modal -->
+<div class="modal-overlay hidden" id="threat-modal"
+     onclick="if(event.target===this)closeThreatModal()">
+  <div class="modal" style="width:620px;max-width:96vw;">
+    <div class="modal-header">
+      <span class="modal-title" id="threat-modal-title">THREAT DETAIL</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-ghost" style="font-size:0.7rem;padding:3px 10px;"
+                id="threat-ack-btn" onclick="ackCurrentAlert()">✓ Acknowledge</button>
+        <button class="modal-close" onclick="closeThreatModal()">✕</button>
+      </div>
+    </div>
+    <div id="threat-modal-body" style="display:flex;flex-direction:column;gap:16px;"></div>
+  </div>
+</div>
+
+<style>
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+}
+.detail-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.detail-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+.detail-full { grid-column: span 2; }
+.rep-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-border);
+  margin-top: 4px;
+  overflow: hidden;
+}
+.rep-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.port-chip {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 2px 5px;
+  background: var(--bg-base);
+  border: 1px solid var(--bg-border);
+  border-radius: 2px;
+  margin: 2px;
+  color: var(--text-mono);
+}
+</style>
+
 <script>
+let _currentAlertId = null;
+let _allAlerts = [];
+
+const TYPE_ICONS = {
+  port_scan: '🔍', flood: '🌊', blacklisted_ip: '🚫',
+  dns_anomaly: '🌐', beaconing: '📡', arp_spoofing: '⚠️', default: '🔔'
+};
+const TYPE_LABELS = {
+  port_scan: 'Port Scan', flood: 'Traffic Flood / DoS',
+  blacklisted_ip: 'Blacklisted IP', dns_anomaly: 'DNS Anomaly',
+  beaconing: 'Beaconing (C2)', arp_spoofing: 'ARP Spoofing'
+};
+const TYPE_DESCRIPTIONS = {
+  port_scan: 'One IP contacted many distinct ports in a short window — possible reconnaissance.',
+  flood: 'Abnormally high traffic volume from a single source — possible DoS/DDoS attempt.',
+  blacklisted_ip: 'Traffic detected to/from an IP with known malicious activity.',
+  dns_anomaly: 'Suspicious DNS query — possible DNS tunneling or data exfiltration.',
+  beaconing: 'Periodic outbound connections at regular intervals — possible C2 communication.',
+  arp_spoofing: 'Same IP seen with multiple MAC addresses — possible man-in-the-middle attack.',
+};
+
 async function loadAlerts() {
   const sev = document.getElementById('filter-severity').value;
   const type = document.getElementById('filter-type').value;
-  let url = '/api/alerts?';
-  if (sev) url += `severity=${sev}&`;
-  if (type) url += `type=${type}&`;
+  const ackFilter = document.getElementById('filter-ack').value;
+
+  let url = '/api/alerts?limit=500';
+  if (sev) url += `&severity=${sev}`;
+  if (type) url += `&type=${type}`;
 
   const res = await fetch(url);
-  const alerts = await res.json();
-  document.getElementById('alert-count').textContent = `${alerts.length} results`;
+  _allAlerts = await res.json();
+
+  let filtered = _allAlerts;
+  if (ackFilter === 'unacked') filtered = filtered.filter(a => !a.acknowledged);
+
+  document.getElementById('alert-count').textContent = `${filtered.length} alert${filtered.length !== 1 ? 's' : ''}`;
+
+  // Update severity counters
+  ['critical','high','medium','low'].forEach(s => {
+    document.getElementById(`cnt-${s}`).textContent =
+      _allAlerts.filter(a => a.severity === s).length;
+  });
 
   const tbody = document.getElementById('alerts-tbody');
-  if (!alerts.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><span class="empty-state-icon">✓</span>No alerts</td></tr>`;
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><span class="empty-state-icon">✓</span>No alerts match filters</td></tr>`;
     return;
   }
-  tbody.innerHTML = alerts.map(a => `
-    <tr class="${a.acknowledged ? 'text-muted' : ''}">
-      <td class="text-mono">${a.id}</td>
-      <td class="text-mono" style="font-size:0.7rem;">${a.timestamp.slice(0,19).replace('T',' ')}</td>
-      <td><span style="font-size:0.72rem;">${a.alert_type.replace('_',' ')}</span></td>
+
+  tbody.innerHTML = filtered.map(a => `
+    <tr class="clickable-row ${a.acknowledged ? 'text-muted' : ''}"
+        style="cursor:pointer;" onclick="openThreatDetail(${a.id})">
+      <td class="text-mono" style="font-size:0.7rem;">#${a.id}</td>
+      <td class="text-mono" style="font-size:0.68rem;white-space:nowrap;">
+        ${a.timestamp ? a.timestamp.slice(0,19).replace('T',' ') : '—'}
+      </td>
+      <td>
+        <span style="margin-right:4px;">${TYPE_ICONS[a.alert_type] || TYPE_ICONS.default}</span>
+        <span style="font-size:0.72rem;">${TYPE_LABELS[a.alert_type] || a.alert_type.replace(/_/g,' ')}</span>
+      </td>
       <td><span class="badge badge-${a.severity}">${a.severity}</span></td>
       <td class="ip-address">${a.src_ip || '—'}</td>
-      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.75rem;">${a.description}</td>
+      <td class="ip-address">${a.dst_ip || '—'}</td>
+      <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.74rem;">
+        ${a.description}
+      </td>
       <td>
         ${a.acknowledged
-          ? '<span style="color:var(--text-muted);font-size:0.7rem;">ACK</span>'
-          : `<button class="btn btn-ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="ackAlert(${a.id})">ACK</button>`
+          ? '<span style="color:var(--text-muted);font-size:0.68rem;">✓ ACK</span>'
+          : `<button class="btn btn-ghost" style="font-size:0.62rem;padding:2px 6px;"
+               onclick="event.stopPropagation();quickAck(${a.id})">ACK</button>`
         }
       </td>
     </tr>
   `).join('');
 }
 
-async function ackAlert(id) {
+async function openThreatDetail(alertId) {
+  _currentAlertId = alertId;
+  const modal = document.getElementById('threat-modal');
+  const body = document.getElementById('threat-modal-body');
+  const titleEl = document.getElementById('threat-modal-title');
+
+  body.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);">Loading...</div>`;
+  modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch(`/api/alerts/${alertId}/detail`);
+    const detail = await res.json();
+    renderThreatDetail(detail, titleEl, body);
+
+    // Hide ack button if already acknowledged
+    document.getElementById('threat-ack-btn').style.display =
+      detail.acknowledged ? 'none' : 'flex';
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--severity-critical);">Error loading detail: ${e}</div>`;
+  }
+}
+
+function renderThreatDetail(d, titleEl, body) {
+  const type = d.alert_type || 'unknown';
+  const raw = d.raw_data_parsed || {};
+  const icon = TYPE_ICONS[type] || TYPE_ICONS.default;
+  const label = TYPE_LABELS[type] || type.replace(/_/g,' ');
+  const explain = TYPE_DESCRIPTIONS[type] || '';
+
+  titleEl.innerHTML = `${icon} ${label.toUpperCase()}`;
+
+  let html = '';
+
+  // ── Header strip ────────────────────────────────────────────
+  html += `
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <span class="badge badge-${d.severity}" style="font-size:0.78rem;padding:4px 12px;">${d.severity.toUpperCase()}</span>
+      <span class="text-mono" style="font-size:0.72rem;color:var(--text-secondary);">
+        ID #${d.id} &nbsp;·&nbsp; ${(d.timestamp||'').slice(0,19).replace('T',' ')} UTC
+      </span>
+      ${d.acknowledged ? '<span style="color:var(--text-muted);font-size:0.72rem;">✓ Acknowledged</span>' : ''}
+    </div>`;
+
+  // ── What happened ────────────────────────────────────────────
+  html += `
+    <div style="background:var(--bg-elevated);border-left:3px solid var(--badge-${d.severity},var(--severity-${d.severity}));
+                padding:12px 14px;border-radius:0 3px 3px 0;">
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">DESCRIPTION</div>
+      <div style="font-size:0.82rem;color:var(--text-primary);">${d.description}</div>
+      ${explain ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:6px;font-style:italic;">${explain}</div>` : ''}
+    </div>`;
+
+  // ── IPs grid ─────────────────────────────────────────────────
+  html += `<div class="detail-grid">`;
+
+  ['src', 'dst'].forEach(dir => {
+    const ip = d[`${dir}_ip`];
+    const rep = d[`${dir}_ip_reputation`];
+    if (!ip) return;
+
+    const score = rep?.abuse_score ?? null;
+    const blacklisted = rep?.is_blacklisted;
+    const country = rep?.country || '—';
+    const isp = rep?.isp || '—';
+    const scoreColor = score === null ? '#4a5568'
+      : score >= 80 ? 'var(--severity-critical)'
+      : score >= 40 ? 'var(--severity-high)'
+      : 'var(--accent-primary)';
+
+    html += `
+      <div class="detail-row ${blacklisted ? 'alert-critical-glow' : ''}">
+        <span class="detail-label">${dir === 'src' ? '▲ SOURCE' : '▼ DESTINATION'} IP</span>
+        <span class="detail-value" style="color:${blacklisted ? 'var(--severity-critical)' : 'var(--text-mono)'};">
+          ${ip} ${blacklisted ? '🚫' : ''}
+        </span>
+        ${country !== '—' ? `<span style="font-size:0.68rem;color:var(--text-muted);">📍 ${country}${isp !== '—' ? ' · ' + isp : ''}</span>` : ''}
+        ${score !== null ? `
+          <div style="margin-top:4px;">
+            <span style="font-size:0.65rem;color:${scoreColor};">Abuse score: ${score}/100</span>
+            <div class="rep-bar">
+              <div class="rep-fill" style="width:${score}%;background:${scoreColor};"></div>
+            </div>
+          </div>` : '<span style="font-size:0.65rem;color:var(--text-muted);">Reputation: not checked</span>'}
+      </div>`;
+  });
+
+  html += `</div>`;
+
+  // ── Type-specific details ─────────────────────────────────────
+  if (type === 'port_scan' && raw.ports?.length) {
+    const ports = raw.ports.slice().sort((a,b)=>a-b);
+    html += `
+      <div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:6px;">
+          PORTS CONTACTED (${ports.length} total)
+        </div>
+        <div style="max-height:120px;overflow-y:auto;line-height:2;">
+          ${ports.map(p => `<span class="port-chip">${p}</span>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  if (type === 'flood' && raw.bytes) {
+    const mb = (raw.bytes / 1048576).toFixed(2);
+    html += `
+      <div class="detail-grid">
+        <div class="detail-row">
+          <span class="detail-label">TOTAL BYTES</span>
+          <span class="detail-value">${raw.bytes.toLocaleString()} B</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">VOLUME</span>
+          <span class="detail-value" style="color:var(--severity-high);">${mb} MB</span>
+        </div>
+      </div>`;
+  }
+
+  if (type === 'blacklisted_ip') {
+    const rep = d.src_ip_reputation || d.dst_ip_reputation;
+    if (rep?.source) {
+      html += `
+        <div class="detail-row">
+          <span class="detail-label">THREAT INTELLIGENCE SOURCE</span>
+          <span class="detail-value">${rep.source}</span>
+        </div>`;
+    }
+  }
+
+  if (type === 'dns_anomaly' && raw.domain) {
+    html += `
+      <div class="detail-row detail-full">
+        <span class="detail-label">QUERIED DOMAIN</span>
+        <span class="detail-value" style="color:var(--severity-medium);">${raw.domain}</span>
+        <span style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">
+          Length: ${raw.domain.length} chars
+          ${raw.query_type ? ' · Type: ' + raw.query_type : ''}
+        </span>
+      </div>`;
+  }
+
+  if (type === 'arp_spoofing' && raw.macs?.length) {
+    html += `
+      <div class="detail-row detail-full">
+        <span class="detail-label">MAC ADDRESSES SEEN FOR ${raw.ip || d.src_ip}</span>
+        <div style="margin-top:4px;">
+          ${raw.macs.map(m => `<span class="port-chip">${m}</span>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── Raw context (collapsible) ─────────────────────────────────
+  if (Object.keys(raw).length) {
+    html += `
+      <details style="font-size:0.72rem;">
+        <summary style="cursor:pointer;color:var(--text-muted);padding:4px 0;user-select:none;">
+          ▸ Raw context data
+        </summary>
+        <pre style="background:var(--bg-base);padding:10px;border-radius:3px;margin-top:6px;
+                    font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-mono);
+                    overflow-x:auto;white-space:pre-wrap;">${JSON.stringify(raw, null, 2)}</pre>
+      </details>`;
+  }
+
+  body.innerHTML = html;
+}
+
+function closeThreatModal() {
+  document.getElementById('threat-modal').classList.add('hidden');
+  _currentAlertId = null;
+}
+
+async function ackCurrentAlert() {
+  if (!_currentAlertId) return;
+  await fetch(`/api/alerts/${_currentAlertId}/acknowledge`, { method: 'POST' });
+  closeThreatModal();
+  loadAlerts();
+}
+
+async function quickAck(id) {
   await fetch(`/api/alerts/${id}/acknowledge`, { method: 'POST' });
   loadAlerts();
 }
 
 async function clearAllAlerts() {
-  if (!confirm('Clear all alerts?')) return;
+  if (!confirm('Clear ALL alerts? This cannot be undone.')) return;
   await fetch('/api/alerts/clear', { method: 'POST' });
   loadAlerts();
 }
 
-function exportAlerts() {
-  window.location.href = '/api/alerts';
+function exportCSV() {
+  const rows = [['ID','Time','Type','Severity','Src IP','Dst IP','Description','Acknowledged']];
+  _allAlerts.forEach(a => {
+    rows.push([
+      a.id, (a.timestamp||'').slice(0,19).replace('T',' '),
+      a.alert_type, a.severity, a.src_ip||'', a.dst_ip||'',
+      `"${(a.description||'').replace(/"/g,'""')}"`, a.acknowledged ? 'yes' : 'no'
+    ]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `homenetguard_alerts_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
 }
 
 loadAlerts();
-socket.on('stats_update', loadAlerts);
+socket.on('stats_update', () => loadAlerts());
 </script>
 {% endblock %}
