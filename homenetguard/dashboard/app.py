@@ -41,4 +41,12 @@ def run_dashboard(config: dict[str, Any], sniffer: Any = None) -> None:
         threading.Timer(1.5, lambda: webbrowser.open(f"http://{host}:{port}")).start()
 
     logger.info("Dashboard at http://%s:%d", host, port)
-    socketio.run(app, host=host, port=port, debug=False, use_reloader=False, log_output=False)
+    socketio.run(
+        app,
+        host=host,
+        port=port,
+        debug=False,
+        use_reloader=False,
+        log_output=False,
+        allow_unsafe_werkzeug=True,
+    )
