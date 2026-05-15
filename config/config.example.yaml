@@ -1,0 +1,111 @@
+# HomeNetGuard — Configuración principal
+# Copia este archivo a config/config.yaml y ajusta los valores
+
+network:
+  # Interfaz de red a monitorizar. "auto" detecta la interfaz activa automáticamente
+  interface: auto
+  # Filtro BPF opcional para limitar la captura (ej: "not port 22 and not port 443")
+  capture_filter: ""
+  # Tamaño máximo por fichero .pcap antes de rotar (MB)
+  max_pcap_size_mb: 500
+  # Rotar fichero de captura cada N horas
+  rotate_pcap_hours: 24
+
+storage:
+  # Ruta a la base de datos SQLite
+  db_path: data/homenetguard.db
+  # Directorio para ficheros .pcap
+  captures_path: data/captures
+  # Directorio para informes generados
+  reports_path: data/reports
+  # Eliminar registros más antiguos de N días (0 = no eliminar)
+  retention_days: 30
+
+dashboard:
+  enabled: true
+  # Host donde escucha el dashboard (usa 127.0.0.1 para seguridad)
+  host: 127.0.0.1
+  port: 5000
+  # Abrir navegador automáticamente al arrancar el dashboard
+  auto_open_browser: true
+  # Intervalo de actualización del dashboard en segundos
+  update_interval_seconds: 5
+  auth:
+    # Habilitar autenticación básica en el dashboard
+    enabled: false
+    username: admin
+    # Contraseña en texto plano (solo para uso local)
+    password: changeme
+
+geoip:
+  enabled: true
+  # Ruta a la base de datos MaxMind GeoLite2 (descargar con scripts/download_geoip.sh)
+  db_path: config/geoip/GeoLite2-City.mmdb
+
+threat_intelligence:
+  abuseipdb:
+    enabled: false
+    # Configurar en .env como ABUSEIPDB_API_KEY (gratuito en abuseipdb.com)
+    api_key: ""
+    # Horas de caché antes de volver a consultar la misma IP
+    cache_hours: 24
+  virustotal:
+    enabled: false
+    # Configurar en .env como VT_API_KEY
+    api_key: ""
+
+detection:
+  port_scan:
+    enabled: true
+    # Número de puertos distintos desde una misma IP en threshold_seconds para disparar alerta
+    threshold_ports: 15
+    threshold_seconds: 60
+  beaconing:
+    enabled: true
+    # Mínimo de conexiones para considerar patrón de beaconing
+    min_connections: 10
+    # Tolerancia en % de variación del intervalo (10 = ±10%)
+    interval_tolerance_pct: 10
+  flood:
+    enabled: true
+    # MB recibidos desde una IP en threshold_seconds para disparar alerta DoS
+    threshold_mb: 10
+    threshold_seconds: 30
+  dns_anomaly:
+    enabled: true
+    # Longitud máxima de dominio antes de considerar posible DNS tunneling
+    max_domain_length: 50
+    # Consultas NXDOMAIN por minuto antes de disparar alerta
+    max_nxdomain_per_minute: 20
+
+firewall:
+  # Bloqueo automático de IPs maliciosas (requiere sudo/root)
+  auto_block: false
+  # Backend de firewall: iptables (Linux) | nftables (Linux) | pf (macOS)
+  block_backend: iptables
+
+alerts:
+  email:
+    enabled: false
+    smtp_host: smtp.gmail.com
+    smtp_port: 587
+    smtp_user: ""
+    # Contraseña en .env como EMAIL_PASSWORD
+    smtp_password: ""
+    recipient: ""
+    # Severidad mínima para enviar email: low | medium | high | critical
+    min_severity: high
+  telegram:
+    enabled: false
+    # Token del bot en .env como TELEGRAM_BOT_TOKEN
+    bot_token: ""
+    chat_id: ""
+    min_severity: critical
+
+logging:
+  # Nivel de log: DEBUG | INFO | WARNING | ERROR
+  level: INFO
+  file: logs/homenetguard.log
+  # Tamaño máximo del fichero de log antes de rotar (MB)
+  max_size_mb: 50
+  backup_count: 5
