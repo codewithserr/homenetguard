@@ -19,7 +19,21 @@ def init_db(db_path: str = "data/homenetguard.db") -> None:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     with get_connection() as conn:
         conn.executescript(SCHEMA_SQL)
+        _migrate(conn)
     logger.info("Database initialized at %s", db_path)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Apply additive migrations safe to run on existing DBs."""
+    migrations = [
+        "ALTER TABLE ip_reputation ADD COLUMN org TEXT",
+        "ALTER TABLE ip_reputation ADD COLUMN asn TEXT",
+    ]
+    for sql in migrations:
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
 
 @contextmanager

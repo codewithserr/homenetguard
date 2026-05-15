@@ -175,23 +175,27 @@ def upsert_ip_reputation(
     is_blacklisted: bool = False,
     country: str | None = None,
     isp: str | None = None,
+    org: str | None = None,
+    asn: str | None = None,
     source: str = "local",
 ) -> None:
     sql = """
-    INSERT INTO ip_reputation (ip_address, abuse_score, is_blacklisted, country, isp, source, last_checked)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO ip_reputation (ip_address, abuse_score, is_blacklisted, country, isp, org, asn, source, last_checked)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(ip_address) DO UPDATE SET
-        abuse_score=excluded.abuse_score,
+        abuse_score=COALESCE(excluded.abuse_score, abuse_score),
         is_blacklisted=excluded.is_blacklisted,
-        country=excluded.country,
-        isp=excluded.isp,
+        country=COALESCE(excluded.country, country),
+        isp=COALESCE(excluded.isp, isp),
+        org=COALESCE(excluded.org, org),
+        asn=COALESCE(excluded.asn, asn),
         source=excluded.source,
         last_checked=excluded.last_checked
     """
     with get_connection() as conn:
         conn.execute(
             sql,
-            (ip_address, abuse_score, int(is_blacklisted), country, isp, source,
+            (ip_address, abuse_score, int(is_blacklisted), country, isp, org, asn, source,
              datetime.now(UTC).isoformat()),
         )
 

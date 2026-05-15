@@ -216,6 +216,7 @@ def api_geo_data():
             status = "malicious" if (rep and rep.get("is_blacklisted")) else "normal"
 
             existing = geo_points.get(ip)
+            rep_org = (rep.get("org") or rep.get("isp")) if rep else None
             geo_points[ip] = {
                 "ip": ip,
                 "country": country,
@@ -225,6 +226,9 @@ def api_geo_data():
                 "bytes": (existing["bytes"] if existing else 0) + (f.get("bytes") or 0),
                 "flows": (existing["flows"] if existing else 0) + 1,
                 "status": status,
+                "org": rep_org,
+                "asn": rep.get("asn") if rep else None,
+                "abuse_score": rep.get("abuse_score") if rep else None,
             }
 
     geo.close()
@@ -238,12 +242,13 @@ def api_geo_data():
 
 
 def _enrich_via_ipapi(ips: list[str], geo_points: dict[str, dict]) -> None:
-    """Batch-query ip-api.com for up to 100 IPs (free tier, no API key)."""
+    """Batch-query ip-api.com for geo + ownership data (free tier, no API key)."""
     import requests as req
     from homenetguard.analysis.geo_lookup import COUNTRY_CENTROIDS
 
+    fields = "query,country,countryCode,city,lat,lon,isp,org,as,status"
     try:
-        batch = [{"query": ip, "fields": "query,country,countryCode,city,lat,lon,status"} for ip in ips[:100]]
+        batch = [{"query": ip, "fields": fields} for ip in ips[:100]]
         resp = req.post("http://ip-api.com/batch", json=batch, timeout=5)
         resp.raise_for_status()
         for entry in resp.json():
@@ -258,14 +263,103 @@ def _enrich_via_ipapi(ips: list[str], geo_points: dict[str, dict]) -> None:
                 cc = entry.get("countryCode")
                 if cc:
                     lat, lon = COUNTRY_CENTROIDS.get(cc, (None, None))
+            org = entry.get("org") or entry.get("isp")
+            asn = entry.get("as", "").split()[0] if entry.get("as") else None
             geo_points[ip].update({
                 "lat": lat,
                 "lon": lon,
                 "country": geo_points[ip]["country"] or entry.get("country"),
                 "city": geo_points[ip]["city"] or entry.get("city"),
+                "org": org,
+                "asn": asn,
+                "isp": entry.get("isp"),
             })
+            # Persist org/asn to reputation table for offline use
+            if org:
+                repository.upsert_ip_reputation(
+                    ip_address=ip,
+                    country=entry.get("country"),
+                    isp=entry.get("isp"),
+                    org=org,
+                    asn=asn,
+                    source="ip-api",
+                )
     except Exception:
         pass  # ip-api.com is best-effort; map degrades gracefully
+
+
+@bp.route("/api/ip-ownership")
+def api_ip_ownership():
+    """Return org/ISP/ASN for all unique public IPs seen in recent flows."""
+    from homenetguard.analysis.reputation import is_private_ip
+    import requests as req
+
+    flows = repository.get_recent_flows(limit=500)
+    seen: set[str] = set()
+    for f in flows:
+        for key in ("src_ip", "dst_ip"):
+            ip = f.get(key)
+            if ip and not is_private_ip(ip):
+                seen.add(ip)
+
+    result: dict[str, dict] = {}
+
+    # First: check local reputation cache
+    uncached: list[str] = []
+    for ip in seen:
+        rep = repository.get_ip_reputation(ip)
+        if rep and (rep.get("org") or rep.get("isp")):
+            result[ip] = {
+                "ip": ip,
+                "org": rep.get("org") or rep.get("isp"),
+                "isp": rep.get("isp"),
+                "asn": rep.get("asn"),
+                "country": rep.get("country"),
+                "is_blacklisted": bool(rep.get("is_blacklisted")),
+                "abuse_score": rep.get("abuse_score"),
+            }
+        else:
+            uncached.append(ip)
+
+    # Batch-query ip-api.com for uncached IPs
+    if uncached:
+        fields = "query,isp,org,as,country,countryCode,status"
+        try:
+            batch = [{"query": ip, "fields": fields} for ip in uncached[:100]]
+            resp = req.post("http://ip-api.com/batch", json=batch, timeout=6)
+            resp.raise_for_status()
+            for entry in resp.json():
+                ip = entry.get("query")
+                if not ip or entry.get("status") != "success":
+                    continue
+                org = entry.get("org") or entry.get("isp")
+                asn_raw = entry.get("as", "")
+                asn = asn_raw.split()[0] if asn_raw else None
+                rep = repository.get_ip_reputation(ip)
+                if org:
+                    repository.upsert_ip_reputation(
+                        ip_address=ip,
+                        country=entry.get("country"),
+                        isp=entry.get("isp"),
+                        org=org,
+                        asn=asn,
+                        source="ip-api",
+                        is_blacklisted=bool(rep and rep.get("is_blacklisted")),
+                        abuse_score=rep.get("abuse_score") if rep else None,
+                    )
+                result[ip] = {
+                    "ip": ip,
+                    "org": org,
+                    "isp": entry.get("isp"),
+                    "asn": asn,
+                    "country": entry.get("country"),
+                    "is_blacklisted": bool(rep and rep.get("is_blacklisted")),
+                    "abuse_score": rep.get("abuse_score") if rep else None,
+                }
+        except Exception:
+            pass
+
+    return jsonify(result)
 
 
 def _sanitize_config(cfg: dict) -> dict:

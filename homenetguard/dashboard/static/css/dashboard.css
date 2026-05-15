@@ -519,6 +519,30 @@ body::after {
 .mt-gap { margin-top: var(--gap); }
 .col-span-2 { grid-column: span 2; }
 
+/* ─── Org / ownership badges ────────────────────────────────── */
+.org-badge {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  padding: 1px 5px;
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  vertical-align: middle;
+}
+/* Known-good: major CDN / consumer cloud */
+.org-good    { background: rgba(0,255,136,0.07); color: var(--accent-primary-dim); border: 1px solid rgba(0,255,136,0.15); }
+/* Cloud/hosting: could host C2 */
+.org-cloud   { background: rgba(255,204,0,0.07); color: #ccaa00; border: 1px solid rgba(255,204,0,0.2); }
+/* Telecom / ISP */
+.org-isp     { background: rgba(0,212,255,0.07); color: var(--accent-cyan-dim); border: 1px solid rgba(0,212,255,0.15); }
+/* Unknown */
+.org-unknown { background: transparent; color: var(--text-muted); border: 1px solid var(--bg-border); }
+/* Malicious */
+.org-bad     { background: rgba(255,59,92,0.1); color: var(--severity-critical); border: 1px solid rgba(255,59,92,0.25); }
+
 /* Config page */
 .config-section { margin-bottom: 24px; }
 .config-key {

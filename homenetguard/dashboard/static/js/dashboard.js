@@ -4,6 +4,46 @@
 // ─── Socket.IO connection ────────────────────────────────────
 const socket = io({ transports: ['websocket', 'polling'] });
 
+// ─── IP Ownership cache & classifier ─────────────────────────
+const _ownershipCache = {};
+
+const _KNOWN_GOOD = [
+  'google', 'googleapis', 'gstatic', 'cloudflare', 'apple', 'icloud',
+  'microsoft', 'azure', 'akamai', 'fastly', 'amazon', 'aws',
+  'meta', 'facebook', 'cdn', 'netflix', 'twitch', 'youtube',
+  'twitter', 'x corp', 'mozilla', 'mozilla foundation',
+];
+const _CLOUD_HOSTING = [
+  'digitalocean', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo',
+  'scaleway', 'upcloud', 'ionos', 'rackspace', 'leaseweb',
+  'choopa', 'as-choopa', 'serverius', 'quadranet', 'psychz',
+  'datacamp', 'm247', 'serverroom', 'hostinger', 'bluehost',
+];
+
+function classifyOrg(org) {
+  if (!org) return 'unknown';
+  const lower = org.toLowerCase();
+  if (_KNOWN_GOOD.some(k => lower.includes(k))) return 'good';
+  if (_CLOUD_HOSTING.some(k => lower.includes(k))) return 'cloud';
+  if (lower.match(/telecom|telekom|telefon|comcast|verizon|at&t|att |sprint|t-mobile|tmobile|vodafone|orange|swisscom|btgroup|bt group|telia|deutsche|isp|broadband/)) return 'isp';
+  return 'unknown';
+}
+
+function orgBadge(org, isBlacklisted) {
+  if (!org) return '<span class="org-badge org-unknown">unknown</span>';
+  const cls = isBlacklisted ? 'org-bad' : `org-${classifyOrg(org)}`;
+  const short = org.length > 28 ? org.slice(0, 26) + '…' : org;
+  return `<span class="org-badge ${cls}" title="${org}">${short}</span>`;
+}
+
+async function loadOwnership() {
+  try {
+    const res = await fetch('/api/ip-ownership');
+    const data = await res.json();
+    Object.assign(_ownershipCache, data);
+  } catch(e) { /* silent — ownership is best-effort */ }
+}
+
 // ─── State ───────────────────────────────────────────────────
 const state = {
   bpsHistory: Array(60).fill(0),
@@ -141,8 +181,11 @@ function updateFlowsTable(flows) {
   if (!tbody || !flows.length) return;
 
   flows.forEach(f => {
-    const rep = false; // reputation checked server-side via row class
-    const rowClass = `row-new row-${(f.protocol||'').toLowerCase()}`;
+    const dstOwn = _ownershipCache[f.dst_ip] || {};
+    const srcOwn = _ownershipCache[f.src_ip] || {};
+    const org = dstOwn.org || dstOwn.isp || srcOwn.org || srcOwn.isp || null;
+    const isBlacklisted = dstOwn.is_blacklisted || srcOwn.is_blacklisted || false;
+    const rowClass = `row-new row-${(f.protocol||'').toLowerCase()}${isBlacklisted ? ' row-malicious' : ''}`;
     const tr = document.createElement('tr');
     tr.className = rowClass;
     tr.innerHTML = `
@@ -153,7 +196,8 @@ function updateFlowsTable(flows) {
       <td class="port">${f.src_port || '--'}</td>
       <td class="port">${f.dst_port || '--'}</td>
       <td class="text-mono">${fmtBytes(f.bytes || 0)}</td>
-      <td class="text-mono">${f.src_country || '--'}</td>
+      <td>${orgBadge(org, isBlacklisted)}</td>
+      <td class="text-mono" style="font-size:0.68rem;">${f.src_country || '--'}</td>
     `;
     tbody.insertBefore(tr, tbody.firstChild);
     _flowRows.push(tr);
@@ -326,10 +370,14 @@ async function updateGeoMap() {
                   : '#00ff88';
       const radius = Math.max(5, Math.min(18, 4 + Math.log2((p.bytes || 1) + 1)));
 
+      const own = _ownershipCache[p.ip] || {};
+      const orgName = p.org || own.org || own.isp || null;
       const label = [
         `<b class="ip-address">${p.ip}</b>`,
+        orgName ? `🏢 ${orgName}` : '',
         p.city ? `📍 ${p.city}, ${p.country}` : (p.country ? `📍 ${p.country}` : ''),
         `📦 ${fmtBytes(p.bytes || 0)}  ·  ${p.flows || 1} flow${(p.flows||1) !== 1 ? 's' : ''}`,
+        p.asn ? `<span style="color:#4a5568;">${p.asn}</span>` : '',
         isMalicious ? '🚫 <b style="color:#ff3b5c">BLACKLISTED</b>' : '',
       ].filter(Boolean).join('<br>');
 
@@ -386,16 +434,24 @@ async function loadTopIPs() {
     const res = await fetch('/api/top-ips');
     const data = await res.json();
     if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="3" class="empty-state">No data yet</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No data yet</td></tr>`;
       return;
     }
-    tbody.innerHTML = data.map((ip, i) => `
-      <tr>
-        <td class="text-mono">${i+1}</td>
-        <td class="ip-address">${ip.ip}</td>
-        <td class="text-mono">${fmtBytes(ip.total_bytes)}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = data.map((entry, i) => {
+      const own = _ownershipCache[entry.ip] || {};
+      const org = own.org || own.isp || null;
+      const isBlacklisted = own.is_blacklisted || false;
+      return `
+        <tr>
+          <td class="text-mono">${i+1}</td>
+          <td>
+            <div class="ip-address" style="line-height:1.8;">${entry.ip}</div>
+            <div>${orgBadge(org, isBlacklisted)}</div>
+          </td>
+          <td class="text-mono">${fmtBytes(entry.total_bytes)}</td>
+          <td class="text-mono" style="color:var(--text-muted);">${entry.flow_count || '—'}</td>
+        </tr>`;
+    }).join('');
   } catch(e) { console.error('Top IPs error', e); }
 }
 
@@ -443,8 +499,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initBpsChart();
   initGeoMap();
   loadProtocolChart();
-  loadTopIPs();
+  loadOwnership().then(() => {
+    loadTopIPs();
+    updateGeoMap();
+  });
   setInterval(loadTopIPs, 10000);
   setInterval(loadProtocolChart, 30000);
   setInterval(updateGeoMap, 15000);
+  setInterval(loadOwnership, 60000); // refresh ownership cache every minute
 });
