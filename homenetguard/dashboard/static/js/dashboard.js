@@ -266,7 +266,7 @@ async function loadProtocolChart() {
 
 // ─── Geo Map (Leaflet) ────────────────────────────────────────
 let _map = null;
-let _markers = [];
+let _mapLayers = [];
 
 function initGeoMap() {
   const mapEl = $('geo-map');
@@ -281,26 +281,101 @@ function initGeoMap() {
   }).addTo(_map);
 }
 
+function _clearMapLayers() {
+  _mapLayers.forEach(l => { try { _map.removeLayer(l); } catch(_) {} });
+  _mapLayers = [];
+}
+
+function _circleMarker(lat, lon, color, radius, tooltip) {
+  const m = L.circleMarker([lat, lon], {
+    radius,
+    color,
+    fillColor: color,
+    fillOpacity: 0.7,
+    weight: 1.5,
+    opacity: 0.9,
+  }).bindTooltip(tooltip, {
+    className: 'leaflet-dark-tooltip',
+    direction: 'top',
+    offset: [0, -4],
+  });
+  return m;
+}
+
 async function updateGeoMap() {
   if (!_map) return;
   try {
     const res = await fetch('/api/geo-data');
     const points = await res.json();
+    if (!points.length) return;
 
-    _markers.forEach(m => _map.removeLayer(m));
-    _markers = [];
+    _clearMapLayers();
+
+    // Home marker — approximate center of all local traffic
+    // Use the midpoint of the bounding box as "home" origin for lines
+    const lats = points.map(p => p.lat);
+    const lons = points.map(p => p.lon);
+    // We don't have the local machine's real lat/lon (private IP),
+    // so draw markers only — no lines unless we have a home coordinate.
 
     points.forEach(p => {
-      // Simple geocoding stub — real lat/lon would come from GeoIP
-      // Using random offset for demo (real impl needs lat/lon from GeoIP)
       const isMalicious = p.status === 'malicious';
-      const color = isMalicious ? '#ff3b5c' : '#00ff88';
-      const radius = Math.max(4, Math.min(15, Math.log2((p.bytes || 1) + 1)));
+      const isSuspicious = (p.abuse_score || 0) >= 40;
+      const color = isMalicious ? '#ff3b5c'
+                  : isSuspicious ? '#ffcc00'
+                  : '#00ff88';
+      const radius = Math.max(5, Math.min(18, 4 + Math.log2((p.bytes || 1) + 1)));
 
-      // Skip if no meaningful geo data available
-      // In production, lat/lon from GeoIP2 reader would be stored in flows
+      const label = [
+        `<b class="ip-address">${p.ip}</b>`,
+        p.city ? `📍 ${p.city}, ${p.country}` : (p.country ? `📍 ${p.country}` : ''),
+        `📦 ${fmtBytes(p.bytes || 0)}  ·  ${p.flows || 1} flow${(p.flows||1) !== 1 ? 's' : ''}`,
+        isMalicious ? '🚫 <b style="color:#ff3b5c">BLACKLISTED</b>' : '',
+      ].filter(Boolean).join('<br>');
+
+      const marker = _circleMarker(p.lat, p.lon, color, radius, label);
+      marker.addTo(_map);
+      _mapLayers.push(marker);
+
+      // Pulse ring for malicious IPs
+      if (isMalicious) {
+        const ring = L.circleMarker([p.lat, p.lon], {
+          radius: radius + 6,
+          color: '#ff3b5c',
+          fillColor: 'transparent',
+          fillOpacity: 0,
+          weight: 1,
+          opacity: 0.4,
+        }).addTo(_map);
+        _mapLayers.push(ring);
+      }
     });
-  } catch(e) { /* geo map is optional */ }
+
+    // Inject tooltip CSS once
+    if (!document.getElementById('leaflet-dark-tooltip-style')) {
+      const style = document.createElement('style');
+      style.id = 'leaflet-dark-tooltip-style';
+      style.textContent = `
+        .leaflet-dark-tooltip {
+          background: #0e1319;
+          border: 1px solid #1e2a38;
+          color: #e8f0fe;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          line-height: 1.6;
+          padding: 6px 10px;
+          border-radius: 3px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+        }
+        .leaflet-dark-tooltip::before { border-top-color: #1e2a38; }
+        .ip-address { color: #a8d8a8; }
+      `;
+      document.head.appendChild(style);
+    }
+
+  } catch(e) {
+    console.debug('[HNG] geo map update error:', e);
+  }
 }
 
 // ─── Top IPs table ────────────────────────────────────────────

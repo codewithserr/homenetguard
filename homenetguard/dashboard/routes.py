@@ -181,26 +181,91 @@ def api_alert_detail(alert_id: int):
 
 @bp.route("/api/geo-data")
 def api_geo_data():
-    flows = repository.get_recent_flows(limit=200)
+    from homenetguard.analysis.geo_lookup import GeoLookup, COUNTRY_CENTROIDS
+    from homenetguard.analysis.reputation import is_private_ip
+
+    cfg = current_app.config.get("HNG_CONFIG", {})
+    geo = GeoLookup(cfg.get("geoip", {}).get("db_path", "config/geoip/GeoLite2-City.mmdb"))
+
+    flows = repository.get_recent_flows(limit=500)
     geo_points: dict[str, dict] = {}
+
     for f in flows:
         for ip_key, country_key, city_key in [
             ("dst_ip", "dst_country", "dst_city"),
             ("src_ip", "src_country", "src_city"),
         ]:
             ip = f.get(ip_key)
+            if not ip or ip in geo_points or is_private_ip(ip):
+                continue
+
             country = f.get(country_key)
-            if ip and country and ip not in geo_points:
-                rep = repository.get_ip_reputation(ip)
-                status = "malicious" if (rep and rep.get("is_blacklisted")) else "normal"
-                geo_points[ip] = {
-                    "ip": ip,
-                    "country": country,
-                    "city": f.get(city_key),
-                    "bytes": f.get("bytes", 0),
-                    "status": status,
-                }
-    return jsonify(list(geo_points.values()))
+            city = f.get(city_key)
+
+            geo_data = geo.lookup(ip)
+            lat = geo_data.get("lat")
+            lon = geo_data.get("lon")
+            country = country or geo_data.get("country")
+            city = city or geo_data.get("city")
+            country_code = geo_data.get("country_code")
+
+            if (lat is None or lon is None) and country_code:
+                lat, lon = COUNTRY_CENTROIDS.get(country_code, (None, None))
+
+            rep = repository.get_ip_reputation(ip)
+            status = "malicious" if (rep and rep.get("is_blacklisted")) else "normal"
+
+            existing = geo_points.get(ip)
+            geo_points[ip] = {
+                "ip": ip,
+                "country": country,
+                "city": city,
+                "lat": lat,
+                "lon": lon,
+                "bytes": (existing["bytes"] if existing else 0) + (f.get("bytes") or 0),
+                "flows": (existing["flows"] if existing else 0) + 1,
+                "status": status,
+            }
+
+    geo.close()
+
+    # IPs still missing coordinates → batch-query ip-api.com (free, no key needed)
+    missing = [ip for ip, p in geo_points.items() if p["lat"] is None]
+    if missing:
+        _enrich_via_ipapi(missing, geo_points)
+
+    return jsonify([p for p in geo_points.values() if p["lat"] is not None])
+
+
+def _enrich_via_ipapi(ips: list[str], geo_points: dict[str, dict]) -> None:
+    """Batch-query ip-api.com for up to 100 IPs (free tier, no API key)."""
+    import requests as req
+    from homenetguard.analysis.geo_lookup import COUNTRY_CENTROIDS
+
+    try:
+        batch = [{"query": ip, "fields": "query,country,countryCode,city,lat,lon,status"} for ip in ips[:100]]
+        resp = req.post("http://ip-api.com/batch", json=batch, timeout=5)
+        resp.raise_for_status()
+        for entry in resp.json():
+            ip = entry.get("query")
+            if not ip or ip not in geo_points:
+                continue
+            if entry.get("status") != "success":
+                continue
+            lat = entry.get("lat")
+            lon = entry.get("lon")
+            if lat is None or lon is None:
+                cc = entry.get("countryCode")
+                if cc:
+                    lat, lon = COUNTRY_CENTROIDS.get(cc, (None, None))
+            geo_points[ip].update({
+                "lat": lat,
+                "lon": lon,
+                "country": geo_points[ip]["country"] or entry.get("country"),
+                "city": geo_points[ip]["city"] or entry.get("city"),
+            })
+    except Exception:
+        pass  # ip-api.com is best-effort; map degrades gracefully
 
 
 def _sanitize_config(cfg: dict) -> dict:
