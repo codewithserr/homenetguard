@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Overview — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">OVERVIEW</span>
+  <span class="text-muted" style="font-size:0.72rem;">Real-time network monitoring</span>
+</div>
+
+<!-- KPI Row -->
+<div class="grid-4">
+  <div class="kpi-card">
+    <div class="kpi-label">FLOWS / 60MIN</div>
+    <div class="kpi-value" id="kpi-flows">—</div>
+    <div class="kpi-delta" id="kpi-flows-delta">Loading...</div>
+  </div>
+  <div class="kpi-card kpi-danger">
+    <div class="kpi-label">ACTIVE THREATS</div>
+    <div class="kpi-value" id="kpi-alerts">—</div>
+    <div class="kpi-delta">Unacknowledged alerts</div>
+  </div>
+  <div class="kpi-card kpi-cyan">
+    <div class="kpi-label">UNIQUE SRC IPs</div>
+    <div class="kpi-value" id="kpi-src-ips">—</div>
+    <div class="kpi-delta">Last 60 min</div>
+  </div>
+  <div class="kpi-card kpi-warn">
+    <div class="kpi-label">TOTAL BYTES</div>
+    <div class="kpi-value" id="kpi-bytes" style="font-size:1.2rem;">—</div>
+    <div class="kpi-delta">Last 60 min</div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid-2 mt-gap">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">TRAFFIC (bytes/s)</span>
+      <span class="text-mono" id="bps-live" style="font-size:0.72rem;">0 B/s</span>
+    </div>
+    <div class="chart-container" style="height:200px;">
+      <canvas id="bps-chart"></canvas>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">PROTOCOL DISTRIBUTION</span>
+    </div>
+    <div class="chart-container" style="height:200px;">
+      <canvas id="proto-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Map + Alerts Row -->
+<div class="grid-2 mt-gap">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">GEO MAP</span>
+      <span class="text-muted" style="font-size:0.65rem;">External connections</span>
+    </div>
+    <div id="geo-map"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">ALERT FEED</span>
+      <a href="/alerts" class="btn btn-ghost" style="font-size:0.65rem;padding:3px 8px;">View all →</a>
+    </div>
+    <div id="alert-feed">
+      <div class="empty-state"><span class="empty-state-icon">🛡</span>No alerts</div>
+    </div>
+  </div>
+</div>
+
+<!-- Live Flows + Top IPs -->
+<div class="grid-2 mt-gap">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">LIVE FLOWS</span>
+      <a href="/flows" class="btn btn-ghost" style="font-size:0.65rem;padding:3px 8px;">Explorer →</a>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>TIME</th>
+            <th>SRC IP</th>
+            <th>DST IP</th>
+            <th>PROTO</th>
+            <th>SP</th>
+            <th>DP</th>
+            <th>BYTES</th>
+            <th>GEO</th>
+          </tr>
+        </thead>
+        <tbody id="flows-tbody">
+          <tr><td colspan="8" class="empty-state">Waiting for traffic...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">TOP IPs (5 MIN)</span>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr><th>#</th><th>IP</th><th>BYTES</th></tr>
+      </thead>
+      <tbody id="top-ips-tbody">
+        <tr><td colspan="3" class="empty-state">No data yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

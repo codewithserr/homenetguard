@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Alerts — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">ALERTS</span>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-danger" onclick="clearAllAlerts()">Clear All</button>
+    <button class="btn btn-ghost" onclick="exportAlerts()">Export CSV</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="filter-bar">
+    <select class="filter-select" id="filter-severity" onchange="loadAlerts()">
+      <option value="">All severities</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+    <select class="filter-select" id="filter-type" onchange="loadAlerts()">
+      <option value="">All types</option>
+      <option value="port_scan">Port Scan</option>
+      <option value="flood">Flood</option>
+      <option value="blacklisted_ip">Blacklisted IP</option>
+      <option value="dns_anomaly">DNS Anomaly</option>
+      <option value="beaconing">Beaconing</option>
+      <option value="arp_spoofing">ARP Spoofing</option>
+    </select>
+    <span class="text-muted" id="alert-count" style="align-self:center;font-size:0.72rem;"></span>
+  </div>
+  <div class="table-scroll" style="max-height:70vh;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>TIME</th><th>TYPE</th><th>SEV</th>
+          <th>SRC IP</th><th>DESCRIPTION</th><th>ACK</th>
+        </tr>
+      </thead>
+      <tbody id="alerts-tbody">
+        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function loadAlerts() {
+  const sev = document.getElementById('filter-severity').value;
+  const type = document.getElementById('filter-type').value;
+  let url = '/api/alerts?';
+  if (sev) url += `severity=${sev}&`;
+  if (type) url += `type=${type}&`;
+
+  const res = await fetch(url);
+  const alerts = await res.json();
+  document.getElementById('alert-count').textContent = `${alerts.length} results`;
+
+  const tbody = document.getElementById('alerts-tbody');
+  if (!alerts.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><span class="empty-state-icon">✓</span>No alerts</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = alerts.map(a => `
+    <tr class="${a.acknowledged ? 'text-muted' : ''}">
+      <td class="text-mono">${a.id}</td>
+      <td class="text-mono" style="font-size:0.7rem;">${a.timestamp.slice(0,19).replace('T',' ')}</td>
+      <td><span style="font-size:0.72rem;">${a.alert_type.replace('_',' ')}</span></td>
+      <td><span class="badge badge-${a.severity}">${a.severity}</span></td>
+      <td class="ip-address">${a.src_ip || '—'}</td>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.75rem;">${a.description}</td>
+      <td>
+        ${a.acknowledged
+          ? '<span style="color:var(--text-muted);font-size:0.7rem;">ACK</span>'
+          : `<button class="btn btn-ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="ackAlert(${a.id})">ACK</button>`
+        }
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function ackAlert(id) {
+  await fetch(`/api/alerts/${id}/acknowledge`, { method: 'POST' });
+  loadAlerts();
+}
+
+async function clearAllAlerts() {
+  if (!confirm('Clear all alerts?')) return;
+  await fetch('/api/alerts/clear', { method: 'POST' });
+  loadAlerts();
+}
+
+function exportAlerts() {
+  window.location.href = '/api/alerts';
+}
+
+loadAlerts();
+socket.on('stats_update', loadAlerts);
+</script>
+{% endblock %}

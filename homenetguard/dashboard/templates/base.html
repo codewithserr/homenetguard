@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}HomeNetGuard{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <!-- Main JS -->
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="indicator indicator-live" id="connection-indicator"></span>
+      <span class="brand-title">HOMENETGUARD</span>
+    </div>
+    <div class="topbar-ticker">
+      <span class="ticker-content" id="ticker-content"></span>
+    </div>
+    <div class="topbar-right">
+      <span class="iface-badge" id="iface-label">● MONITORING</span>
+      <span class="clock" id="utc-clock">00:00:00 UTC</span>
+      <button class="btn-stop" onclick="stopCapture()">■ STOP</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-nav">
+      <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </a>
+      <a href="/alerts" class="nav-item {% if request.path == '/alerts' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Alerts
+      </a>
+      <a href="/flows" class="nav-item {% if request.path == '/flows' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Flows
+      </a>
+      <a href="/dns" class="nav-item {% if request.path == '/dns' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        DNS
+      </a>
+      <a href="/reports" class="nav-item {% if request.path == '/reports' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Reports
+      </a>
+      <a href="/config" class="nav-item {% if request.path == '/config' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Config
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sys-stat">
+        <span class="sys-stat-label">SNIFFER</span>
+        <span class="sys-stat-value" id="sys-sniffer">IDLE</span>
+      </div>
+      <div class="sys-stat">
+        <span class="sys-stat-label">BPS</span>
+        <span class="sys-stat-value" id="sys-bps">0 B/s</span>
+      </div>
+      <div class="sys-stat">
+        <span class="sys-stat-label">PACKETS</span>
+        <span class="sys-stat-value" id="sys-packets">0</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+<!-- Alert Detail Modal -->
+<div class="modal-overlay hidden" id="alert-modal" onclick="if(event.target===this)closeAlertModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">ALERT DETAIL</span>
+      <button class="modal-close" onclick="closeAlertModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// Update sidebar stats from socket data
+socket.on('stats_update', (data) => {
+  const sniffer = data.sniffer || {};
+  const sysSniff = document.getElementById('sys-sniffer');
+  const sysBps = document.getElementById('sys-bps');
+  const sysPkts = document.getElementById('sys-packets');
+  if (sysSniff) sysSniff.textContent = sniffer.running ? 'ACTIVE' : 'IDLE';
+  if (sysBps && data.stats) {
+    const bytes = data.stats.total_bytes || 0;
+    sysBps.textContent = bytes > 0 ? (bytes > 1048576 ? (bytes/1048576).toFixed(1)+' MB' : (bytes/1024).toFixed(0)+' KB') : '0 B';
+  }
+  if (sysPkts) sysPkts.textContent = sniffer.packets_captured || 0;
+});
+</script>
+</body>
+</html>

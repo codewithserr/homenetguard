@@ -1,0 +1,41 @@
+:root {
+  /* Backgrounds */
+  --bg-void:        #050508;
+  --bg-base:        #0a0d12;
+  --bg-panel:       #0e1319;
+  --bg-elevated:    #141b24;
+  --bg-border:      #1e2a38;
+
+  /* Primary accent — neon green / matrix */
+  --accent-primary:     #00ff88;
+  --accent-primary-dim: #00cc6a;
+  --accent-glow:        rgba(0, 255, 136, 0.15);
+
+  /* Secondary accent — electric cyan */
+  --accent-cyan:        #00d4ff;
+  --accent-cyan-dim:    #0099bb;
+  --accent-cyan-glow:   rgba(0, 212, 255, 0.12);
+
+  /* Alert severities */
+  --severity-critical: #ff3b5c;
+  --severity-high:     #ff7b2c;
+  --severity-medium:   #ffcc00;
+  --severity-low:      #00d4ff;
+  --severity-info:     #6b7f99;
+
+  /* Text */
+  --text-primary:   #e8f0fe;
+  --text-secondary: #8899aa;
+  --text-muted:     #4a5568;
+  --text-mono:      #a8d8a8;
+
+  /* Effects */
+  --scanline-opacity: 0.03;
+  --grid-color:       rgba(0, 255, 136, 0.04);
+
+  /* Layout */
+  --sidebar-width:  220px;
+  --topbar-height:  56px;
+  --panel-radius:   4px;
+  --gap:            16px;
+}

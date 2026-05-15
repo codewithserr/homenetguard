@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Flows — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">FLOW EXPLORER</span>
+</div>
+
+<div class="panel">
+  <div class="filter-bar">
+    <input class="filter-input" id="f-ip" placeholder="Filter IP..." oninput="loadFlows()">
+    <select class="filter-select" id="f-proto" onchange="loadFlows()">
+      <option value="">All protocols</option>
+      <option>TCP</option><option>UDP</option><option>ICMP</option><option>DNS</option>
+    </select>
+    <span class="text-muted" id="flow-count" style="align-self:center;font-size:0.72rem;"></span>
+  </div>
+  <div class="table-scroll" style="max-height:70vh;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>TIME</th><th>SRC IP</th><th>DST IP</th><th>PROTO</th>
+          <th>SRC PORT</th><th>DST PORT</th><th>BYTES</th>
+          <th>DIR</th><th>SRC GEO</th><th>DST GEO</th>
+        </tr>
+      </thead>
+      <tbody id="flows-explorer-tbody">
+        <tr><td colspan="10" class="empty-state">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let _allFlows = [];
+
+async function loadFlows() {
+  const res = await fetch('/api/flows?limit=500');
+  _allFlows = await res.json();
+  renderFlows();
+}
+
+function renderFlows() {
+  const ipFilter = document.getElementById('f-ip').value.trim().toLowerCase();
+  const protoFilter = document.getElementById('f-proto').value;
+  let flows = _allFlows;
+  if (ipFilter) flows = flows.filter(f =>
+    (f.src_ip||'').includes(ipFilter) || (f.dst_ip||'').includes(ipFilter)
+  );
+  if (protoFilter) flows = flows.filter(f => f.protocol === protoFilter);
+
+  document.getElementById('flow-count').textContent = `${flows.length} flows`;
+  const tbody = document.getElementById('flows-explorer-tbody');
+  if (!flows.length) {
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">No flows match filter</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = flows.slice(0, 200).map(f => `
+    <tr class="row-${(f.protocol||'').toLowerCase()}">
+      <td class="text-mono" style="font-size:0.7rem;">${(f.timestamp||'').slice(11,19)}</td>
+      <td class="ip-address">${f.src_ip||'—'}</td>
+      <td class="ip-address">${f.dst_ip||'—'}</td>
+      <td><span class="badge badge-${(f.protocol||'').toLowerCase()}">${f.protocol||'?'}</span></td>
+      <td class="port">${f.src_port||'—'}</td>
+      <td class="port">${f.dst_port||'—'}</td>
+      <td class="text-mono">${fmtBytes(f.bytes||0)}</td>
+      <td style="font-size:0.7rem;color:var(--text-muted);">${f.direction||'—'}</td>
+      <td style="font-size:0.7rem;">${f.src_country||'—'}</td>
+      <td style="font-size:0.7rem;">${f.dst_country||'—'}</td>
+    </tr>
+  `).join('');
+}
+
+function fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+loadFlows();
+setInterval(loadFlows, 5000);
+</script>
+{% endblock %}

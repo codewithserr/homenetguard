@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Reports — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">REPORTS</span>
+  <button class="btn btn-primary" onclick="document.getElementById('new-report-modal').classList.remove('hidden')">
+    + Generate Report
+  </button>
+</div>
+
+<div class="panel">
+  <table class="data-table">
+    <thead>
+      <tr><th>ID</th><th>TYPE</th><th>PERIOD</th><th>FORMAT</th><th>CREATED</th><th>DOWNLOAD</th></tr>
+    </thead>
+    <tbody id="reports-tbody">
+      <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- New report modal -->
+<div class="modal-overlay hidden" id="new-report-modal" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">GENERATE REPORT</span>
+      <button class="modal-close" onclick="document.getElementById('new-report-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">TYPE</label>
+        <select class="filter-select" id="rpt-type" style="width:100%;">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">FORMAT</label>
+        <select class="filter-select" id="rpt-format" style="width:100%;">
+          <option value="html">HTML</option>
+          <option value="pdf">PDF</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-primary" onclick="generateReport()" style="flex:1;">Generate</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('new-report-modal').classList.add('hidden')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadReports() {
+  const res = await fetch('/api/reports');
+  const reports = await res.json();
+  const tbody = document.getElementById('reports-tbody');
+  if (!reports.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><span class="empty-state-icon">📋</span>No reports generated yet</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = reports.map(r => `
+    <tr>
+      <td class="text-mono">${r.id}</td>
+      <td><span class="badge badge-tcp">${r.report_type}</span></td>
+      <td class="text-mono" style="font-size:0.7rem;">
+        ${r.period_start ? r.period_start.slice(0,10) : '—'} → ${r.period_end ? r.period_end.slice(0,10) : '—'}
+      </td>
+      <td><span class="badge badge-low">${r.format||'html'}</span></td>
+      <td class="text-mono" style="font-size:0.7rem;">${r.created_at.slice(0,16).replace('T',' ')}</td>
+      <td>
+        ${r.file_path
+          ? `<a href="/reports/${r.id}/download" class="btn btn-ghost" style="font-size:0.65rem;padding:2px 8px;">↓ Download</a>`
+          : '<span class="text-muted" style="font-size:0.7rem;">N/A</span>'
+        }
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function generateReport() {
+  const type = document.getElementById('rpt-type').value;
+  const fmt = document.getElementById('rpt-format').value;
+  document.getElementById('new-report-modal').classList.add('hidden');
+
+  const res = await fetch('/api/reports/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, format: fmt }),
+  });
+  const data = await res.json();
+  if (data.ok) loadReports();
+  else alert('Report generation failed: ' + (data.error || 'unknown error'));
+}
+
+loadReports();
+</script>
+{% endblock %}

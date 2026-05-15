@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}DNS — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">DNS ANALYSIS</span>
+</div>
+
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">TOP DOMAINS</span></div>
+    <table class="data-table">
+      <thead><tr><th>#</th><th>DOMAIN</th><th>QUERIES</th></tr></thead>
+      <tbody id="top-domains-tbody"><tr><td colspan="3" class="empty-state">Loading...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">SUSPICIOUS DOMAINS</span>
+      <span class="badge badge-medium" id="suspicious-count">0</span>
+    </div>
+    <div id="suspicious-list">
+      <div class="empty-state"><span class="empty-state-icon">✓</span>No suspicious domains</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel mt-gap">
+  <div class="panel-header"><span class="panel-title">RECENT DNS QUERIES</span></div>
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr><th>TIME</th><th>SRC IP</th><th>DOMAIN</th><th>TYPE</th><th>RESPONSE</th><th>STATUS</th></tr>
+      </thead>
+      <tbody id="dns-tbody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function loadDNS() {
+  const res = await fetch('/api/dns');
+  const queries = await res.json();
+
+  const tbody = document.getElementById('dns-tbody');
+  tbody.innerHTML = queries.slice(0, 200).map(q => `
+    <tr class="${q.is_suspicious ? 'row-malicious' : ''}">
+      <td class="text-mono" style="font-size:0.7rem;">${(q.timestamp||'').slice(11,19)}</td>
+      <td class="ip-address">${q.src_ip||'—'}</td>
+      <td class="text-mono" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${q.queried_domain||'—'}
+      </td>
+      <td><span class="badge badge-tcp">${q.query_type||'?'}</span></td>
+      <td class="ip-address">${q.response_ip||'—'}</td>
+      <td>${q.is_suspicious
+        ? '<span class="badge badge-high">SUSPICIOUS</span>'
+        : '<span class="badge" style="color:var(--text-muted)">OK</span>'
+      }</td>
+    </tr>
+  `).join('');
+
+  // Top domains
+  const counts = {};
+  queries.forEach(q => { counts[q.queried_domain] = (counts[q.queried_domain]||0)+1; });
+  const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  document.getElementById('top-domains-tbody').innerHTML = top.map(([d,c], i) => `
+    <tr>
+      <td class="text-mono">${i+1}</td>
+      <td class="text-mono" style="font-size:0.75rem;">${d}</td>
+      <td class="text-mono">${c}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="3" class="empty-state">No queries</td></tr>`;
+
+  // Suspicious
+  const susp = queries.filter(q => q.is_suspicious);
+  document.getElementById('suspicious-count').textContent = susp.length;
+  const suspList = document.getElementById('suspicious-list');
+  if (!susp.length) {
+    suspList.innerHTML = `<div class="empty-state"><span class="empty-state-icon">✓</span>None found</div>`;
+  } else {
+    suspList.innerHTML = susp.slice(0,20).map(q => `
+      <div class="alert-item sev-medium" style="margin-bottom:4px;">
+        <div class="alert-body">
+          <div class="alert-type text-mono">${q.queried_domain}</div>
+          <div class="alert-meta">from <span class="ip-address">${q.src_ip}</span></div>
+        </div>
+        <span class="badge badge-medium">${q.query_type||'?'}</span>
+      </div>
+    `).join('');
+  }
+}
+
+loadDNS();
+setInterval(loadDNS, 5000);
+</script>
+{% endblock %}

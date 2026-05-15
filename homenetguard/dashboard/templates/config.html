@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Config — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">CONFIGURATION</span>
+  <span class="text-muted" style="font-size:0.72rem;">Read-only — edit config/config.yaml to change</span>
+</div>
+
+{% macro render_section(title, data) %}
+<div class="panel config-section">
+  <div class="panel-header"><span class="panel-title">{{ title }}</span></div>
+  <table class="data-table">
+    <thead><tr><th>KEY</th><th>VALUE</th></tr></thead>
+    <tbody>
+    {% for k, v in data.items() %}
+      {% if v is mapping %}
+        <tr><td class="config-key" colspan="2" style="padding-top:10px;color:var(--text-secondary);">{{ k }}</td></tr>
+        {% for sk, sv in v.items() %}
+        <tr>
+          <td class="config-key" style="padding-left:24px;">{{ sk }}</td>
+          <td class="config-value">{{ sv }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+      <tr>
+        <td class="config-key">{{ k }}</td>
+        <td class="config-value">{{ v }}</td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+<div class="grid-2">
+  {% if config.get('network') %}{{ render_section('NETWORK', config.network) }}{% endif %}
+  {% if config.get('storage') %}{{ render_section('STORAGE', config.storage) }}{% endif %}
+  {% if config.get('dashboard') %}{{ render_section('DASHBOARD', config.dashboard) }}{% endif %}
+  {% if config.get('detection') %}{{ render_section('DETECTION', config.detection) }}{% endif %}
+</div>
+
+<div class="grid-2 mt-gap">
+  {% if config.get('geoip') %}{{ render_section('GEOIP', config.geoip) }}{% endif %}
+  {% if config.get('logging') %}{{ render_section('LOGGING', config.logging) }}{% endif %}
+</div>
+
+<div class="panel mt-gap">
+  <div class="panel-header"><span class="panel-title">INTEGRATIONS STATUS</span></div>
+  <div style="display:flex;gap:24px;padding:8px 0;flex-wrap:wrap;">
+    {% set ti = config.get('threat_intelligence', {}) %}
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="indicator {% if ti.get('abuseipdb',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
+      <span style="font-size:0.78rem;">AbuseIPDB</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="indicator {% if ti.get('virustotal',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
+      <span style="font-size:0.78rem;">VirusTotal</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="indicator {% if config.get('geoip',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
+      <span style="font-size:0.78rem;">GeoIP</span>
+    </div>
+    {% set al = config.get('alerts', {}) %}
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="indicator {% if al.get('email',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
+      <span style="font-size:0.78rem;">Email Alerts</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="indicator {% if al.get('telegram',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
+      <span style="font-size:0.78rem;">Telegram Alerts</span>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
