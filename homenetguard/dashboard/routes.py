@@ -99,6 +99,21 @@ def api_reports():
     return jsonify(repository.get_reports())
 
 
+@bp.route("/api/reports/generate", methods=["POST"])
+def api_generate_report():
+    from homenetguard.reports.report_generator import ReportGenerator
+    cfg = current_app.config.get("HNG_CONFIG", {})
+    data = request.get_json(silent=True) or {}
+    report_type = data.get("type", "daily")
+    fmt = data.get("format", "html")
+    try:
+        gen = ReportGenerator(cfg)
+        paths = gen.generate(report_type=report_type, fmt=fmt)
+        return jsonify({"ok": True, "files": paths})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @bp.route("/api/geo-data")
 def api_geo_data():
     flows = repository.get_recent_flows(limit=200)

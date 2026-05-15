@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HomeNetGuard Report — {{ report_type|title }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+  body { font-family: 'Inter', sans-serif; color: #1a1a2e; margin: 0; padding: 0; }
+  .header { background: #0a0d12; color: #e8f0fe; padding: 32px 40px; display: flex; justify-content: space-between; align-items: center; }
+  .header-title { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; color: #00ff88; letter-spacing: 0.1em; }
+  .header-meta { text-align: right; font-size: 0.8rem; color: #8899aa; line-height: 1.6; }
+  .content { padding: 32px 40px; }
+  h2 { font-size: 0.9rem; letter-spacing: 0.12em; text-transform: uppercase; color: #0a0d12; border-bottom: 2px solid #00cc6a; padding-bottom: 6px; margin-top: 32px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.82rem; }
+  th { background: #1a1a2e; color: #e8f0fe; padding: 8px 12px; text-align: left; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  td { padding: 7px 12px; border-bottom: 1px solid #e8edf5; }
+  tr:nth-child(even) td { background: #f7f9fc; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 16px 0; }
+  .kpi { background: #f7f9fc; border: 1px solid #dde3ee; border-left: 4px solid #00cc6a; padding: 16px; border-radius: 3px; }
+  .kpi-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7f99; }
+  .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; color: #0a0d12; margin-top: 4px; }
+  .badge { display: inline-block; padding: 2px 6px; border-radius: 2px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; font-weight: 700; text-transform: uppercase; }
+  .badge-critical { background: rgba(255,59,92,0.12); color: #cc2040; }
+  .badge-high     { background: rgba(255,123,44,0.12); color: #cc6010; }
+  .badge-medium   { background: rgba(255,204,0,0.12);  color: #998000; }
+  .badge-low      { background: rgba(0,212,255,0.1);   color: #0099bb; }
+  .rec { background: #f0fdf4; border-left: 4px solid #00cc6a; padding: 10px 14px; margin: 8px 0; border-radius: 2px; font-size: 0.82rem; }
+  .footer { background: #0a0d12; color: #4a5568; text-align: center; padding: 16px; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; }
+  @media print { .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">HOMENETGUARD</div>
+    <div style="color:#8899aa;font-size:0.8rem;margin-top:4px;">{{ report_type|title }} Security Report</div>
+  </div>
+  <div class="header-meta">
+    <div>Period: {{ period_start[:10] }} → {{ period_end[:10] }}</div>
+    <div>Generated: {{ generated_at[:19]|replace('T',' ') }} UTC</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- Executive Summary -->
+  <h2>Executive Summary</h2>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total Flows</div>
+      <div class="kpi-value mono">{{ stats.total_flows or 0 }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Bytes</div>
+      <div class="kpi-value mono">{{ stats.total_bytes or 0 | fmtbytes }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Unique Source IPs</div>
+      <div class="kpi-value mono">{{ stats.unique_src_ips or 0 }}</div>
+    </div>
+    <div class="kpi" style="border-left-color: {% if alert_counts.critical > 0 %}#ff3b5c{% elif alert_counts.high > 0 %}#ff7b2c{% else %}#00cc6a{% endif %}">
+      <div class="kpi-label">Total Alerts</div>
+      <div class="kpi-value mono">{{ alerts|length }}</div>
+    </div>
+  </div>
+
+  <!-- Top IPs -->
+  <h2>Top Source IPs by Volume</h2>
+  {% if top_ips %}
+  <table>
+    <thead><tr><th>#</th><th>IP Address</th><th>Total Bytes</th><th>Flow Count</th></tr></thead>
+    <tbody>
+    {% for ip in top_ips %}
+    <tr>
+      <td class="mono">{{ loop.index }}</td>
+      <td class="mono">{{ ip.ip }}</td>
+      <td class="mono">{{ ip.total_bytes | fmtbytes }}</td>
+      <td class="mono">{{ ip.flow_count }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p style="color:#6b7f99;font-size:0.82rem;">No flow data for this period.</p>{% endif %}
+
+  <!-- Protocol Distribution -->
+  <h2>Protocol Distribution</h2>
+  {% if protocols %}
+  <table>
+    <thead><tr><th>Protocol</th><th>Count</th><th>Total Bytes</th></tr></thead>
+    <tbody>
+    {% for p in protocols %}
+    <tr>
+      <td class="mono">{{ p.protocol }}</td>
+      <td class="mono">{{ p.count }}</td>
+      <td class="mono">{{ p.total_bytes | fmtbytes }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p style="color:#6b7f99;font-size:0.82rem;">No protocol data available.</p>{% endif %}
+
+  <!-- Alerts & Threats -->
+  <h2>Alerts &amp; Threats</h2>
+  <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+    {% for sev, count in alert_counts.items() %}
+    <span class="badge badge-{{ sev }}" style="font-size:0.72rem;padding:4px 10px;">{{ sev }}: {{ count }}</span>
+    {% endfor %}
+  </div>
+  {% if alerts %}
+  <table>
+    <thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Source IP</th><th>Description</th></tr></thead>
+    <tbody>
+    {% for a in alerts[:50] %}
+    <tr>
+      <td class="mono" style="font-size:0.72rem;">{{ a.timestamp[:19]|replace('T',' ') }}</td>
+      <td class="mono" style="font-size:0.75rem;">{{ a.alert_type.replace('_',' ') }}</td>
+      <td><span class="badge badge-{{ a.severity }}">{{ a.severity }}</span></td>
+      <td class="mono">{{ a.src_ip or '—' }}</td>
+      <td style="font-size:0.78rem;">{{ a.description }}</td>
+    </tr>
+    {% endfor %}
+    {% if alerts|length > 50 %}
+    <tr><td colspan="5" style="text-align:center;color:#6b7f99;font-size:0.75rem;">... and {{ alerts|length - 50 }} more alerts</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+  {% else %}<p style="color:#6b7f99;font-size:0.82rem;">No alerts during this period.</p>{% endif %}
+
+  <!-- DNS Activity -->
+  <h2>DNS Activity (Recent)</h2>
+  {% if dns_queries %}
+  <table>
+    <thead><tr><th>Domain</th><th>Source</th><th>Type</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for q in dns_queries[:30] %}
+    <tr>
+      <td class="mono" style="font-size:0.75rem;">{{ q.queried_domain }}</td>
+      <td class="mono">{{ q.src_ip }}</td>
+      <td class="mono">{{ q.query_type or '—' }}</td>
+      <td>{% if q.is_suspicious %}<span class="badge badge-medium">SUSPICIOUS</span>{% else %}OK{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p style="color:#6b7f99;font-size:0.82rem;">No DNS data available.</p>{% endif %}
+
+  <!-- Recommendations -->
+  <h2>Recommendations</h2>
+  {% for rec in recommendations %}
+  <div class="rec">{{ rec }}</div>
+  {% endfor %}
+
+</div>
+
+<div class="footer">
+  HomeNetGuard {{ report_type|upper }} REPORT — {{ generated_at[:10] }} — Open Source Network Security Monitor
+</div>
+
+</body>
+</html>
