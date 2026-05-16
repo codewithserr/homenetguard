@@ -38,7 +38,7 @@ def analyze_beaconing(
         std_interval = np.std(intervals)
         cv = (std_interval / mean_interval) * 100  # coefficient of variation
         logger.debug("Beaconing check %s: mean=%.1fs cv=%.1f%%", ip, mean_interval, cv)
-        return cv <= tolerance_pct
+        return bool(cv <= tolerance_pct)
     except ImportError:
         # numpy not available — fallback to stdlib
         return _stdlib_beaconing(timestamps, tolerance_pct)

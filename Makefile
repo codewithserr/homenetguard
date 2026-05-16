@@ -1,4 +1,4 @@
-.PHONY: install install-dev setup run dashboard test test-cov lint format report clean help
+.PHONY: install install-dev setup run dashboard test test-cov lint format report clean help monitor api update-feeds train-ml download-oui devices
 
 PYTHON := python3
 PIP    := $(PYTHON) -m pip
@@ -41,6 +41,24 @@ format:  ## Format code with black
 
 report:  ## Generate daily report
 	$(PYTHON) -m homenetguard.main report --type daily --format html
+
+monitor:  ## Arranca la TUI interactiva (requiere sudo para captura)
+	$(PYTHON) -m homenetguard.main monitor
+
+api:  ## Arranca solo el servidor API REST con Swagger en /api/docs
+	$(PYTHON) -m homenetguard.main api
+
+update-feeds:  ## Actualiza threat intelligence feeds
+	$(PYTHON) -m homenetguard.main feeds update
+
+train-ml:  ## Entrena el modelo de detección de anomalías
+	$(PYTHON) -m homenetguard.main ml train
+
+download-oui:  ## Descarga base de datos IEEE OUI para vendor lookup
+	bash scripts/download_oui.sh
+
+devices:  ## Lanza escaneo de dispositivos de la red local (requiere sudo)
+	sudo $(PYTHON) -m homenetguard.main devices scan
 
 clean:  ## Remove build artifacts and __pycache__
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

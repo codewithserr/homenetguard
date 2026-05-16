@@ -26,8 +26,21 @@ HomeNetGuard gives you full visibility into what's happening on your network: wh
 - 🗄 **Local persistence** — SQLite database, no external dependencies
 - 🔎 **DNS analysis** — Query timeline, top domains, anomaly detection
 - 🌐 **Reputation checks** — AbuseIPDB integration (optional, free API)
-- ⌨️ **Full CLI** — Click-based CLI with 8 subcommands
-- 🧪 **Tested** — Pytest unit tests, 70%+ coverage enforced
+- ⌨️ **Full CLI** — Click-based CLI with 14 command groups
+- 🧪 **Tested** — 190 pytest unit tests enforced in CI
+- 🖥 **Network device discovery** — ARP scan with vendor lookup (IEEE OUI) and OS fingerprinting
+- 🔥 **Integrated firewall** — Block IPs/CIDRs/ports via iptables/nftables/pf from CLI or dashboard
+- 🌀 **DNS Sinkhole** — Block malicious domains at DNS level, synced with threat feeds
+- 📡 **MITRE ATT&CK mapping** — All alerts mapped to tactics/techniques
+- 🤖 **ML anomaly detection** — Isolation Forest trained on traffic baselines
+- 📰 **Threat intelligence feeds** — Auto-updated from Feodo Tracker, SSL Blacklist, URLhaus
+- 🔌 **REST API + Swagger** — Full REST API at `/api/v1/` with Swagger UI at `/api/docs`
+- 📤 **SIEM export** — CEF/syslog to Splunk, Elastic, Graylog
+- 🖥 **TUI live monitor** — Rich-based terminal UI (htop-style) with traffic sparklines
+- 🔬 **Forensics timeline** — Event timeline per IP or MAC with drill-down
+- 🔎 **Deep Packet Inspection** — App-layer protocol identification (HTTP, TLS, SSH, BitTorrent, Stratum)
+- 🔐 **JA3/JA3S fingerprinting** — TLS client/server fingerprinting with malicious hash detection
+- 🏠 **IP Ownership** — Org/ISP/ASN shown inline via ip-api.com (no API key needed)
 
 ---
 
@@ -37,7 +50,7 @@ HomeNetGuard gives you full visibility into what's happening on your network: wh
 |---|---|
 | **OS** | Linux (Ubuntu 20.04+, Fedora 36+) or macOS 12+ |
 | **Python** | 3.11 or higher |
-| **System packages** | `tshark` (Wireshark CLI), `libpcap-dev` |
+| **System packages** | `tshark`, `libpcap-dev`, `tc` (iproute2, for rate limiter), `iptables`/`pf` (for firewall) |
 | **Privileges** | `sudo` / root, or `CAP_NET_RAW` capability (Linux) / `access_bpf` group (macOS) |
 | **RAM** | 256 MB minimum |
 | **Disk** | 500 MB (including GeoIP database) |
@@ -252,20 +265,32 @@ pytest tests/unit/     # unit tests only
 
 ## Roadmap
 
-### v1.1
-- [ ] Beaconing detection (C2 traffic pattern recognition)
-- [ ] Process-to-connection mapping (which app owns which connection)
-- [ ] Automatic IP blocking via iptables/nftables/pf
+### v2.0 — Released ✅
+- [x] ML anomaly detection (Isolation Forest on traffic baselines)
+- [x] DNS Sinkhole with threat feed sync
+- [x] Integrated firewall (iptables/pf)
+- [x] Network device discovery + OS fingerprinting
+- [x] MITRE ATT&CK mapping for all alert types
+- [x] Threat intelligence feeds (Feodo Tracker, SSL Blacklist, URLhaus)
+- [x] REST API v1 with Swagger UI
+- [x] SIEM export (CEF/syslog, Elastic, Graylog)
+- [x] TUI live monitor (rich-based)
+- [x] JA3/JA3S TLS fingerprinting
+- [x] Deep Packet Inspection (HTTP, TLS, SSH, BitTorrent, Stratum/crypto-mining)
+- [x] Forensics timeline per IP/MAC
+- [x] Compliance checker with security score
+- [x] IP quarantine per device MAC
 
-### v1.2
+### v2.1
 - [ ] Multi-host monitoring (central collector)
-- [ ] SIEM export (CEF/LEEF format)
 - [ ] Docker container deployment
-
-### v1.3
-- [ ] Machine learning anomaly detection
-- [ ] Vulnerability correlation with CVE database
+- [ ] Process-to-connection mapping (which app owns each connection)
 - [ ] Mobile app companion
+
+### v3.0
+- [ ] Vulnerability correlation with CVE database
+- [ ] Distributed sensor architecture
+- [ ] AI-powered threat hunting
 
 ---
 
