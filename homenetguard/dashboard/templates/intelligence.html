@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Intelligence — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">THREAT INTELLIGENCE</span>
+</div>
+
+<div class="grid-2" style="align-items:start;">
+
+  <!-- MITRE ATT&CK -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">MITRE ATT&CK COVERAGE</span></div>
+    <div id="mitre-matrix">Loading...</div>
+  </div>
+
+  <!-- Feeds status -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">THREAT FEEDS</span>
+      <button class="btn btn-primary" style="font-size:0.65rem;padding:3px 8px;" onclick="updateFeeds()">↻ Update All</button>
+    </div>
+    <div id="feeds-list">Loading...</div>
+
+    <div class="panel-header" style="margin-top:16px;"><span class="panel-title">COMPLIANCE SCORE</span></div>
+    <div id="compliance-panel">Loading...</div>
+  </div>
+
+</div>
+
+<!-- DNS Sinkhole panel -->
+<div class="panel mt-gap">
+  <div class="panel-header">
+    <span class="panel-title">DNS SINKHOLE RULES</span>
+    <div style="display:flex;gap:8px;">
+      <input class="filter-input" id="sink-domain" placeholder="domain.com" style="width:180px;">
+      <button class="btn btn-primary" style="font-size:0.65rem;padding:3px 8px;" onclick="addSinkhole()">+ Block Domain</button>
+    </div>
+  </div>
+  <div class="table-scroll" style="max-height:30vh;">
+    <table class="data-table">
+      <thead><tr><th>DOMAIN</th><th>SOURCE</th><th>HITS</th><th></th></tr></thead>
+      <tbody id="sinkhole-tbody"><tr><td colspan="4" class="empty-state">No blocked domains</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const TACTIC_COLORS = {
+  'Discovery': '#00d4ff', 'Command & Control': '#ff3b5c',
+  'Exfiltration': '#ffcc00', 'Impact': '#ff7b2c',
+  'Credential Access': '#a855f7', 'Defense Evasion': '#6b7f99',
+};
+
+async function loadMITRE() {
+  const res = await fetch('/api/v2/intelligence/mitre');
+  const data = await res.json();
+  const el = document.getElementById('mitre-matrix');
+  const tactics = data.tactics || [];
+  const hits = data.tactic_hits || {};
+  let html = '<div style="display:flex;flex-direction:column;gap:6px;">';
+  for (const tactic of tactics) {
+    const count = hits[tactic] || 0;
+    const color = TACTIC_COLORS[tactic] || '#6b7f99';
+    const techniques = Object.entries(data.mapping || {})
+      .filter(([,v]) => v.tactic === tactic)
+      .map(([k,v]) => `<span class="port-chip" style="color:${color}">${v.technique}</span>`).join('');
+    html += `
+      <div style="padding:8px;background:var(--bg-elevated);border-radius:3px;border-left:3px solid ${color}">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:0.75rem;font-weight:600;color:${color};">${tactic}</span>
+          ${count ? `<span class="badge badge-high">${count} alerts</span>` : '<span class="text-muted" style="font-size:0.68rem;">0 alerts</span>'}
+        </div>
+        <div>${techniques}</div>
+      </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function loadFeeds() {
+  const res = await fetch('/api/v2/intelligence/feeds');
+  const feeds = await res.json();
+  const el = document.getElementById('feeds-list');
+  if (!feeds.length) {
+    el.innerHTML = `<div class="empty-state">No feeds updated yet.<br><button class="btn btn-primary mt-gap" onclick="updateFeeds()">Update Now</button></div>`;
+    return;
+  }
+  el.innerHTML = feeds.map(f => `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg-border);">
+      <span style="font-size:0.75rem;">${f.feed}</span>
+      <div style="text-align:right;">
+        <div class="text-mono" style="font-size:0.7rem;">${f.entries} IOCs</div>
+        <div class="text-muted" style="font-size:0.65rem;">${(f.updated_at||'').slice(0,16).replace('T',' ')}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadCompliance() {
+  const res = await fetch('/api/v2/compliance');
+  const data = await res.json();
+  const score = data.score || 0;
+  const color = score >= 80 ? 'var(--accent-primary)' : score >= 50 ? 'var(--severity-medium)' : 'var(--severity-critical)';
+  const el = document.getElementById('compliance-panel');
+  el.innerHTML = `
+    <div style="text-align:center;padding:16px 0;">
+      <div style="font-family:'Orbitron',monospace;font-size:2.5rem;color:${color};">${score}</div>
+      <div class="text-muted" style="font-size:0.72rem;">/ 100</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      ${(data.checks||[]).map(c => `
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.72rem;padding:4px 0;">
+          <span>${c.passed ? '✅' : '❌'}</span>
+          <span style="flex:1;color:var(--text-secondary);">${c.description}</span>
+          <span class="badge badge-${c.severity}">${c.severity}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function updateFeeds() {
+  await fetch('/api/v2/intelligence/feeds/update', { method: 'POST' });
+  setTimeout(loadFeeds, 2000);
+}
+
+async function loadSinkhole() {
+  const res = await fetch('/api/v2/sinkhole/rules');
+  const rules = await res.json();
+  const tbody = document.getElementById('sinkhole-tbody');
+  if (!rules.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No blocked domains</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rules.map(r => `
+    <tr>
+      <td class="text-mono" style="font-size:0.74rem;">${r.domain}</td>
+      <td style="font-size:0.7rem;">${r.source||'manual'}</td>
+      <td class="text-mono">${r.hits}</td>
+      <td><button class="btn btn-ghost" style="font-size:0.62rem;" onclick="removeSinkhole(${r.id})">✕</button></td>
+    </tr>`).join('');
+}
+
+async function addSinkhole() {
+  const domain = document.getElementById('sink-domain').value.trim();
+  if (!domain) return;
+  await fetch('/api/v2/sinkhole/rules', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ domain, reason: 'dashboard' }),
+  });
+  document.getElementById('sink-domain').value = '';
+  loadSinkhole();
+}
+
+async function removeSinkhole(id) {
+  await fetch(`/api/v1/sinkhole/rules/${id}`, { method: 'DELETE' });
+  loadSinkhole();
+}
+
+loadMITRE();
+loadFeeds();
+loadCompliance();
+loadSinkhole();
+</script>
+{% endblock %}

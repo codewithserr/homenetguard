@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}WiFi — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">WIFI NETWORKS</span>
+</div>
+
+<div class="panel">
+  <div class="empty-state" style="padding:60px 20px;">
+    <div style="font-size:3rem;opacity:0.2;margin-bottom:16px;">📶</div>
+    <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:8px;">WiFi Scanner Not Enabled</div>
+    <div style="font-size:0.78rem;color:var(--text-muted);max-width:400px;text-align:center;line-height:1.6;">
+      To enable WiFi network scanning, set <code style="font-family:'JetBrains Mono',monospace;color:var(--accent-cyan);">wifi.enabled: true</code>
+      and <code style="font-family:'JetBrains Mono',monospace;color:var(--accent-cyan);">wifi.monitor_interface</code> in
+      <code style="font-family:'JetBrains Mono',monospace;color:var(--accent-cyan);">config/config.yaml</code>.
+      <br><br>
+      Requires a WiFi adapter in monitor mode (e.g. <code style="font-family:'JetBrains Mono',monospace;">wlan0mon</code>).
+      <br><br>
+      <strong style="color:var(--text-secondary);">Linux:</strong> <code style="font-family:'JetBrains Mono',monospace;color:var(--text-mono);">airmon-ng start wlan0</code><br>
+      <strong style="color:var(--text-secondary);">macOS:</strong> Use Airport utility or compatible adapter
+    </div>
+    <div style="margin-top:24px;">
+      <a href="/config" class="btn btn-primary">View Config →</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

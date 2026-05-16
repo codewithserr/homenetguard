@@ -281,3 +281,269 @@ def config_cmd(ctx: click.Context, show: bool, do_init: bool) -> None:
         return
 
     ctx.get_help()
+
+
+# ─── v2 commands ─────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.pass_context
+def monitor(ctx: click.Context) -> None:
+    """TUI interactiva de monitorización en tiempo real (tipo htop)."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.tui.live_monitor import LiveMonitor
+    LiveMonitor(db_path=cfg.get("storage", {}).get("db_path", "data/homenetguard.db")).run()
+
+
+@cli.command("api")
+@click.option("--port", default=8080, type=int, help="API server port")
+@click.option("--host", default="127.0.0.1", help="API server host")
+@click.pass_context
+def api_cmd(ctx: click.Context, port: int, host: str) -> None:
+    """Arranca el servidor API REST con Swagger en /api/docs."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    setup_logger(level=cfg.get("logging", {}).get("level", "INFO"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    cfg.setdefault("dashboard", {})["host"] = host
+    cfg["dashboard"]["port"] = port
+    click.echo(f"API + Swagger at http://{host}:{port}/api/docs")
+    from homenetguard.dashboard.app import run_dashboard
+    run_dashboard(cfg)
+
+
+# ── devices group ─────────────────────────────────────────────────────────────
+
+@cli.group()
+def devices() -> None:
+    """Gestión de dispositivos de la red local."""
+
+
+@devices.command("scan")
+@click.pass_context
+def devices_scan(ctx: click.Context) -> None:
+    """Lanza ARP scan inmediato y muestra resultados."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.network.device_scanner import DeviceScanner
+    from tabulate import tabulate
+    click.echo("Scanning network...")
+    found = DeviceScanner(cfg).scan()
+    if not found:
+        click.echo("No devices found (requires sudo for ARP scan).")
+        return
+    rows = [[d.get("mac"), d.get("vendor"), d.get("ip"), d.get("hostname") or "—"] for d in found]
+    click.echo(tabulate(rows, headers=["MAC", "VENDOR", "IP", "HOSTNAME"]))
+
+
+@devices.command("list")
+@click.pass_context
+def devices_list(ctx: click.Context) -> None:
+    """Lista dispositivos conocidos."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db, get_connection
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from tabulate import tabulate
+    with get_connection() as conn:
+        rows = conn.execute("SELECT mac_address, vendor, ip_address, is_trusted, is_quarantined, last_seen FROM devices ORDER BY last_seen DESC").fetchall()
+    if not rows:
+        click.echo("No devices in database yet. Run: homenetguard devices scan")
+        return
+    click.echo(tabulate(
+        [[r[0], r[1] or "?", r[2] or "?", "✓" if r[3] else "", "🔒" if r[4] else "", r[5][:19] if r[5] else ""] for r in rows],
+        headers=["MAC", "VENDOR", "IP", "TRUSTED", "QUARANTINE", "LAST SEEN"],
+    ))
+
+
+@devices.command("trust")
+@click.argument("mac")
+@click.pass_context
+def devices_trust(ctx: click.Context, mac: str) -> None:
+    """Marca dispositivo como confiable."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db, get_connection
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    with get_connection() as conn:
+        conn.execute("UPDATE devices SET is_trusted=1 WHERE mac_address=?", (mac.upper(),))
+    click.echo(f"Device {mac} marked as trusted.")
+
+
+@devices.command("quarantine")
+@click.argument("mac")
+@click.pass_context
+def devices_quarantine(ctx: click.Context, mac: str) -> None:
+    """Pone dispositivo en cuarentena."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.active.quarantine import QuarantineManager
+    ok = QuarantineManager().quarantine(mac)
+    click.echo(f"Device {mac} {'quarantined' if ok else 'quarantine failed'}.")
+
+
+# ── firewall group ─────────────────────────────────────────────────────────────
+
+@cli.group()
+def firewall() -> None:
+    """Gestión del firewall integrado."""
+
+
+@firewall.command("list")
+@click.pass_context
+def firewall_list(ctx: click.Context) -> None:
+    """Lista reglas activas."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.active.firewall import FirewallManager
+    from tabulate import tabulate
+    rules = FirewallManager().list_rules()
+    if not rules:
+        click.echo("No active firewall rules.")
+        return
+    rows = [[r["id"], r["rule_type"], r["target"], r["direction"], r["reason"][:40]] for r in rules]
+    click.echo(tabulate(rows, headers=["ID", "TYPE", "TARGET", "DIR", "REASON"]))
+
+
+@firewall.command("block-ip")
+@click.argument("ip")
+@click.option("--reason", default="manual block")
+@click.pass_context
+def firewall_block_ip(ctx: click.Context, ip: str, reason: str) -> None:
+    """Bloquea una IP."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.active.firewall import FirewallManager
+    try:
+        rule_id = FirewallManager().block_ip(ip, reason=reason)
+        click.echo(f"Blocked {ip} (rule ID: {rule_id})")
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+
+
+@firewall.command("unblock")
+@click.argument("rule_id", type=int)
+@click.pass_context
+def firewall_unblock(ctx: click.Context, rule_id: int) -> None:
+    """Elimina regla por ID."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.active.firewall import FirewallManager
+    ok = FirewallManager().unblock(rule_id)
+    click.echo(f"Rule {rule_id} {'removed' if ok else 'not found'}.")
+
+
+# ── sinkhole group ─────────────────────────────────────────────────────────────
+
+@cli.group()
+def sinkhole() -> None:
+    """Gestión del DNS sinkhole."""
+
+
+@sinkhole.command("add")
+@click.argument("domain")
+@click.option("--reason", default="manual")
+@click.pass_context
+def sinkhole_add(ctx: click.Context, domain: str, reason: str) -> None:
+    """Añade dominio al sinkhole."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.active.dns_sinkhole import DNSSinkhole
+    DNSSinkhole().add_domain(domain, reason=reason)
+    click.echo(f"Domain {domain} added to sinkhole.")
+
+
+@sinkhole.command("list")
+@click.pass_context
+def sinkhole_list(ctx: click.Context) -> None:
+    """Lista dominios bloqueados."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.active.dns_sinkhole import DNSSinkhole
+    from tabulate import tabulate
+    rules = DNSSinkhole().list_rules()
+    if not rules:
+        click.echo("No sinkhole rules.")
+        return
+    rows = [[r["id"], r["domain"], r["source"] or "?", r["hits"]] for r in rules]
+    click.echo(tabulate(rows, headers=["ID", "DOMAIN", "SOURCE", "HITS"]))
+
+
+# ── feeds group ───────────────────────────────────────────────────────────────
+
+@cli.group()
+def feeds() -> None:
+    """Gestión de threat intelligence feeds."""
+
+
+@feeds.command("update")
+@click.pass_context
+def feeds_update(ctx: click.Context) -> None:
+    """Actualiza todos los threat intelligence feeds."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.intelligence.feed_manager import FeedManager
+    click.echo("Updating threat intelligence feeds...")
+    results = FeedManager().update_all()
+    for name, stat in results.items():
+        if "error" in stat:
+            click.echo(f"  {name}: ERROR — {stat['error']}")
+        else:
+            click.echo(f"  {name}: {stat.get('entries', 0)} entries loaded")
+
+
+@feeds.command("status")
+@click.pass_context
+def feeds_status(ctx: click.Context) -> None:
+    """Muestra estado de los feeds."""
+    from homenetguard.intelligence.feed_manager import FeedManager, FEEDS
+    from tabulate import tabulate
+    status = FeedManager().get_status()
+    if not status:
+        click.echo(f"No feeds updated yet. Available: {', '.join(FEEDS.keys())}")
+        return
+    rows = [[s["feed"], s.get("entries", "?"), s.get("updated_at", "?")[:19]] for s in status]
+    click.echo(tabulate(rows, headers=["FEED", "ENTRIES", "UPDATED"]))
+
+
+# ── ml group ──────────────────────────────────────────────────────────────────
+
+@cli.group()
+def ml() -> None:
+    """Gestión del modelo de detección de anomalías."""
+
+
+@ml.command("train")
+@click.option("--days", default=7, type=int, help="Days of data to train on")
+@click.pass_context
+def ml_train(ctx: click.Context, days: int) -> None:
+    """Entrena el modelo de detección de anomalías."""
+    cfg = _load_config(ctx.obj.get("config_path"))
+    from homenetguard.storage.database import init_db
+    init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
+    from homenetguard.analysis.anomaly_detector import get_detector
+    click.echo(f"Training anomaly model on last {days} days of data...")
+    try:
+        result = get_detector().train(days=days)
+        click.echo(f"Model trained on {result['windows']} windows. Saved to disk.")
+    except ValueError as e:
+        click.echo(f"Cannot train: {e}", err=True)
+
+
+@ml.command("status")
+@click.pass_context
+def ml_status(ctx: click.Context) -> None:
+    """Muestra estado del modelo de anomalías."""
+    from homenetguard.analysis.anomaly_detector import get_detector
+    s = get_detector().status()
+    click.echo(f"Trained: {s['trained']}")
+    if s["trained_at"]:
+        click.echo(f"Trained at: {s['trained_at']}")
+    click.echo(f"Model path: {s['model_path']}")

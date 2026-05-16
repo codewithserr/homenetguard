@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Forensics — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">FORENSICS TIMELINE</span>
+</div>
+
+<div class="panel">
+  <div class="filter-bar">
+    <input class="filter-input" id="f-ip" placeholder="IP address..." style="width:180px;">
+    <input class="filter-input" id="f-mac" placeholder="MAC address..." style="width:180px;">
+    <button class="btn btn-primary" onclick="runForensics()">Search</button>
+    <span class="text-muted" id="f-count" style="align-self:center;font-size:0.72rem;"></span>
+  </div>
+</div>
+
+<div id="timeline-container" style="margin-top:var(--gap);"></div>
+
+<style>
+.timeline { position:relative; padding-left:28px; }
+.timeline::before { content:''; position:absolute; left:8px; top:0; bottom:0; width:2px; background:var(--bg-border); }
+.t-event { position:relative; margin-bottom:12px; }
+.t-event::before {
+  content:''; position:absolute; left:-24px; top:8px;
+  width:10px; height:10px; border-radius:50%;
+  background:var(--accent-primary); border:2px solid var(--bg-panel);
+}
+.t-event.alert::before { background:var(--severity-high); }
+.t-event.critical::before { background:var(--severity-critical); }
+.t-event.ip_change::before { background:var(--accent-cyan); }
+.t-card {
+  background:var(--bg-elevated); border:1px solid var(--bg-border);
+  border-radius:3px; padding:8px 12px;
+}
+.t-time { font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text-muted); }
+.t-body { font-size:0.76rem; color:var(--text-primary); margin-top:2px; }
+</style>
+
+<script>
+async function runForensics() {
+  const ip = document.getElementById('f-ip').value.trim();
+  const mac = document.getElementById('f-mac').value.trim();
+  if (!ip && !mac) { alert('Enter IP or MAC to search'); return; }
+
+  const params = new URLSearchParams();
+  if (ip) params.append('ip', ip);
+  if (mac) params.append('mac', mac);
+
+  const res = await fetch(`/api/v2/forensics?${params}`);
+  const events = await res.json();
+  document.getElementById('f-count').textContent = `${events.length} events`;
+
+  const container = document.getElementById('timeline-container');
+  if (!events.length) {
+    container.innerHTML = `<div class="panel"><div class="empty-state"><span class="empty-state-icon">🔍</span>No events found for this query</div></div>`;
+    return;
+  }
+
+  const icons = { flow: '🌊', alert: '⚠️', ip_change: '🔄' };
+  const typeClass = { flow: '', alert: 'alert', ip_change: 'ip_change' };
+
+  container.innerHTML = `
+    <div class="panel">
+      <div class="timeline">
+        ${events.slice(0,100).map(e => {
+          const ts = (e.timestamp||'').slice(0,19).replace('T',' ');
+          const type = e.type || 'flow';
+          const icon = icons[type] || '●';
+          let body = '';
+          if (type === 'flow') {
+            body = `${e.src_ip} → ${e.dst_ip} <span class="badge badge-tcp">${e.protocol||'?'}</span> ${fmtBytes(e.bytes||0)}`;
+          } else if (type === 'alert') {
+            body = `<span class="badge badge-${e.severity||'low'}">${e.severity}</span> ${e.alert_type} — ${(e.description||'').slice(0,80)}`;
+          } else if (type === 'ip_change') {
+            body = `IP changed to <span class="ip-address">${e.ip_address}</span>`;
+          }
+          const cls = e.severity === 'critical' ? 'critical' : typeClass[type] || '';
+          return `
+            <div class="t-event ${cls}">
+              <div class="t-card">
+                <div class="t-time">${icon} ${ts}</div>
+                <div class="t-body">${body}</div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function fmtBytes(b) {
+  if (b < 1024) return b + 'B';
+  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
+  return (b/1048576).toFixed(1) + 'MB';
+}
+
+// Auto-run if URL has params
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('ip')) {
+  document.getElementById('f-ip').value = urlParams.get('ip');
+  runForensics();
+}
+if (urlParams.get('mac')) {
+  document.getElementById('f-mac').value = urlParams.get('mac');
+  runForensics();
+}
+</script>
+{% endblock %}

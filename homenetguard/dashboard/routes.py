@@ -41,6 +41,185 @@ def config_view():
     return render_template("config.html", config=_sanitize_config(cfg))
 
 
+# ─── v2 routes ───────────────────────────────────────────────────────────────
+
+@bp.route("/devices")
+def devices_view():
+    return render_template("devices.html")
+
+
+@bp.route("/firewall")
+def firewall_view():
+    return render_template("firewall.html")
+
+
+@bp.route("/intelligence")
+def intelligence_view():
+    return render_template("intelligence.html")
+
+
+@bp.route("/forensics")
+def forensics_view():
+    return render_template("forensics.html")
+
+
+@bp.route("/wifi")
+def wifi_view():
+    return render_template("wifi.html")
+
+
+# ── v2 API endpoints ──────────────────────────────────────────────────────────
+
+@bp.route("/api/v2/devices")
+def api_v2_devices():
+    from homenetguard.storage.database import get_connection
+    with get_connection() as conn:
+        rows = conn.execute("SELECT * FROM devices ORDER BY last_seen DESC LIMIT 200").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@bp.route("/api/v2/devices/<mac>/trust", methods=["POST"])
+def api_v2_trust_device(mac: str):
+    from homenetguard.storage.database import get_connection
+    with get_connection() as conn:
+        conn.execute("UPDATE devices SET is_trusted=1 WHERE mac_address=?", (mac.upper(),))
+    return jsonify({"ok": True})
+
+
+@bp.route("/api/v2/devices/<mac>/quarantine", methods=["POST"])
+def api_v2_quarantine_device(mac: str):
+    from homenetguard.active.quarantine import QuarantineManager
+    ok = QuarantineManager().quarantine(mac)
+    return jsonify({"ok": ok})
+
+
+@bp.route("/api/v2/devices/<mac>/quarantine", methods=["DELETE"])
+def api_v2_release_device(mac: str):
+    from homenetguard.active.quarantine import QuarantineManager
+    ok = QuarantineManager().release(mac)
+    return jsonify({"ok": ok})
+
+
+@bp.route("/api/v2/firewall/rules")
+def api_v2_firewall_rules():
+    from homenetguard.active.firewall import FirewallManager
+    return jsonify(FirewallManager().list_rules())
+
+
+@bp.route("/api/v2/firewall/rules", methods=["POST"])
+def api_v2_firewall_add():
+    from homenetguard.active.firewall import FirewallManager
+    data = request.get_json(silent=True) or {}
+    fw = FirewallManager()
+    try:
+        rule_id = fw.block_ip(
+            data["target"],
+            direction=data.get("direction", "both"),
+            reason=data.get("reason", "dashboard"),
+        )
+        return jsonify({"ok": True, "rule_id": rule_id})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@bp.route("/api/v2/firewall/rules/<int:rule_id>", methods=["DELETE"])
+def api_v2_firewall_delete(rule_id: int):
+    from homenetguard.active.firewall import FirewallManager
+    ok = FirewallManager().unblock(rule_id)
+    return jsonify({"ok": ok})
+
+
+@bp.route("/api/v2/sinkhole/rules")
+def api_v2_sinkhole_rules():
+    from homenetguard.active.dns_sinkhole import DNSSinkhole
+    return jsonify(DNSSinkhole().list_rules())
+
+
+@bp.route("/api/v2/sinkhole/rules", methods=["POST"])
+def api_v2_sinkhole_add():
+    from homenetguard.active.dns_sinkhole import DNSSinkhole
+    data = request.get_json(silent=True) or {}
+    domain = data.get("domain", "")
+    if not domain:
+        return jsonify({"error": "domain required"}), 400
+    DNSSinkhole().add_domain(domain, reason=data.get("reason", "dashboard"))
+    return jsonify({"ok": True})
+
+
+@bp.route("/api/v2/intelligence/feeds")
+def api_v2_feeds():
+    from homenetguard.intelligence.feed_manager import FeedManager
+    return jsonify(FeedManager().get_status())
+
+
+@bp.route("/api/v2/intelligence/feeds/update", methods=["POST"])
+def api_v2_feeds_update():
+    import threading
+    from homenetguard.intelligence.feed_manager import FeedManager
+    threading.Thread(target=FeedManager().update_all, daemon=True).start()
+    return jsonify({"ok": True, "message": "Update started"})
+
+
+@bp.route("/api/v2/intelligence/mitre")
+def api_v2_mitre():
+    from homenetguard.intelligence.mitre_mapper import MITRE_MAPPING, get_all_tactics
+    alerts = repository.get_all_alerts(limit=500)
+    tactic_hits: dict[str, int] = {}
+    for a in alerts:
+        mapping = MITRE_MAPPING.get(a.get("alert_type", ""))
+        if mapping:
+            t = mapping["tactic"]
+            tactic_hits[t] = tactic_hits.get(t, 0) + 1
+    return jsonify({
+        "mapping": MITRE_MAPPING,
+        "tactic_hits": tactic_hits,
+        "tactics": get_all_tactics(),
+    })
+
+
+@bp.route("/api/v2/compliance")
+def api_v2_compliance():
+    from homenetguard.intelligence.compliance_checker import ComplianceChecker
+    checker = ComplianceChecker()
+    checks = checker.run_checks()
+    return jsonify({"checks": checks, "score": checker.generate_score(checks)})
+
+
+@bp.route("/api/v2/forensics")
+def api_v2_forensics():
+    ip = request.args.get("ip", "")
+    mac = request.args.get("mac", "")
+    from homenetguard.storage.database import get_connection
+    events: list[dict] = []
+    with get_connection() as conn:
+        if ip:
+            flows = conn.execute(
+                "SELECT 'flow' as type, timestamp, src_ip, dst_ip, protocol, bytes FROM flows "
+                "WHERE src_ip=? OR dst_ip=? ORDER BY timestamp DESC LIMIT 100",
+                (ip, ip),
+            ).fetchall()
+            events.extend(dict(r) for r in flows)
+            alerts_q = conn.execute(
+                "SELECT 'alert' as type, timestamp, alert_type, severity, description FROM alerts "
+                "WHERE src_ip=? OR dst_ip=? ORDER BY timestamp DESC LIMIT 50",
+                (ip, ip),
+            ).fetchall()
+            events.extend(dict(r) for r in alerts_q)
+        if mac:
+            dev = conn.execute(
+                "SELECT * FROM devices WHERE mac_address=?", (mac.upper(),)
+            ).fetchone()
+            if dev:
+                history = conn.execute(
+                    "SELECT 'ip_change' as type, seen_at as timestamp, ip_address FROM device_ip_history "
+                    "WHERE mac_address=? ORDER BY seen_at DESC LIMIT 50",
+                    (mac.upper(),),
+                ).fetchall()
+                events.extend(dict(r) for r in history)
+    events.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    return jsonify(events[:200])
+
+
 @bp.route("/api/stats")
 def api_stats():
     since = datetime.now(UTC) - timedelta(minutes=60)

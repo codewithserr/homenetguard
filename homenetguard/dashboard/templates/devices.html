@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Devices — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">DEVICES</span>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-primary" onclick="scanNow()">⟳ Scan Now</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">NETWORK DEVICES</span>
+    <span class="text-muted" id="device-count" style="font-size:0.65rem;"></span>
+  </div>
+  <div class="table-scroll" style="max-height:70vh;">
+    <table class="data-table">
+      <thead>
+        <tr><th>MAC</th><th>VENDOR</th><th>IP</th><th>OS GUESS</th><th>FIRST SEEN</th><th>LAST SEEN</th><th>STATUS</th><th>ACTIONS</th></tr>
+      </thead>
+      <tbody id="devices-tbody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function loadDevices() {
+  const res = await fetch('/api/v2/devices');
+  const devices = await res.json();
+  document.getElementById('device-count').textContent = `${devices.length} device${devices.length !== 1 ? 's' : ''}`;
+  const tbody = document.getElementById('devices-tbody');
+  if (!devices.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><span class="empty-state-icon">📡</span>No devices found — run a scan first</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = devices.map(d => {
+    const statusClass = d.is_quarantined ? 'badge-critical' : d.is_trusted ? 'badge-low' : 'badge-tcp';
+    const statusLabel = d.is_quarantined ? '🔒 Quarantine' : d.is_trusted ? '✓ Trusted' : 'Unknown';
+    return `
+      <tr>
+        <td class="ip-address" style="font-size:0.72rem;">${d.mac_address || '—'}</td>
+        <td style="font-size:0.74rem;">${d.vendor || 'Unknown'}</td>
+        <td class="ip-address">${d.ip_address || '—'}</td>
+        <td style="font-size:0.72rem;">${d.os_guess ? `${d.os_guess} (${Math.round((d.os_confidence||0)*100)}%)` : '—'}</td>
+        <td class="text-mono" style="font-size:0.68rem;">${(d.first_seen||'').slice(0,16).replace('T',' ')}</td>
+        <td class="text-mono" style="font-size:0.68rem;">${(d.last_seen||'').slice(0,16).replace('T',' ')}</td>
+        <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+        <td>
+          <div style="display:flex;gap:4px;">
+            ${!d.is_trusted ? `<button class="btn btn-ghost" style="font-size:0.62rem;padding:2px 6px;" onclick="trustDevice('${d.mac_address}')">Trust</button>` : ''}
+            ${!d.is_quarantined ? `<button class="btn btn-danger" style="font-size:0.62rem;padding:2px 6px;" onclick="quarantineDevice('${d.mac_address}')">Quarantine</button>` : `<button class="btn btn-ghost" style="font-size:0.62rem;padding:2px 6px;" onclick="releaseDevice('${d.mac_address}')">Release</button>`}
+            <a href="/forensics?ip=${d.ip_address||''}" class="btn btn-ghost" style="font-size:0.62rem;padding:2px 6px;">Forensics</a>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function trustDevice(mac) {
+  await fetch(`/api/v2/devices/${mac}/trust`, { method: 'POST' });
+  loadDevices();
+}
+async function quarantineDevice(mac) {
+  if (!confirm(`Quarantine ${mac}? This will block its outbound traffic.`)) return;
+  await fetch(`/api/v2/devices/${mac}/quarantine`, { method: 'POST' });
+  loadDevices();
+}
+async function releaseDevice(mac) {
+  await fetch(`/api/v2/devices/${mac}/quarantine`, { method: 'DELETE' });
+  loadDevices();
+}
+async function scanNow() {
+  alert('Run: sudo homenetguard devices scan\n(ARP scan requires elevated privileges)');
+}
+
+loadDevices();
+setInterval(loadDevices, 15000);
+</script>
+{% endblock %}
