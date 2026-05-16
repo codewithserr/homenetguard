@@ -20,6 +20,8 @@ def init_db(db_path: str = "data/homenetguard.db") -> None:
     with get_connection() as conn:
         conn.executescript(SCHEMA_SQL)
         _migrate(conn)
+        from homenetguard.storage.migrations import run_migrations
+        run_migrations(conn)
     logger.info("Database initialized at %s", db_path)
 
 
