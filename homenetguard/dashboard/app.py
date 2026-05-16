@@ -26,6 +26,13 @@ def create_app(config: dict[str, Any], sniffer: Any = None) -> Flask:
 
     from homenetguard.dashboard import events  # noqa: F401
 
+    # Mount REST API
+    try:
+        from homenetguard.export.api_server import create_api
+        create_api(app)
+    except Exception as exc:
+        logger.warning("REST API init failed: %s", exc)
+
     return app
 
 
