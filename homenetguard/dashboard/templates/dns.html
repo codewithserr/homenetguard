@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">DNS ANALYSIS</span>
+  <span class="page-title">DNS ANALYSIS <a href="/learn/dns" class="learn-link" title="Learn about DNS">?</a></span>
 </div>
 
 <div class="grid-2">
@@ -50,7 +50,7 @@ async function loadDNS() {
       <td class="text-mono" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
         ${q.queried_domain||'—'}
       </td>
-      <td><span class="badge badge-tcp">${q.query_type||'?'}</span></td>
+      <td><span class="badge badge-tcp" data-learn-term="DNS">${q.query_type||'?'}</span></td>
       <td class="ip-address">${q.response_ip||'—'}</td>
       <td>${q.is_suspicious
         ? '<span class="badge badge-high">SUSPICIOUS</span>'
@@ -58,6 +58,7 @@ async function loadDNS() {
       }</td>
     </tr>
   `).join('');
+  if (window.initLearnTooltips) window.initLearnTooltips();
 
   // Top domains
   const counts = {};

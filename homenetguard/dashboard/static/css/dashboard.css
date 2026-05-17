@@ -543,6 +543,32 @@ body::after {
 /* Malicious */
 .org-bad     { background: rgba(255,59,92,0.1); color: var(--severity-critical); border: 1px solid rgba(255,59,92,0.25); }
 
+/* ─── Learn link (inline ? icon next to UI elements) ───────── */
+.learn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--bg-border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', monospace;
+  text-decoration: none;
+  margin-left: 5px;
+  vertical-align: middle;
+  transition: all 0.15s;
+  cursor: help;
+  line-height: 1;
+}
+.learn-link:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  background: rgba(0,212,255,0.08);
+}
+
 /* Config page */
 .config-section { margin-bottom: 24px; }
 .config-key {

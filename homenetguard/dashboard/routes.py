@@ -1,11 +1,51 @@
 from __future__ import annotations
 
 import copy
+import json
+import os
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from homenetguard.storage import repository
+
+# ─── Cyber Academy curriculum loader ─────────────────────────
+_CURRICULUM_PATH = Path(__file__).parent / "static" / "data" / "curriculum.json"
+_curriculum_cache: dict | None = None
+
+def _load_curriculum() -> dict:
+    global _curriculum_cache
+    if _curriculum_cache is None:
+        try:
+            with open(_CURRICULUM_PATH, encoding="utf-8") as f:
+                _curriculum_cache = json.load(f)
+        except Exception:
+            _curriculum_cache = {"topics": [], "categories": {}, "learning_paths": [], "tooltip_terms": {}}
+    return _curriculum_cache
+
+def _find_topic(slug: str) -> dict | None:
+    cur = _load_curriculum()
+    return next((t for t in cur.get("topics", []) if t["slug"] == slug), None)
+
+def _run_live_query(query: str) -> str | None:
+    """Execute a read-only SQLite query and return first cell as string."""
+    if not query or not query.strip().upper().startswith("SELECT"):
+        return None
+    try:
+        from homenetguard.storage.database import get_connection
+        with get_connection() as conn:
+            row = conn.execute(query).fetchone()
+        if row:
+            val = row[0]
+            if val is None:
+                return "0"
+            if isinstance(val, float):
+                return f"{val:.1f}"
+            return str(val)
+        return "0"
+    except Exception:
+        return None
 
 bp = Blueprint("main", __name__)
 
@@ -66,6 +106,69 @@ def forensics_view():
 @bp.route("/wifi")
 def wifi_view():
     return render_template("wifi.html")
+
+
+@bp.route("/learn")
+def learn_index():
+    return render_template("learn/index.html")
+
+
+@bp.route("/learn/path/<path_id>")
+def learn_path(path_id: str):
+    cur = _load_curriculum()
+    path = next((p for p in cur.get("learning_paths", []) if p["id"] == path_id), None)
+    if not path:
+        return render_template("learn/index.html")
+    # Redirect to first topic of the path
+    topics = path.get("topics", [])
+    if topics:
+        from flask import redirect
+        return redirect(f"/learn/{topics[0]}")
+    return render_template("learn/index.html")
+
+
+@bp.route("/learn/<slug>")
+def learn_topic(slug: str):
+    topic = _find_topic(slug)
+    cur = _load_curriculum()
+    all_topics = cur.get("topics", [])
+
+    # Find prev/next in flat list
+    idx = next((i for i, t in enumerate(all_topics) if t["slug"] == slug), None)
+    prev_topic = all_topics[idx - 1] if idx and idx > 0 else None
+    next_topic = all_topics[idx + 1] if idx is not None and idx < len(all_topics) - 1 else None
+
+    # Execute live queries for each live_example section
+    live_data: dict[int, str | None] = {}
+    if topic:
+        for i, section in enumerate(topic.get("sections", [])):
+            if section.get("type") == "live_example" and section.get("query"):
+                live_data[i] = _run_live_query(section["query"])
+
+    return render_template(
+        "learn/topic.html",
+        topic=topic,
+        slug=slug,
+        live_data=live_data,
+        prev_topic=prev_topic,
+        next_topic=next_topic,
+    )
+
+
+# ─── Cyber Academy API ────────────────────────────────────────
+
+@bp.route("/api/v1/learn/topics")
+def api_learn_topics():
+    return jsonify(_load_curriculum())
+
+
+@bp.route("/api/v1/learn/tooltip/<term>")
+def api_learn_tooltip(term: str):
+    cur = _load_curriculum()
+    info = cur.get("tooltip_terms", {}).get(term)
+    if not info:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(info)
 
 
 # ── v2 API endpoints ──────────────────────────────────────────────────────────

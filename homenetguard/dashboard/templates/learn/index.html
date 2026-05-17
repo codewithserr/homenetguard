@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Cyber Academy — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">CYBER ACADEMY</span>
+  <span class="text-muted" style="font-size:0.72rem;align-self:center;">60 tópicos · 6 categorías · datos reales de tu red</span>
+</div>
+
+<div class="academy-shell">
+
+  <!-- ── Stats + progreso global ──────────────────────────── -->
+  <div class="academy-stats">
+    <div class="stat-item">
+      <span class="stat-value" id="stat-total">60</span>
+      <span class="stat-label">TÓPICOS</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" id="stat-done" style="color:var(--accent-cyan);">0</span>
+      <span class="stat-label">COMPLETADOS</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" id="stat-pct" style="color:var(--severity-medium);">0%</span>
+      <span class="stat-label">PROGRESO</span>
+    </div>
+    <div class="progress-wrap" style="flex:1;margin-left:12px;">
+      <div class="progress-label">
+        <span style="font-size:0.68rem;color:var(--text-muted);">Progreso total</span>
+        <span id="prog-label-right" style="font-size:0.68rem;color:var(--text-muted);">0 / 60</span>
+      </div>
+      <div class="progress-bar"><div class="progress-bar-fill zero" id="main-progress-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- ── Rutas de aprendizaje ──────────────────────────────── -->
+  <div>
+    <div style="font-size:0.65rem;letter-spacing:0.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;">RUTAS DE APRENDIZAJE GUIADAS</div>
+    <div class="paths-grid" id="paths-container">
+      <div class="text-muted" style="font-size:0.74rem;">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- ── Progreso por categoría ────────────────────────────── -->
+  <div id="cat-progress-bar" style="display:none;">
+    <div style="font-size:0.65rem;letter-spacing:0.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;">PROGRESO POR CATEGORÍA</div>
+    <div id="cat-progress-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;"></div>
+  </div>
+
+  <!-- ── Controles de búsqueda y filtro ────────────────────── -->
+  <div class="academy-controls">
+    <input class="academy-search" id="topic-search" placeholder="🔍 Buscar tópico o término (TCP, ARP, MITRE…)" oninput="filterTopics()">
+    <button class="filter-chip active" data-filter="all"       onclick="setFilter('level','all',this)">Todos</button>
+    <button class="filter-chip" data-filter="beginner"         onclick="setFilter('level','beginner',this)">Principiante</button>
+    <button class="filter-chip" data-filter="intermediate"     onclick="setFilter('level','intermediate',this)">Intermedio</button>
+    <button class="filter-chip" data-filter="advanced"         onclick="setFilter('level','advanced',this)">Avanzado</button>
+    <span style="width:1px;background:var(--bg-border);height:18px;margin:0 4px;"></span>
+    <button class="filter-chip" id="filter-pending" onclick="togglePendingFilter(this)">Solo pendientes</button>
+    <span class="text-muted" id="visible-count" style="font-size:0.68rem;margin-left:auto;"></span>
+  </div>
+
+  <!-- ── Grid de tópicos por categoría ────────────────────── -->
+  <div id="topics-container">
+    <div class="empty-state">Cargando curriculum…</div>
+  </div>
+
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────
+let _curriculum   = null;
+let _activeLevel  = 'all';
+let _pendingOnly  = false;
+
+// ─── Progress helpers (extend learn.js) ──────────────────────
+function _getCompleted() { return window.getLearnProgress ? window.getLearnProgress().completed : []; }
+function _isDone(slug)   { return _getCompleted().includes(slug); }
+
+// ─── Update all progress UI ───────────────────────────────────
+function refreshProgress(topics) {
+  const done  = _getCompleted().length;
+  const total = topics ? topics.length : 60;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-pct').textContent  = pct + '%';
+  document.getElementById('prog-label-right').textContent = done + ' / ' + total;
+
+  const fill = document.getElementById('main-progress-fill');
+  fill.style.width = pct + '%';
+  fill.classList.toggle('zero', pct === 0);
+
+  // Completed state on cards
+  document.querySelectorAll('.topic-card[data-slug]').forEach(card => {
+    card.classList.toggle('completed', _isDone(card.dataset.slug));
+  });
+
+  // Category progress bars
+  if (_curriculum) renderCatProgress(_curriculum.topics, _curriculum.categories);
+}
+
+// ─── Category progress bars ───────────────────────────────────
+function renderCatProgress(topics, categories) {
+  const catOrder = ['fundamentals','security_protocols','threats','analysis','defense','tools'];
+  const grid = document.getElementById('cat-progress-grid');
+  grid.innerHTML = '';
+  let anyProgress = false;
+  for (const catKey of catOrder) {
+    const cat = categories[catKey] || {};
+    const catTopics = topics.filter(t => t.category === catKey);
+    const done = catTopics.filter(t => _isDone(t.slug)).length;
+    const pct  = catTopics.length ? Math.round(done / catTopics.length * 100) : 0;
+    if (done > 0) anyProgress = true;
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--bg-panel);border:1px solid var(--bg-border);border-radius:3px;padding:10px 12px;';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:0.68rem;color:var(--text-secondary);">${cat.name||catKey}</span>
+        <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;color:${cat.color||'#888'};">${done}/${catTopics.length}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-bar-fill${pct===0?' zero':''}" style="width:${pct}%;background:${cat.color||'var(--accent-primary)'};"></div>
+      </div>`;
+    grid.appendChild(div);
+  }
+  document.getElementById('cat-progress-bar').style.display = anyProgress ? '' : 'none';
+}
+
+// ─── Filters ─────────────────────────────────────────────────
+function setFilter(type, value, btn) {
+  if (type === 'level') {
+    _activeLevel = value;
+    document.querySelectorAll('.filter-chip[data-filter]').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  filterTopics();
+}
+
+function togglePendingFilter(btn) {
+  _pendingOnly = !_pendingOnly;
+  btn.classList.toggle('active', _pendingOnly);
+  filterTopics();
+}
+
+function filterTopics() {
+  const q = (document.getElementById('topic-search').value || '').toLowerCase().trim();
+  let visible = 0;
+
+  document.querySelectorAll('.topic-card[data-slug]').forEach(card => {
+    const title = (card.dataset.title || '').toLowerCase();
+    const terms = (card.dataset.terms || '').toLowerCase();
+    const level = card.dataset.level || '';
+    const slug  = card.dataset.slug || '';
+
+    const matchQ = !q || title.includes(q) || terms.includes(q);
+    const matchL = _activeLevel === 'all' || level === _activeLevel;
+    const matchP = !_pendingOnly || !_isDone(slug);
+
+    const show = matchQ && matchL && matchP;
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  document.getElementById('visible-count').textContent = `${visible} tópico${visible !== 1 ? 's' : ''}`;
+
+  // Hide empty category sections
+  document.querySelectorAll('.cat-section').forEach(sec => {
+    const anyVisible = [...sec.querySelectorAll('.topic-card')].some(c => c.style.display !== 'none');
+    sec.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+// ─── Render learning paths ────────────────────────────────────
+function renderPaths(paths, topics) {
+  const c = document.getElementById('paths-container');
+  if (!paths || !paths.length) { c.innerHTML = '<div class="text-muted" style="font-size:0.74rem;">Sin rutas configuradas.</div>'; return; }
+
+  const levelClass = { beginner:'level-beginner', intermediate:'level-intermediate', advanced:'level-advanced' };
+  const levelLabel = { beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado' };
+
+  c.innerHTML = paths.map(path => {
+    const done  = path.topics.filter(s => _isDone(s)).length;
+    const total = path.topics.length;
+    const pct   = total ? Math.round(done / total * 100) : 0;
+    const cat = _curriculum && _curriculum.categories;
+    // Pick accent color from first topic's category
+    const firstTopic = topics && topics.find(t => t.slug === path.topics[0]);
+    const color = (cat && firstTopic && cat[firstTopic.category] && cat[firstTopic.category].color) || 'var(--accent-primary)';
+
+    return `
+      <a href="/learn/${path.topics[0]}" class="path-card" style="border-left:3px solid ${color}20;position:relative;">
+        <div class="path-card-header">
+          <span class="path-title">${path.title}</span>
+          <span class="path-topics-count">${total} tópicos</span>
+        </div>
+        <div style="margin:4px 0;"><span class="level-badge ${levelClass[path.level]||''}">${levelLabel[path.level]||path.level}</span></div>
+        <div class="path-description">${path.description}</div>
+        <div class="path-meta">
+          <span>⏱ ${path.estimated_minutes} min</span>
+          <span style="margin-left:auto;font-size:0.65rem;color:${pct===100?'var(--accent-primary)':pct>0?'var(--severity-medium)':'var(--text-muted)'};">${done}/${total} completados</span>
+        </div>
+        <div class="progress-bar" style="margin-top:8px;">
+          <div class="progress-bar-fill${pct===0?' zero':''}" style="width:${pct}%;background:${color};"></div>
+        </div>
+      </a>`;
+  }).join('');
+}
+
+// ─── Render topic grid ────────────────────────────────────────
+function renderTopics(topics, categories) {
+  const container = document.getElementById('topics-container');
+  const catOrder  = ['fundamentals','security_protocols','threats','analysis','defense','tools'];
+  const levelClass = { beginner:'level-beginner', intermediate:'level-intermediate', advanced:'level-advanced' };
+  const levelLabel = { beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado' };
+
+  let html = '';
+  for (const catKey of catOrder) {
+    const cat       = categories[catKey] || {};
+    const catTopics = topics.filter(t => t.category === catKey);
+    if (!catTopics.length) continue;
+
+    html += `
+      <div class="cat-section" data-cat="${catKey}">
+        <div class="cat-section-header">
+          <span class="cat-label-big" style="color:${cat.color};border-color:${cat.color}30;background:${cat.color}12;">${cat.label||'?'}</span>
+          <span class="cat-name">${cat.name||catKey}</span>
+          <span class="cat-count">${catTopics.length} tópicos</span>
+        </div>
+        <div class="topics-grid">
+          ${catTopics.map(t => `
+            <a href="/learn/${t.slug}"
+               class="topic-card${_isDone(t.slug)?' completed':''}"
+               data-slug="${t.slug}"
+               data-level="${t.level}"
+               data-title="${(t.title||'').toLowerCase()}"
+               data-terms="${(t.ui_terms||[]).join(',').toLowerCase()}">
+              <div class="topic-card-title">${t.title}</div>
+              <div class="topic-card-meta">
+                <span class="level-badge ${levelClass[t.level]||''}">${levelLabel[t.level]||t.level}</span>
+                <span class="topic-card-time">⏱ ${t.estimated_minutes}m</span>
+              </div>
+              ${t.standards && t.standards.length ? `<div style="font-size:0.6rem;color:var(--text-muted);margin-top:2px;">${t.standards[0]}</div>` : ''}
+            </a>`).join('')}
+        </div>
+      </div>`;
+  }
+  container.innerHTML = html;
+
+  refreshProgress(topics);
+  document.getElementById('stat-total').textContent = topics.length;
+  document.getElementById('visible-count').textContent = `${topics.length} tópicos`;
+}
+
+// ─── Load curriculum ──────────────────────────────────────────
+async function loadCurriculum() {
+  try {
+    const res   = await fetch('/api/v1/learn/topics');
+    _curriculum = await res.json();
+    renderPaths(_curriculum.learning_paths || [], _curriculum.topics || []);
+    renderTopics(_curriculum.topics || [], _curriculum.categories || {});
+  } catch (err) {
+    document.getElementById('topics-container').innerHTML =
+      `<div class="empty-state">Error cargando curriculum: ${err.message}</div>`;
+  }
+}
+
+// Re-render progress when returning from a topic (back button)
+window.addEventListener('focus', () => {
+  if (_curriculum) {
+    refreshProgress(_curriculum.topics);
+    renderPaths(_curriculum.learning_paths || [], _curriculum.topics || []);
+  }
+});
+
+loadCurriculum();
+</script>
+{% endblock %}

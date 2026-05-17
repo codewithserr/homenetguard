@@ -294,6 +294,64 @@ pytest tests/unit/     # unit tests only
 
 ---
 
+## Cyber Academy
+
+HomeNetGuard includes a built-in educational section at `/learn` — **60 articles** covering networking and cybersecurity, anchored to real data from your network.
+
+### Why it's different
+
+Most security education uses abstract examples. Cyber Academy uses **live data from your own network** — queries that run against your HomeNetGuard database and show real numbers from your devices, flows, and alerts. When you read about DNS tunneling, you see how many suspicious DNS queries your network has generated. When you read about beaconing, you see how many C2 alerts HomeNetGuard has detected.
+
+### Structure
+
+| Category | Topics | Levels |
+|----------|--------|--------|
+| **A — Network Fundamentals** | OSI model, TCP/IP, IP addressing, subnets, DNS, MAC/ARP, TCP handshake, ports, NAT, ICMP, BGP, IPv6 | Beginner → Advanced |
+| **B — Security Protocols** | TLS/SSL, SSH, certificates, VPN, firewalls, IDS/IPS, cryptography, Zero Trust, PKI, DoH/DoT | Beginner → Advanced |
+| **C — Threats & Attacks** | Port scanning, malware, phishing, DDoS, MITM, ARP spoofing, DNS poisoning, C2 beaconing, data exfiltration, cryptojacking, ransomware, APT, supply chain, LotL, zero-day, lateral movement | Beginner → Advanced |
+| **D — Analysis & Forensics** | Logs, packet capture, NetFlow, threat hunting, IOCs, MITRE ATT&CK, SIEM, network forensics | Beginner → Advanced |
+| **E — Defenses & Hardening** | CIA triad, defense-in-depth, least privilege, VLANs, CIS benchmarks, vulnerability management, Zero Trust home, STRIDE | Beginner → Advanced |
+| **F — Tools & Labs** | Scapy, Nmap, Wireshark, build-your-own-detector | Beginner → Advanced |
+
+### Learning paths
+
+Four guided paths with progress tracking (stored locally in your browser):
+
+- **De cero a monitorizar tu red** — 8 articles, ~90 min, beginner
+- **Entiende las amenazas que detecta HomeNetGuard** — 10 articles, ~120 min, intermediate
+- **Ciberseguridad defensiva** — 12 articles, ~150 min, intermediate
+- **Análisis y forense avanzado** — 8 articles, ~120 min, advanced
+
+### Contextual tooltips
+
+Every technical term in the dashboard UI (TCP, ARP, beaconing, JA3, MITRE…) shows an inline ⓘ tooltip linking directly to the relevant article. Tooltips are non-invasive — they inject without modifying existing behaviour.
+
+### Adding content
+
+All content lives in `homenetguard/dashboard/static/data/curriculum.json`. Each topic follows this schema:
+
+```json
+{
+  "slug": "tcp-protocol",
+  "title": "TCP — Transmission Control Protocol",
+  "category": "fundamentals",
+  "level": "beginner",
+  "estimated_minutes": 8,
+  "ui_terms": ["TCP", "SYN", "ACK"],
+  "standards": ["RFC 793"],
+  "sections": [
+    { "type": "concept",      "title": "¿Qué es TCP?",           "content": "..." },
+    { "type": "live_example", "title": "En tu red ahora mismo",  "query": "SELECT COUNT(*) FROM flows WHERE protocol='TCP'", "description": "..." },
+    { "type": "security",     "title": "Por qué importa",        "content": "...", "mitre_techniques": ["T1046"] },
+    { "type": "deeper",       "title": "Más profundo",           "content": "...", "references": ["RFC 793"] }
+  ]
+}
+```
+
+Add a new term to `TOOLTIP_TERMS` in `learn.js` to wire it to the UI. See `CLAUDE.md` for full documentation.
+
+---
+
 ## License
 
 MIT License — see [LICENSE](LICENSE).

@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.title if topic else slug }} — Cyber Academy{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">
+<!-- highlight.js para code blocks -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+
+{% if not topic %}
+<div class="page-header"><span class="page-title">CYBER ACADEMY</span></div>
+<div class="panel" style="padding:40px;text-align:center;">
+  <div style="font-size:1.5rem;margin-bottom:12px;">404</div>
+  <div style="color:var(--text-muted);font-size:0.8rem;">Tópico "<strong>{{ slug }}</strong>" no encontrado.</div>
+  <a href="/learn" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">← Volver al índice</a>
+</div>
+{% else %}
+
+{% set level_class = {'beginner':'level-beginner','intermediate':'level-intermediate','advanced':'level-advanced'} %}
+{% set level_label = {'beginner':'Principiante','intermediate':'Intermedio','advanced':'Avanzado'} %}
+{% set cat_names = {'fundamentals':'Fundamentos de Red','security_protocols':'Protocolos de Seguridad','threats':'Amenazas y Ataques','analysis':'Análisis y Forense','defense':'Defensas y Hardening','tools':'Herramientas y Labs'} %}
+
+<div class="page-header">
+  <span class="page-title" style="font-size:0.85rem;">CYBER ACADEMY</span>
+</div>
+
+<div class="article-shell">
+
+  <!-- MAIN -->
+  <div class="article-main">
+    <!-- Breadcrumb -->
+    <div class="article-breadcrumb">
+      <a href="/learn">Academy</a>
+      <span>›</span>
+      <span>{{ cat_names.get(topic.category, topic.category) }}</span>
+      <span>›</span>
+      <span style="color:var(--text-secondary);">{{ topic.title }}</span>
+    </div>
+
+    <!-- Header -->
+    <div class="article-title">{{ topic.title }}</div>
+    <div class="article-meta">
+      <span class="level-badge {{ level_class.get(topic.level,'') }}">{{ level_label.get(topic.level, topic.level) }}</span>
+      <span class="article-time">⏱ {{ topic.estimated_minutes }} min lectura</span>
+      {% if topic.standards %}
+        <div class="standards-list">
+          {% for s in topic.standards %}<span class="standard-chip">{{ s }}</span>{% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Sections -->
+    {% if topic.sections %}
+      {% set type_icons = {'concept':'◈','live_example':'▶','security':'⚠','deeper':'⊕','lab':'⚙'} %}
+      {% set type_labels = {'concept':'Concepto','live_example':'En tu red ahora mismo','security':'Por qué importa en seguridad','deeper':'Más profundo','lab':'Ejercicio práctico'} %}
+
+      {% for section in topic.sections %}
+      <div class="article-section section-type-{{ section.type }}">
+        <div class="section-title">
+          <span class="section-type-icon">{{ type_icons.get(section.type,'·') }}</span>
+          {{ section.title or type_labels.get(section.type, section.type) }}
+        </div>
+
+        {% if section.type == 'live_example' %}
+          <div class="section-content">
+            {% if section.content %}<p>{{ section.content }}</p>{% endif %}
+            <div class="live-example-block">
+              <div class="live-example-header">▶ LIVE DATA — datos reales de tu red</div>
+              {% if live_data and live_data.get(loop.index0) is not none %}
+                <div class="live-data-value">{{ live_data[loop.index0] }}</div>
+                <div class="live-data-label">{{ section.description or '' }}</div>
+              {% else %}
+                <div class="live-data-placeholder">{{ section.description or 'Sin datos disponibles. Inicia la captura de red para ver datos reales.' }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+        {% elif section.type == 'lab' %}
+          <div class="section-content">
+            {% if section.content %}<p>{{ section.content }}</p>{% endif %}
+            {% if section.steps %}
+            <ol class="lab-steps">
+              {% for step in section.steps %}<li>{{ step }}</li>{% endfor %}
+            </ol>
+            {% endif %}
+          </div>
+
+        {% else %}
+          <div class="section-content">{{ section.content | safe if section.content else '' }}</div>
+          {% if section.mitre_techniques %}
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;">
+              {% for t in section.mitre_techniques %}
+                <span class="mitre-chip">{{ t }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if section.references %}
+            <div class="standards-list" style="margin-top:8px;">
+              {% for r in section.references %}<span class="standard-chip">{{ r }}</span>{% endfor %}
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+
+    {% else %}
+      <div class="no-content-block">
+        <div style="font-size:1.5rem;margin-bottom:8px;">📡</div>
+        <div>Contenido próximamente</div>
+        <div style="font-size:0.68rem;margin-top:4px;color:var(--text-muted);">Este tópico está en el currículum pero su contenido aún no ha sido redactado.</div>
+      </div>
+    {% endif %}
+
+    <!-- Mark as read -->
+    <button class="read-btn" id="read-btn" onclick="toggleRead('{{ topic.slug }}')">
+      ◎ Marcar como leído
+    </button>
+
+    <!-- Prev / Next -->
+    <div class="article-nav">
+      {% if prev_topic %}
+        <a href="/learn/{{ prev_topic.slug }}">
+          <span class="nav-dir">← ANTERIOR</span>
+          <span class="nav-title">{{ prev_topic.title }}</span>
+        </a>
+      {% else %}<div></div>{% endif %}
+
+      {% if next_topic %}
+        <a href="/learn/{{ next_topic.slug }}" class="nav-next">
+          <span class="nav-dir">SIGUIENTE →</span>
+          <span class="nav-title">{{ next_topic.title }}</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="article-sidebar">
+
+    <!-- Nivel y tiempo -->
+    <div class="sidebar-panel">
+      <div class="sidebar-panel-title">Sobre este tópico</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div><span class="level-badge {{ level_class.get(topic.level,'') }}">{{ level_label.get(topic.level, topic.level) }}</span></div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">⏱ {{ topic.estimated_minutes }} min lectura</div>
+        {% if topic.ui_terms %}
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+            {% for term in topic.ui_terms[:6] %}
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;padding:1px 5px;background:var(--bg-elevated);border:1px solid var(--bg-border);border-radius:2px;color:var(--text-muted);">{{ term }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Prerequisites -->
+    {% if topic.prerequisites %}
+    <div class="sidebar-panel">
+      <div class="sidebar-panel-title">Prerequisitos</div>
+      <div class="sidebar-links">
+        {% for pre in topic.prerequisites %}
+          <a href="/learn/{{ pre }}" class="sidebar-link">
+            {{ pre | replace('-',' ') | title }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Next topics -->
+    {% if topic.next_topics %}
+    <div class="sidebar-panel">
+      <div class="sidebar-panel-title">Siguientes tópicos</div>
+      <div class="sidebar-links">
+        {% for nxt in topic.next_topics %}
+          <a href="/learn/{{ nxt }}" class="sidebar-link">
+            {{ nxt | replace('-',' ') | title }}
+            <span class="sidebar-link-tag">→</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Standards -->
+    {% if topic.standards %}
+    <div class="sidebar-panel">
+      <div class="sidebar-panel-title">Estándares</div>
+      <div class="standards-list">
+        {% for s in topic.standards %}<span class="standard-chip">{{ s }}</span>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- MITRE -->
+    {% if topic.mitre_techniques %}
+    <div class="sidebar-panel">
+      <div class="sidebar-panel-title">MITRE ATT&CK</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+        {% for t in topic.mitre_techniques %}<span class="mitre-chip">{{ t }}</span>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Back link -->
+    <div style="padding:8px 0;">
+      <a href="/learn" style="font-size:0.72rem;color:var(--text-muted);text-decoration:none;">← Volver al índice</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CURRENT_SLUG = '{{ topic.slug }}';
+
+function toggleRead(slug) {
+  if (window.isCompleted && window.isCompleted(slug)) {
+    window.markIncomplete && window.markIncomplete(slug);
+  } else {
+    window.markCompleted && window.markCompleted(slug);
+  }
+  updateReadBtn();
+}
+
+function updateReadBtn() {
+  const done = window.isCompleted ? window.isCompleted(CURRENT_SLUG) : false;
+  const btn  = document.getElementById('read-btn');
+  if (!btn) return;
+  if (done) {
+    btn.innerHTML = '✓ Completado';
+    btn.classList.add('done');
+    btn.onclick = () => { toggleRead(CURRENT_SLUG); };
+  } else {
+    btn.innerHTML = '◎ Marcar como leído';
+    btn.classList.remove('done');
+    btn.onclick = () => toggleRead(CURRENT_SLUG);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateReadBtn();
+  // Activate highlight.js on code blocks
+  if (window.hljs) {
+    document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

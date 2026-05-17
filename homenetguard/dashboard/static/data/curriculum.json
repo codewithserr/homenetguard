@@ -1,0 +1,3385 @@
+{
+  "categories": {
+    "fundamentals": {
+      "name": "Fundamentos de Red",
+      "label": "A",
+      "color": "#00ff88",
+      "icon": "network"
+    },
+    "security_protocols": {
+      "name": "Protocolos de Seguridad",
+      "label": "B",
+      "color": "#00d4ff",
+      "icon": "shield"
+    },
+    "threats": {
+      "name": "Amenazas y Ataques",
+      "label": "C",
+      "color": "#ff3b5c",
+      "icon": "alert-triangle"
+    },
+    "analysis": {
+      "name": "Análisis y Forense",
+      "label": "D",
+      "color": "#ffcc00",
+      "icon": "search"
+    },
+    "defense": {
+      "name": "Defensas y Hardening",
+      "label": "E",
+      "color": "#a855f7",
+      "icon": "lock"
+    },
+    "tools": {
+      "name": "Herramientas y Labs",
+      "label": "F",
+      "color": "#ff7b2c",
+      "icon": "tool"
+    }
+  },
+  "topics": [
+    {
+      "id": "tcp-protocol",
+      "slug": "tcp-protocol",
+      "title": "TCP — Transmission Control Protocol",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 8,
+      "ui_terms": [
+        "TCP",
+        "SYN",
+        "ACK",
+        "FIN",
+        "RST"
+      ],
+      "prerequisites": [],
+      "next_topics": [
+        "tcp-handshake",
+        "port-scanning"
+      ],
+      "standards": [
+        "RFC 793",
+        "RFC 9293"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es TCP?",
+          "content": "TCP (Transmission Control Protocol) es el protocolo de transporte orientado a conexión que garantiza entrega ordenada y fiable de datos. Antes de enviar datos establece una conexión mediante el three-way handshake (SYN → SYN-ACK → ACK). TCP numera cada byte con números de secuencia, garantiza que el receptor confirma cada segmento (ACK), retransmite los perdidos y controla la velocidad de envío con el mecanismo de ventana deslizante. La mayoría del tráfico web, correo y SSH usa TCP. Su contrapartida es la latencia adicional frente a UDP."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE protocol='TCP' AND timestamp > datetime('now','-5 minutes')",
+          "description": "Conexiones TCP en los últimos 5 minutos. Cada una representa un three-way handshake completado. Los flujos TCP dominan el tráfico web (puertos 80 y 443) y SSH (puerto 22)."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "TCP es el protocolo más explotado por su ubicuidad. El SYN scan (Nmap -sS) envía SYN sin completar el handshake para enumerar puertos abiertos sin dejar conexiones en los logs. El SYN flood satura la tabla de conexiones half-open del servidor hasta que rechaza conexiones legítimas. TCP también puede revelar el sistema operativo: el tamaño de ventana inicial, opciones TCP y TTL son únicos por OS — HomeNetGuard usa esto para el fingerprinting pasivo.",
+          "mitre_techniques": [
+            "T1046",
+            "T1499.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "La cabecera TCP tiene 20 bytes mínimo: puertos origen/destino (2+2), número de secuencia (4), número de ACK (4), offset/flags (2), ventana (2), checksum (2), urgente (2). Los flags SYN, ACK, FIN, RST, PSH, URG determinan el estado de la conexión. RFC 9293 (2022) actualizó RFC 793 aclarando ambigüedades sobre simultaneous opens, TIME_WAIT y manejo de RST. El estado TIME_WAIT (2×MSL ≈ 4 min) previene que segmentos tardíos contaminen conexiones nuevas.",
+          "references": [
+            "RFC 793",
+            "RFC 9293"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "udp-protocol",
+      "slug": "udp-protocol",
+      "title": "UDP — User Datagram Protocol",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 7,
+      "ui_terms": [
+        "UDP",
+        "DNS",
+        "NTP",
+        "DHCP"
+      ],
+      "prerequisites": [],
+      "next_topics": [
+        "dns-fundamentals",
+        "ddos"
+      ],
+      "standards": [
+        "RFC 768"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es UDP?",
+          "content": "UDP (User Datagram Protocol) es el protocolo de transporte sin conexión: envía datagramas sin handshake previo, sin confirmación de entrega y sin control de orden. Lo que pierde en fiabilidad lo gana en velocidad y simplicidad. Es la elección natural para DNS (consultas rápidas que se repiten si fallan), streaming de vídeo/audio (un frame perdido es preferible a esperar), NTP y VoIP. HTTP/3 (QUIC) también corre sobre UDP, implementando su propio control de fiabilidad para combinar velocidad con seguridad."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE protocol='UDP' AND timestamp > datetime('now','-5 minutes')",
+          "description": "Flujos UDP en los últimos 5 minutos. Suelen incluir consultas DNS (puerto 53), sincronización NTP (puerto 123) y tráfico mDNS (puerto 5353) de dispositivos IoT y Apple."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "UDP es el vector favorito para ataques de amplificación DDoS: el atacante falsifica la IP origen y envía una petición pequeña a un servidor UDP que responde con una respuesta enorme dirigida a la víctima. DNS amplifica ×50, NTP ×556, Memcached ×51.000. UDP también habilita tunneling covert: datos se encapsulan dentro de paquetes UDP aparentemente legítimos (DNS sobre UDP). HomeNetGuard detecta flujos UDP con payloads anómalos o destinos inusuales.",
+          "mitre_techniques": [
+            "T1499.002",
+            "T1048.003"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "La cabecera UDP tiene solo 8 bytes: puerto origen, puerto destino, longitud y checksum. QUIC (RFC 9000) construye sobre UDP toda la maquinaria que TCP tiene integrada: control de congestión, retransmisión y multiplexado de streams, pero añade TLS 1.3 obligatorio y 0-RTT. Esto hace que QUIC sea más rápido que TCP+TLS en reconexiones. HomeNetGuard identifica QUIC como UDP/443 con payloads cifrados.",
+          "references": [
+            "RFC 768",
+            "RFC 9000"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ip-addressing",
+      "slug": "ip-addressing",
+      "title": "Direcciones IP — IPv4 e IPv6",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 12,
+      "ui_terms": [
+        "src_ip",
+        "dst_ip",
+        "192.168.",
+        "10.",
+        "172.16."
+      ],
+      "prerequisites": [],
+      "next_topics": [
+        "subnets-cidr",
+        "nat",
+        "ipv6"
+      ],
+      "standards": [
+        "RFC 791",
+        "RFC 4291"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué son las direcciones IP?",
+          "content": "Una dirección IP identifica unívocamente un dispositivo en una red. IPv4 usa 32 bits escritos como 4 octetos decimales (192.168.1.5). IPv6 usa 128 bits en notación hexadecimal (2001:db8::1). Las IPs se dividen en privadas (RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) — solo válidas dentro de redes locales — y públicas, enrutables en Internet. Tu router tiene una IP pública asignada por el ISP y múltiples IPs privadas para los dispositivos internos, usando NAT para conectarlos al exterior."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT dst_ip) FROM flows WHERE dst_ip NOT LIKE '192.168.%' AND dst_ip NOT LIKE '10.%' AND dst_ip NOT LIKE '172.1%' AND timestamp > datetime('now','-1 hour')",
+          "description": "IPs externas únicas contactadas en la última hora. Cada una es un servidor en Internet con el que algún dispositivo de tu red ha establecido conexión. El mapa de HomeNetGuard las geolocaliza."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "IP spoofing consiste en falsificar la IP origen de un paquete para suplantar otra fuente o lanzar ataques DDoS de reflexión. Con UDP (sin handshake) el spoofing es trivial; con TCP lo impide el three-way handshake. Detectar IPs privadas en tráfico que llega desde el exterior (Martian packets) indica posible spoofing. HomeNetGuard compara cada IP de flujo contra su base de reputación y geolocalización para detectar conexiones anómalas a regiones inusuales.",
+          "mitre_techniques": [
+            "T1590.005"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "La cabecera IPv4 tiene 20 bytes base: versión, IHL, DSCP, longitud total, ID, flags (DF/MF), fragment offset, TTL, protocolo, checksum, src IP, dst IP. El campo TTL decrementa en cada router; cuando llega a 0, el paquete se descarta y se envía ICMP Time Exceeded. Traceroute abusa de esto: envía paquetes con TTL=1, 2, 3... recibiendo los ICMP de cada router. IPv6 elimina checksum de cabecera, fragmentación en routers intermedios y broadcast, ganando eficiencia.",
+          "references": [
+            "RFC 791",
+            "RFC 8200",
+            "RFC 1918"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "subnets-cidr",
+      "slug": "subnets-cidr",
+      "title": "Subredes y CIDR",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 10,
+      "ui_terms": [
+        "CIDR",
+        "/24",
+        "subnet",
+        "mask"
+      ],
+      "prerequisites": [
+        "ip-addressing"
+      ],
+      "next_topics": [
+        "gateway-router",
+        "network-segmentation"
+      ],
+      "standards": [
+        "RFC 950"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué son las subredes y CIDR?",
+          "content": "Una subred es una división lógica de una red IP. La notación CIDR (Classless Inter-Domain Routing) expresa una subred como dirección IP más prefijo de red: 192.168.1.0/24 significa que los primeros 24 bits son la red y los 8 restantes identifican hosts, dando 254 hosts útiles (256 − dirección de red − broadcast). Una /16 da 65.534 hosts, una /30 solo 2. El escáner de dispositivos de HomeNetGuard detecta automáticamente la subred local y hace un ARP sweep del rango completo para descubrir todos los dispositivos."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT ip_address) FROM devices WHERE ip_address LIKE '192.168.%'",
+          "description": "Dispositivos descubiertos en la subred 192.168.x.x. El escáner de HomeNetGuard usa ARP para encontrarlos todos en la subred local, independientemente de si están activos en la tabla de flujos."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "La segmentación de red mediante subredes es un control de seguridad fundamental. Separar IoT, invitados y equipos de trabajo en subredes distintas limita el radio de explosión si un dispositivo es comprometido: el malware no puede moverse lateralmente a otra subred sin atravesar un firewall o router. Una red plana (todos los dispositivos en /24) es el escenario ideal para lateral movement. HomeNetGuard detecta tráfico entre subredes que normalmente no deberían comunicarse.",
+          "mitre_techniques": [
+            "T1021"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El cálculo de subred: 192.168.1.0/24 → máscara 255.255.255.0 → red 192.168.1.0 → broadcast 192.168.1.255 → rango de hosts .1-.254. Para /25: dos subredes de 126 hosts cada una. Variable Length Subnet Masking (VLSM) permite usar prefijos distintos según necesidades. BGP anuncia bloques CIDR en Internet: cada anuncio es una ruta hacia un bloque de IPs controlado por un AS.",
+          "references": [
+            "RFC 950",
+            "RFC 1519"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gateway-router",
+      "slug": "gateway-router",
+      "title": "El Gateway y el Router",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 8,
+      "ui_terms": [
+        "gateway",
+        "router",
+        "NAT"
+      ],
+      "prerequisites": [
+        "ip-addressing"
+      ],
+      "next_topics": [
+        "nat",
+        "bgp-routing"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es el gateway y el router?",
+          "content": "El gateway por defecto es la dirección IP del router al que tu dispositivo envía todo el tráfico que no es local. Cuando navegas a google.com, tu PC envía el paquete al gateway (típicamente 192.168.1.1), que lo reenvía hacia Internet. El router decide el siguiente salto consultando su tabla de rutas. En redes domésticas, el router también actúa como servidor DHCP (asigna IPs), NAT (comparte la IP pública), DNS resolver y firewall básico. HomeNetGuard monitoriza la latencia y disponibilidad del gateway en tiempo real."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT dst_ip) FROM flows WHERE timestamp > datetime('now','-1 hour')",
+          "description": "IPs destino únicas en la última hora. El gateway local aparecerá como origen de muchos flujos. Si el gateway cae, este contador baja a cero bruscamente — HomeNetGuard detecta esa interrupción."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El gateway es el punto más crítico de la red doméstica: si es comprometido, el atacante tiene visibilidad de todo el tráfico. Los ataques de ARP spoofing suelen suplantar el gateway para posicionarse como MITM. Además, el firmware desactualizado del router es uno de los vectores más explotados en redes domésticas (CVEs en routers TP-Link, Netgear y ASUS son frecuentes). Cambiar las credenciales por defecto y actualizar el firmware son las dos acciones de mayor impacto.",
+          "mitre_techniques": [
+            "T1557.002",
+            "T1584"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El proceso de enrutamiento: cuando un paquete llega al router, consulta la tabla de rutas (FIB) buscando la ruta más específica (longest prefix match). Si ninguna coincide, usa la ruta por defecto (0.0.0.0/0). Los routers domésticos implementan NAT-PAT: mapean (IP_privada:puerto) → (IP_pública:puerto_efímero) para permitir múltiples dispositivos con una sola IP pública. La tabla NAT debe mantenerse sincronizada con las conexiones activas.",
+          "references": [
+            "RFC 1812",
+            "RFC 3022"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dns-fundamentals",
+      "slug": "dns-fundamentals",
+      "title": "DNS — Domain Name System",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "DNS",
+        "A",
+        "AAAA",
+        "CNAME",
+        "MX",
+        "TXT",
+        "PTR",
+        "query_type"
+      ],
+      "prerequisites": [
+        "ip-addressing"
+      ],
+      "next_topics": [
+        "dns-poisoning",
+        "doh-dot"
+      ],
+      "standards": [
+        "RFC 1034",
+        "RFC 1035"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es DNS?",
+          "content": "DNS (Domain Name System) traduce nombres de dominio legibles (google.com) a direcciones IP (142.250.80.46). Funciona de forma jerárquica: root servers → TLD servers (.com, .org) → authoritative nameservers. Cuando tu dispositivo resuelve 'google.com', primero consulta su caché local, luego el resolver del router, luego el ISP, que sube la cadena hasta encontrar la respuesta autoritativa. DNS usa UDP puerto 53 para consultas normales y TCP para respuestas grandes o transferencias de zona. Los tipos de registro principales son: A (IPv4), AAAA (IPv6), CNAME (alias), MX (correo), TXT (verificación/SPF), PTR (DNS inverso)."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM dns_queries WHERE timestamp > datetime('now','-1 hour')",
+          "description": "Consultas DNS en la última hora. HomeNetGuard captura cada resolución, incluso de tráfico HTTPS cifrado — el nombre del servidor es visible en el ClientHello TLS (SNI) y en la consulta DNS previa a la conexión."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "DNS es el protocolo más explotado en ciberseguridad. El 91% del malware usa DNS para comunicarse con su C2. Las técnicas de explotación incluyen: DNS cache poisoning (inyectar respuestas falsas), DNS tunneling (exfiltrar datos codificados en subdominios), DGA (Domain Generation Algorithms para C2 resiliente), fast-flux (rotar IPs cada 60s para evadir bloqueos) y DNS rebinding (bypasear same-origin policy). HomeNetGuard analiza entropía de dominios, frecuencia de NXDOMAIN y patrones de subdominio para detectar estas técnicas.",
+          "mitre_techniques": [
+            "T1071.004",
+            "T1048.003",
+            "T1584.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Un mensaje DNS tiene: cabecera (ID, flags, contadores), sección de preguntas (qname, qtype, qclass), sección de respuestas (RRs), sección de autoridad y sección adicional. El campo TTL en cada RR indica cuánto tiempo puede cachearse. DNSSEC añade firmas criptográficas (RRSIG) a cada registro para autenticar respuestas. DNS over HTTPS (RFC 8484) y DNS over TLS (RFC 7858) cifran las consultas, haciendo inviable el análisis DNS tradicional si el dispositivo usa un resolver DoH externo.",
+          "references": [
+            "RFC 1034",
+            "RFC 1035",
+            "RFC 4034",
+            "RFC 8484"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mac-arp",
+      "slug": "mac-arp",
+      "title": "MAC Addresses y ARP",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 12,
+      "ui_terms": [
+        "MAC",
+        "ARP",
+        "vendor",
+        "mac_address"
+      ],
+      "prerequisites": [
+        "ip-addressing"
+      ],
+      "next_topics": [
+        "arp-spoofing"
+      ],
+      "standards": [
+        "RFC 826"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué son las direcciones MAC y ARP?",
+          "content": "Una dirección MAC (Media Access Control) es un identificador de 48 bits grabado en la tarjeta de red, expresado como seis pares hexadecimales (AA:BB:CC:DD:EE:FF). Los primeros 3 bytes identifican al fabricante (OUI — Organizationally Unique Identifier), los últimos 3 son únicos del dispositivo. ARP (Address Resolution Protocol) resuelve la pregunta '¿quién tiene la IP 192.168.1.5?' enviando un broadcast Ethernet que el dueño de esa IP responde con su MAC. HomeNetGuard usa ARP para descubrir todos los dispositivos de la red local y enriquece cada MAC con el nombre del fabricante desde la base de datos OUI del IEEE."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT vendor) FROM devices WHERE vendor IS NOT NULL AND vendor != ''",
+          "description": "Fabricantes distintos detectados en tu red. HomeNetGuard lookupea el OUI de cada MAC para mostrar 'Apple', 'Raspberry Pi Foundation', 'Samsung', etc. Esto revela inmediatamente dispositivos desconocidos o inesperados."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "ARP no tiene autenticación: cualquier dispositivo puede enviar una respuesta ARP gratuita (gratuitous ARP) afirmando ser el dueño de cualquier IP, incluso sin haber recibido una pregunta. ARP spoofing explota esto para envenenar la tabla ARP de la víctima y redirigir su tráfico al atacante (MITM). HomeNetGuard detecta ARP spoofing comparando la asociación IP↔MAC a lo largo del tiempo: si la misma IP aparece con dos MACs distintas en poco tiempo, genera una alerta crítica.",
+          "mitre_techniques": [
+            "T1557.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Las MACs modernas implementan randomización: iOS 14+, Android 10+ y Windows 10+ generan MACs aleatorias por red para evitar el tracking. Una MAC aleatorizada tiene el bit 'locally administered' activado (segundo dígito hexadecimal: 2, 6, A o E). HomeNetGuard detecta MACs localmente administradas y las marca. La tabla ARP del kernel Linux puede verse con 'arp -n' o 'ip neigh show'. Los ataques de CAM table overflow llenan la tabla del switch hasta que opera en modo hub, haciendo visible todo el tráfico.",
+          "references": [
+            "RFC 826",
+            "RFC 7042"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tcp-handshake",
+      "slug": "tcp-handshake",
+      "title": "TCP Three-Way Handshake",
+      "category": "fundamentals",
+      "level": "intermediate",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "TCP",
+        "SYN",
+        "ACK",
+        "FIN",
+        "RST",
+        "src_port",
+        "dst_port"
+      ],
+      "prerequisites": [
+        "tcp-protocol"
+      ],
+      "next_topics": [
+        "port-scanning",
+        "ddos"
+      ],
+      "standards": [
+        "RFC 793"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es el three-way handshake de TCP?",
+          "content": "Antes de que dos sistemas intercambien datos por TCP, establecen la conexión en tres pasos: (1) El cliente envía SYN con su número de secuencia inicial (ISN). (2) El servidor responde SYN-ACK, confirmando el ISN del cliente (ACK = ISN+1) y comunicando su propio ISN. (3) El cliente envía ACK confirmando el ISN del servidor. Tras esto ambos lados conocen los números de secuencia del otro y la conexión está establecida. El cierre también es ordenado: FIN → FIN-ACK → ACK (o FIN+ACK simultáneos). El flag RST cierra la conexión abruptamente sin esperar confirmación."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE protocol='TCP' AND timestamp > datetime('now','-10 minutes')",
+          "description": "Conexiones TCP establecidas en los últimos 10 minutos. Cada una completó su three-way handshake. Un número inusualmente alto puede indicar escaneo activo o conexiones C2 en beaconing."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El SYN scan (Nmap -sS) envía SYN y, si recibe SYN-ACK (puerto abierto), responde con RST en lugar de ACK para no completar la conexión. Esto lo hace más silencioso y rápido que un TCP connect scan. El SYN flood satura la tabla de conexiones half-open del servidor enviando miles de SYN con IPs falsificadas — el servidor reserva recursos esperando el ACK que nunca llega. HomeNetGuard detecta hosts que generan muchos SYN sin ACK correspondiente como posibles atacantes o dispositivos comprometidos.",
+          "mitre_techniques": [
+            "T1046",
+            "T1499.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Los números de secuencia iniciales (ISN) deben ser pseudoaleatorios para evitar ataques de predicción de secuencia (session hijacking). RFC 6528 documenta el método recomendado. El estado TIME_WAIT retiene la conexión durante 2×MSL (típicamente 4 minutos) para absorber segmentos retrasados y evitar que contaminen conexiones nuevas. TCP Fast Open (RFC 7413) permite enviar datos en el SYN para reducir latencia en la primera petición, pero introduce riesgos de replay attack.",
+          "references": [
+            "RFC 793",
+            "RFC 9293",
+            "RFC 6528"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ports-services",
+      "slug": "ports-services",
+      "title": "Puertos y Servicios",
+      "category": "fundamentals",
+      "level": "intermediate",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "src_port",
+        "dst_port",
+        "22",
+        "80",
+        "443",
+        "53",
+        "25",
+        "445"
+      ],
+      "prerequisites": [
+        "tcp-protocol",
+        "udp-protocol"
+      ],
+      "next_topics": [
+        "port-scanning",
+        "firewalls"
+      ],
+      "standards": [
+        "RFC 6335"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué son los puertos?",
+          "content": "Un puerto es un número de 16 bits (0–65535) que identifica un proceso o servicio específico dentro de un dispositivo. La combinación IP:puerto (socket) identifica un extremo de comunicación de forma única. Los puertos se dividen en: Well-known (0–1023), reservados para servicios estándar asignados por IANA; Registered (1024–49151), asignados a aplicaciones comerciales; y Ephemeral (49152–65535), asignados dinámicamente por el OS a conexiones salientes. Al acceder a google.com:443, tu OS abre un puerto efímero como 54382 en origen y conecta al puerto 443 de Google."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT dst_port) FROM flows WHERE timestamp > datetime('now','-1 hour')",
+          "description": "Puertos destino únicos usados en la última hora. Una red doméstica normal usa unos pocos puertos conocidos (443, 80, 53, 123). Muchos puertos distintos o puertos inusuales pueden indicar escaneo o malware."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Los puertos peligrosos más comunes son: 23 (Telnet, sin cifrado), 21 (FTP, sin cifrado), 445 (SMB, explotado por EternalBlue/WannaCry), 3389 (RDP, objetivo frecuente de brute force), 1433/3306 (bases de datos expuestas). HomeNetGuard alerta cuando dispositivos locales intentan conectarse a estos puertos en hosts externos o cuando hosts externos intentan acceder a ellos en tu red. Un dispositivo contactando puertos inusuales puede estar ejecutando malware.",
+          "mitre_techniques": [
+            "T1046",
+            "T1021.001",
+            "T1021.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El fichero /etc/services mapea nombres de servicio a números de puerto. Los firewalls stateful rastrean conexiones por 5-tupla: (src_ip, src_port, dst_ip, dst_port, protocolo). Port knocking es una técnica donde un servicio solo se abre tras recibir paquetes en una secuencia específica de puertos cerrados — oscuridad, no seguridad real. Single Packet Authorization (SPA) es la versión criptográficamente segura.",
+          "references": [
+            "RFC 6335",
+            "RFC 1700"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nat",
+      "slug": "nat",
+      "title": "NAT — Network Address Translation",
+      "category": "fundamentals",
+      "level": "intermediate",
+      "estimated_minutes": 10,
+      "ui_terms": [
+        "NAT",
+        "192.168.",
+        "private IP",
+        "public IP"
+      ],
+      "prerequisites": [
+        "ip-addressing",
+        "gateway-router"
+      ],
+      "next_topics": [
+        "vpn",
+        "firewalls"
+      ],
+      "standards": [
+        "RFC 3022"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es NAT?",
+          "content": "NAT (Network Address Translation) permite que múltiples dispositivos con IPs privadas compartan una única IP pública. Cuando tu PC (192.168.1.5) hace una petición a google.com, el router reemplaza la IP origen por su IP pública y almacena la asignación (192.168.1.5:54382 → 1.2.3.4:54382) en su tabla NAT. La respuesta de Google llega a la IP pública y el router la reenvía al dispositivo correcto. Este proceso se llama PAT (Port Address Translation) o NAT overload. Desde Internet, todos tus dispositivos parecen ser uno solo."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT src_ip) FROM flows WHERE src_ip LIKE '192.168.%' OR src_ip LIKE '10.%'",
+          "description": "Dispositivos con IPs privadas que han generado tráfico. Todos comparten la misma IP pública hacia Internet gracias a NAT. HomeNetGuard opera dentro de la NAT, por lo que ve las IPs privadas reales de cada dispositivo."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "NAT se usa frecuentemente como 'seguridad por oscuridad', asumiendo erróneamente que esconder las IPs privadas protege la red. En realidad, NAT no filtra tráfico: una conexión saliente a una IP maliciosa atraviesa NAT sin obstáculos. El malware iniciado desde dentro de la red no encuentra NAT como barrera. IPv6 elimina la necesidad de NAT, lo que puede exponer dispositivos internos si el firewall IPv6 no está correctamente configurado — vector frecuentemente ignorado.",
+          "mitre_techniques": [
+            "T1090"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "NAT rompe el principio de end-to-end connectivity de Internet. Protocolos que incrustan IPs en el payload (FTP activo, SIP, H.323) requieren ALG (Application Layer Gateway) en el router para funcionar con NAT. STUN/TURN/ICE son técnicas de NAT traversal usadas por WebRTC y VoIP para establecer conexiones peer-to-peer a través de NAT. Hairpin NAT (NAT loopback) permite acceder desde la red local a un servicio en la IP pública del propio router.",
+          "references": [
+            "RFC 3022",
+            "RFC 4787"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "icmp",
+      "slug": "icmp",
+      "title": "ICMP — Internet Control Message Protocol",
+      "category": "fundamentals",
+      "level": "intermediate",
+      "estimated_minutes": 12,
+      "ui_terms": [
+        "ICMP",
+        "TTL",
+        "ping"
+      ],
+      "prerequisites": [
+        "ip-addressing"
+      ],
+      "next_topics": [
+        "ddos",
+        "data-exfiltration"
+      ],
+      "standards": [
+        "RFC 792",
+        "RFC 4443"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es ICMP?",
+          "content": "ICMP (Internet Control Message Protocol) es el protocolo de diagnóstico y control de la capa de red. No transporta datos de aplicación sino mensajes del sistema: Echo Request/Reply (ping), Destination Unreachable, Time Exceeded (usado por traceroute), Redirect y Fragmentation Needed. El comando ping envía ICMP Echo Requests y mide el tiempo de respuesta. Traceroute envía paquetes con TTL incrementando (1, 2, 3…) y cada router que los descarta responde con ICMP Time Exceeded, revelando la ruta completa. ICMP no tiene números de puerto: se identifica por Type y Code."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE protocol='ICMP' AND timestamp > datetime('now','-1 hour')",
+          "description": "Flujos ICMP en la última hora. En una red doméstica normal hay muy poco tráfico ICMP. Un número elevado puede indicar ping sweeps (reconocimiento), un detector de latencia, o ICMP tunneling."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "ICMP tunneling codifica datos en el campo payload de Echo Requests — técnicamente válido ya que ICMP Echo puede llevar cualquier dato. Herramientas como icmptunnel crean túneles IP completos sobre ICMP. El Ping of Death (CVE histórico) enviaba paquetes ICMP fragmentados que al reensamblarse superaban 65.535 bytes, causando buffer overflow. ICMP Redirect puede usarse para redirigir el tráfico de una víctima a través del atacante. HomeNetGuard alerta sobre ICMP a muchos hosts distintos (ping sweep) o payloads ICMP inusualmente grandes.",
+          "mitre_techniques": [
+            "T1095",
+            "T1018"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "ICMPv6 (RFC 4443) amplía ICMP para IPv6 e incorpora funciones que en IPv4 eran protocolos separados: Neighbor Discovery Protocol (NDP) reemplaza a ARP, Router Advertisement/Solicitation reemplaza parcialmente a DHCP, y Multicast Listener Discovery gestiona grupos multicast. Filtrar todo el ICMP (práctica común pero incorrecta) rompe Path MTU Discovery (PMTUD) que usa 'Fragmentation Needed' para ajustar el MSS — causando problemas misteriosos de conectividad con ciertos sitios.",
+          "references": [
+            "RFC 792",
+            "RFC 4443",
+            "RFC 1191"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bgp-routing",
+      "slug": "bgp-routing",
+      "title": "BGP y Routing en Internet",
+      "category": "fundamentals",
+      "level": "advanced",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "ASN",
+        "country",
+        "org",
+        "BGP"
+      ],
+      "prerequisites": [
+        "ip-addressing",
+        "subnets-cidr"
+      ],
+      "next_topics": [],
+      "standards": [
+        "RFC 4271"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es BGP y cómo enruta Internet?",
+          "content": "BGP (Border Gateway Protocol) es el protocolo de enrutamiento que conecta los Sistemas Autónomos (AS) de Internet. Un AS es un bloque de IPs bajo control de una organización (Cloudflare = AS13335, Google = AS15169, tu ISP tiene el suyo). BGP permite que cada AS anuncie qué prefijos CIDR controla y aprenda las rutas hacia todos los demás. Cuando HomeNetGuard muestra que un flujo va a 'AS13335 — Cloudflare', significa que el destino es una IP en el bloque anunciado por ese AS. La base de datos de ip_reputation de HomeNetGuard incluye el ASN de cada IP vista en la red."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT asn) FROM ip_reputation WHERE asn IS NOT NULL",
+          "description": "Sistemas Autónomos distintos contactados (ASNs únicos en la base de reputación). Esto representa la diversidad de organizaciones a las que tu red se ha conectado. Cloudflare, Google, Amazon y tu ISP suelen ser los más frecuentes."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "BGP hijacking ocurre cuando un AS anuncia prefijos que no le pertenecen — redirigiendo tráfico hacia sí mismo. En 2008, Pakistan Telecom anunció accidentalmente el prefijo de YouTube, cortando el acceso global durante horas. En 2010, China Telecom anunció 50.000 prefijos de todo el mundo por 18 minutos, capturando millones de flujos. Ataques deliberados pueden interceptar tráfico entre dos organizaciones. RPKI (Resource Public Key Infrastructure) y ROA (Route Origin Authorization) son las defensas principales.",
+          "mitre_techniques": [
+            "T1584.006"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "BGP es un protocolo de vector de rutas: cada AS anuncia prefijos con el AS_PATH (lista de ASes que atraviesa), lo que permite detectar loops y aplicar políticas (preferir ciertas rutas, filtrar otras). BGP usa TCP puerto 179 entre peers (BGP neighbors). La tabla BGP global tiene ~950.000 prefijos IPv4. La distinción entre iBGP (dentro de un AS) y eBGP (entre ASes) es fundamental. ROA valida que solo el AS legítimo anuncie un prefijo, pero no previene path manipulation.",
+          "references": [
+            "RFC 4271",
+            "RFC 6811"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipv6",
+      "slug": "ipv6",
+      "title": "IPv6 — El Presente y el Futuro",
+      "category": "fundamentals",
+      "level": "advanced",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "IPv6",
+        "::",
+        "fe80::",
+        "2001:"
+      ],
+      "prerequisites": [
+        "ip-addressing"
+      ],
+      "next_topics": [],
+      "standards": [
+        "RFC 8200",
+        "RFC 4291"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es IPv6?",
+          "content": "IPv6 es la siguiente generación del protocolo IP, diseñada para resolver el agotamiento de IPv4. Usa direcciones de 128 bits (3,4×10³⁸ posibles), escritas en 8 grupos de 4 dígitos hex separados por dos puntos: 2001:0db8:85a3::8a2e:0370:7334. Los grupos de ceros consecutivos se abrevian con '::'. Las IPs de enlace local empiezan por fe80::/10 y son automáticas. Las IPs globales (unicast globales) empiezan por 2000::/3. IPv6 elimina NAT (cada dispositivo tiene una IP global única), fragmentación en routers intermedios, checksum en cabecera y broadcast."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE src_ip LIKE '%:%' OR dst_ip LIKE '%:%'",
+          "description": "Flujos IPv6 capturados. Muchas redes domésticas tienen IPv6 habilitado sin saberlo (asignado por el ISP o autoconfigurado). Si el número es mayor que cero, tu red usa IPv6 activamente."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "IPv6 es el vector de bypass de seguridad más ignorado en redes domésticas. Si el router tiene IPv6 habilitado pero el firewall solo filtra IPv4, los dispositivos pueden ser accesibles directamente desde Internet sin pasar por NAT. Además, si el ISP asigna IPs IPv6 globales a los dispositivos, estos son enrutables públicamente — sin NAT como barrera implícita. Los atacantes pueden usar túneles 6in4 o Teredo para comunicaciones encubiertas sobre redes IPv4.",
+          "mitre_techniques": [
+            "T1090.001"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "IPv6 Privacy Extensions (RFC 4941) generan un sufijo aleatorio que rota periódicamente para el identificador de interfaz, dificultando el tracking por IP. SLAAC (Stateless Address Autoconfiguration, RFC 4862) permite a un dispositivo autoasignarse una IPv6 global usando el prefijo anunciado por el router (RA) y un identificador derivado de la MAC o aleatorio. NDP (Neighbor Discovery Protocol) reemplaza ARP, ARP spoofing se llama ahora NDP spoofing y existe herramientas como parasite6 para realizarlo.",
+          "references": [
+            "RFC 8200",
+            "RFC 4862",
+            "RFC 4941",
+            "RFC 4291"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "osi-model",
+      "slug": "osi-model",
+      "title": "El Modelo OSI — Las 7 Capas",
+      "category": "fundamentals",
+      "level": "beginner",
+      "estimated_minutes": 10,
+      "ui_terms": [
+        "TCP",
+        "UDP",
+        "ICMP",
+        "ARP",
+        "DNS",
+        "HTTP",
+        "TLS"
+      ],
+      "prerequisites": [],
+      "next_topics": [
+        "tcp-protocol",
+        "ip-addressing"
+      ],
+      "standards": [
+        "ISO/IEC 7498-1"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es el modelo OSI?",
+          "content": "El modelo OSI (Open Systems Interconnection) divide la comunicación en red en 7 capas independientes, cada una con una responsabilidad específica. Capa 1 (Física): cables y señales eléctricas. Capa 2 (Enlace): tramas Ethernet y direcciones MAC. Capa 3 (Red): enrutamiento IP entre redes. Capa 4 (Transporte): TCP y UDP, control de flujo y fiabilidad. Capa 5-6 (Sesión/Presentación): gestión de sesiones y codificación. Capa 7 (Aplicación): HTTP, DNS, SMTP — lo que ven las aplicaciones. Aunque en la práctica se usa el modelo TCP/IP de 4 capas, OSI sigue siendo el lenguaje común para describir dónde ocurre cada problema o ataque de red."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE timestamp > datetime('now','-1 hour')",
+          "description": "Flujos capturados en la última hora. Cada flujo opera en capas 3-4 del modelo OSI (IP + TCP/UDP). HomeNetGuard analiza desde capa 2 (MAC/ARP) hasta capa 7 (DNS, HTTP, TLS)."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Cada capa del modelo OSI tiene sus propios vectores de ataque. En L2: ARP spoofing para MITM. En L3: IP spoofing y fragmentación maliciosa. En L4: SYN flood y port scanning. En L7: DNS poisoning, HTTP injection y exfiltración de datos. HomeNetGuard opera en múltiples capas simultáneamente: captura a nivel L2, analiza flujos L3/L4 y detecta anomalías L7 como DNS tunneling. Un atacante que comprenda qué capa monitoriza cada herramienta puede intentar operar en las capas menos vigiladas.",
+          "mitre_techniques": [
+            "T1590",
+            "T1046"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "En la práctica, el stack TCP/IP collapsa las 7 capas OSI en 4: Acceso a Red (L1+L2), Internet (L3), Transporte (L4) y Aplicación (L5-L7). La DPI (Deep Packet Inspection) inspecciona hasta capa 7. El concepto de 'encapsulación' es clave: cada capa añade su cabecera al bajar (PDU), y la elimina al subir. Un frame Ethernet contiene un paquete IP que contiene un segmento TCP que contiene datos HTTP — cuatro capas anidadas.",
+          "references": [
+            "ISO/IEC 7498-1",
+            "RFC 1122"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tls-ssl",
+      "slug": "tls-ssl",
+      "title": "TLS/SSL — Cifrado en Tránsito",
+      "category": "security_protocols",
+      "level": "beginner",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "TLS",
+        "HTTPS",
+        "443",
+        "SSL",
+        "certificate",
+        "JA3",
+        "ja3_hash"
+      ],
+      "prerequisites": [
+        "tcp-protocol"
+      ],
+      "next_topics": [
+        "digital-certificates",
+        "doh-dot"
+      ],
+      "standards": [
+        "RFC 8446",
+        "RFC 5246"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es TLS/SSL?",
+          "content": "TLS (Transport Layer Security) es el protocolo que cifra las comunicaciones en tránsito. SSL fue su predecesor, hoy obsoleto. TLS protege HTTPS (puerto 443), SMTPS, IMAPS y cualquier protocolo que lo implemente. El proceso de conexión TLS comienza con un handshake: el cliente envía ClientHello (versión soportada, cipher suites, extensiones), el servidor responde con ServerHello y su certificado, se negocia una clave de sesión efímera mediante Diffie-Hellman y a partir de ahí todo el tráfico va cifrado. TLS 1.3 (RFC 8446) simplificó el handshake a 1 RTT y eliminó cipher suites débiles. El candado en el navegador indica TLS activo, no que el servidor sea legítimo."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE (dst_port=443 OR dst_port=8443) AND protocol='TCP' AND timestamp > datetime('now','-30 minutes')",
+          "description": "Conexiones HTTPS/TLS en los últimos 30 minutos. Cada una inició un TLS handshake. HomeNetGuard captura el ClientHello y extrae el JA3 fingerprint y el SNI (nombre del servidor destino) antes de que el tráfico se cifre."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "HTTPS no es sinónimo de seguro: el cifrado protege el tráfico en tránsito pero no valida la legitimidad del servidor. Un servidor de phishing puede tener certificado TLS válido (Let's Encrypt es gratuito). El JA3 fingerprint del ClientHello es único por aplicación — HomeNetGuard detecta clientes TLS anómalos aunque el tráfico esté completamente cifrado. Cipher suites débiles (RC4, 3DES, MD5) permiten ataques de downgrade como BEAST y POODLE. TLS 1.0 y 1.1 están formalmente deprecados.",
+          "mitre_techniques": [
+            "T1573.002",
+            "T1071.001"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El JA3 hash se calcula como MD5 de: TLS version, cipher suites, extensiones, grupos elípticos y formatos de punto elíptico del ClientHello. JA4 (sucesor) es más estable entre versiones de librerías. TLS 1.3 introdujo 0-RTT para reconexiones (datos en el primer paquete), que tiene riesgo de replay attack para peticiones no idempotentes. ECH (Encrypted Client Hello) cifra el SNI, haciendo imposible saber el dominio destino incluso en handshake — HomeNetGuard necesitaría análisis estadístico de flows para compensar.",
+          "references": [
+            "RFC 8446",
+            "RFC 5246"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ssh-protocol",
+      "slug": "ssh-protocol",
+      "title": "SSH — Secure Shell",
+      "category": "security_protocols",
+      "level": "beginner",
+      "estimated_minutes": 12,
+      "ui_terms": [
+        "SSH",
+        "22",
+        "port 22"
+      ],
+      "prerequisites": [
+        "tcp-protocol",
+        "cryptography-basics"
+      ],
+      "next_topics": [
+        "living-off-land"
+      ],
+      "standards": [
+        "RFC 4251",
+        "RFC 4252"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es SSH?",
+          "content": "SSH (Secure Shell) es el protocolo estándar para acceso remoto seguro a sistemas Unix/Linux, reemplazando a Telnet (sin cifrado) y rsh. Opera en el puerto 22/TCP. Ofrece: shell remoto cifrado, transferencia de ficheros (SFTP/SCP), port forwarding local y remoto, y tunneling de protocolos arbitrarios. La autenticación puede ser por contraseña o clave pública/privada (RSA, ECDSA, Ed25519). Con clave pública, el servidor solo almacena la clave pública; la privada nunca sale del cliente. SSH usa un handshake para negociar algoritmos de cifrado, intercambiar claves Diffie-Hellman y autenticar al servidor con su host key."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE dst_port=22 AND protocol='TCP' AND timestamp > datetime('now','-1 hour')",
+          "description": "Conexiones SSH en la última hora. En una red doméstica, SSH al exterior puede indicar administración remota legítima o un dispositivo comprometido comunicándose de forma encubierta mediante SSH tunneling."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Brute force en SSH con contraseña es uno de los ataques más comunes en Internet — cualquier servidor SSH expuesto recibe miles de intentos diarios. Fail2ban y la autenticación solo por clave son las mitigaciones estándar. SSH tunneling permite encapsular cualquier tráfico sobre SSH, bypasseando firewalls que solo permiten el puerto 22: con 'ssh -D 1080 user@server' se crea un proxy SOCKS cifrado. Malware avanzado usa SSH como canal C2 para mezclar con tráfico administrativo legítimo.",
+          "mitre_techniques": [
+            "T1021.004",
+            "T1572",
+            "T1110.001"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "SSH versión 2 (RFC 4251-4256) define cuatro capas: transporte (negociación de cifrado y autenticación de servidor), autenticación de usuario (password, publickey, keyboard-interactive), conexión (multiplexado de canales) y los protocolos SFTP/SCP encima. La 'ssh fingerprint' del servidor (SHA256 del host key) debe verificarse en el primer acceso para prevenir MITM. SSH certificates (extensión OpenSSH) permiten firmar claves efímeramente con una CA, facilitando gestión a escala sin distribuir claves individuales.",
+          "references": [
+            "RFC 4251",
+            "RFC 4252",
+            "RFC 4253"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "digital-certificates",
+      "slug": "digital-certificates",
+      "title": "Certificados Digitales y PKI",
+      "category": "security_protocols",
+      "level": "beginner",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "certificate",
+        "CA",
+        "TLS",
+        "self-signed",
+        "X.509"
+      ],
+      "prerequisites": [
+        "tls-ssl"
+      ],
+      "next_topics": [
+        "pki-ct"
+      ],
+      "standards": [
+        "RFC 5280"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué son los certificados digitales y la PKI?",
+          "content": "Un certificado X.509 es un documento digital firmado por una Autoridad de Certificación (CA) que vincula una identidad (dominio, organización) con una clave pública. Contiene: sujeto, emisor, validez (not before/after), clave pública, extensiones (SAN, uso de clave) y firma digital de la CA. La cadena de confianza funciona así: el navegador confía en las CA raíz (almacenadas en el OS/navegador), las CA raíz firman CA intermedias, las intermedias firman certificados de entidad final. PKI (Public Key Infrastructure) es el ecosistema de CAs, procesos y políticas que sustenta esta confianza."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE ja3_hash IS NOT NULL AND ja3_hash != '' AND timestamp > datetime('now','-1 hour')",
+          "description": "Flujos con JA3 fingerprint capturado. Cada JA3 corresponde a un TLS ClientHello — indirectamente, a un certificado servidor negociado. HomeNetGuard alerta si detecta certificados self-signed (posible MITM) o cipher suites asociadas a herramientas de hacking."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Un certificado self-signed no está firmado por ninguna CA de confianza — puede indicar un servidor MITM interceptando tráfico cifrado. Las CA pueden ser comprometidas: DigiNotar (2011) emitió certificados fraudulentos para google.com usados en vigilancia estatal en Irán. Certificate Transparency (CT, RFC 9162) obliga a las CAs a publicar todos los certificados emitidos en logs públicos auditables — cualquier certificado no registrado es rechazado por Chrome. Esto hace casi imposible emitir certificados fraudulentos sin ser detectado.",
+          "mitre_techniques": [
+            "T1553.004",
+            "T1557.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Las extensiones X.509 más importantes: Subject Alternative Name (SAN) lista todos los dominios válidos del certificado; Basic Constraints indica si puede actuar como CA; Key Usage restringe el uso de la clave (digital signature, key encipherment); Extended Key Usage especifica usos como TLS server authentication o code signing. OCSP (Online Certificate Status Protocol) y CRL (Certificate Revocation List) permiten revocar certificados comprometidos. HSTS (HTTP Strict Transport Security) instruye al navegador a rechazar conexiones HTTP y certificados inválidos.",
+          "references": [
+            "RFC 5280",
+            "RFC 9162",
+            "RFC 6962"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vpn",
+      "slug": "vpn",
+      "title": "VPN — Virtual Private Network",
+      "category": "security_protocols",
+      "level": "intermediate",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "VPN",
+        "WireGuard",
+        "OpenVPN",
+        "51820",
+        "1194"
+      ],
+      "prerequisites": [
+        "tls-ssl",
+        "nat"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es una VPN?",
+          "content": "Una VPN (Virtual Private Network) crea un túnel cifrado entre tu dispositivo y un servidor remoto, haciendo que todo tu tráfico parezca originarse desde la IP del servidor VPN. Los protocolos más usados son WireGuard (UDP/51820, moderno y rápido), OpenVPN (UDP/1194 o TCP/443, maduro y flexible), e IPsec/IKEv2 (integrado en móviles). Las VPNs se usan para: acceder a recursos corporativos de forma remota, eludir censura geográfica y (con limitaciones) aumentar la privacidad ocultando el tráfico del ISP. No son anonimato: el proveedor VPN ve todo el tráfico que antes veía el ISP."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE (dst_port=51820 OR dst_port=1194 OR dst_port=1723) AND timestamp > datetime('now','-1 hour')",
+          "description": "Conexiones VPN detectadas (WireGuard/51820, OpenVPN/1194, PPTP/1723). Si algún dispositivo usa VPN, HomeNetGuard verá el túnel pero no el contenido cifrado dentro."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "VPN no significa seguro: un proveedor VPN malicioso puede inspeccionar, modificar o vender el tráfico. Split tunneling (solo parte del tráfico pasa por la VPN) puede dejar expuesto tráfico sensible. Las VPNs mal configuradas permiten DNS leaks: las consultas DNS viajan fuera del túnel revelando los sitios visitados. Malware corporativo sofisticado (APTs) usa VPN legítimas como vector de entrada tras comprometer credenciales VPN con phishing.",
+          "mitre_techniques": [
+            "T1133",
+            "T1572"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "WireGuard usa Curve25519 para intercambio de claves, ChaCha20-Poly1305 para cifrado y BLAKE2s para hashing — todo criptografía moderna con solo ~4000 líneas de código frente a ~100k de OpenVPN. Funciona en modo 'roam': la clave pública identifica el peer, no la IP, facilitando cambios de red. IPsec opera en dos modos: transporte (solo cifra el payload) y túnel (cifra todo el paquete IP). IKEv2 es el protocolo de negociación de claves de IPsec, más robusto que IKEv1.",
+          "references": [
+            "RFC 7296"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "firewalls",
+      "slug": "firewalls",
+      "title": "Firewalls — Tipos y Funcionamiento",
+      "category": "security_protocols",
+      "level": "intermediate",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "firewall",
+        "iptables",
+        "rule",
+        "block",
+        "allow"
+      ],
+      "prerequisites": [
+        "tcp-protocol",
+        "ip-addressing"
+      ],
+      "next_topics": [
+        "ids-ips"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es un firewall?",
+          "content": "Un firewall es un sistema que filtra el tráfico de red según reglas predefinidas. Los tipos principales son: packet filter (inspecciona cabeceras IP/TCP sin estado), stateful firewall (rastrea el estado de conexiones TCP — permite tráfico de retorno automáticamente), application layer firewall (inspecciona L7 — puede filtrar por URL, usuario o aplicación) y next-generation firewall (NGFW, combina todo con IPS, DPI y reputación de IPs). Las reglas se evalúan en orden; la primera que coincide gana. HomeNetGuard gestiona reglas en el firewall del OS: iptables en Linux, pf en macOS/BSD."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM firewall_rules WHERE is_active=1",
+          "description": "Reglas activas en el firewall de HomeNetGuard. Cada regla bloquea una IP en dirección entrada, salida o ambas. HomeNetGuard puede crear reglas automáticamente cuando detecta amenazas (modo auto_block)."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Los firewalls se bypasean con técnicas como: usar puertos permitidos (HTTP/80, HTTPS/443) para tráfico no web, IPv6 si el firewall solo filtra IPv4, túneles sobre protocolos permitidos (DNS tunneling, SSH tunneling), y fragmentación de paquetes para evadir inspección de cabeceras. Un firewall stateful mal configurado puede dejarse confundir con RST spoofing. La defensa en profundidad sugiere no depender solo del firewall perimetral.",
+          "mitre_techniques": [
+            "T1562.004",
+            "T1090"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "iptables organiza las reglas en tablas (filter, nat, mangle) y cadenas (INPUT, OUTPUT, FORWARD, PREROUTING, POSTROUTING). HomeNetGuard inserta reglas con -I (insert al inicio) para que tengan prioridad. nftables es el sucesor moderno de iptables en Linux, con sintaxis unificada y mejor rendimiento. Los firewalls de aplicación web (WAF) inspeccionan el payload HTTP para detectar SQLi, XSS y otros ataques L7 — van más allá del filtrado de red estándar.",
+          "references": [
+            "RFC 2979"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ids-ips",
+      "slug": "ids-ips",
+      "title": "IDS vs IPS — Detección vs Prevención",
+      "category": "security_protocols",
+      "level": "intermediate",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "IDS",
+        "IPS",
+        "alert",
+        "detection",
+        "signature",
+        "anomaly"
+      ],
+      "prerequisites": [
+        "firewalls"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es IDS vs IPS?",
+          "content": "Un IDS (Intrusion Detection System) monitoriza el tráfico y genera alertas cuando detecta actividad sospechosa, sin bloquear nada. Un IPS (Intrusion Prevention System) va más allá: bloquea el tráfico malicioso en tiempo real. HomeNetGuard es un IDS por defecto — genera alertas en /alerts — pero puede configurarse como IPS habilitando auto_block en la configuración, lo que hace que bloquee automáticamente IPs detectadas como amenaza via iptables. La detección puede ser por firmas (patrones conocidos) o por anomalías (desviación del comportamiento normal). Signature-based tiene baja tasa de falsos positivos pero no detecta amenazas nuevas; anomaly-based detecta zero-days pero genera más falsos positivos."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT alert_type, COUNT(*) as cnt FROM alerts WHERE timestamp > datetime('now','-24 hours') GROUP BY alert_type ORDER BY cnt DESC LIMIT 5",
+          "description": "Top 5 tipos de alerta en las últimas 24 horas. Cada tipo corresponde a un detector específico de HomeNetGuard: port_scan, beaconing, flood, arp_spoofing, cryptomining, dns_anomaly, blacklisted_ip."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El trade-off fundamental en IPS es entre seguridad y disponibilidad. Un IPS demasiado agresivo bloquea tráfico legítimo (falsos positivos), causando indisponibilidad. Uno muy permisivo deja pasar ataques reales (falsos negativos). Ajustar los umbrales es crítico. Alert fatigue es el problema más común en IDS: demasiadas alertas de baja fidelidad hace que los analistas ignoren todas, incluyendo las críticas. HomeNetGuard intenta balancear esto con umbrales configurables y severidades calibradas.",
+          "mitre_techniques": [
+            "T1562.001"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Suricata y Snort son los IDS/IPS open source más usados — pueden complementar HomeNetGuard para detección de firmas a nivel de payload. Suricata usa reglas en formato .rules con cabecera (acción, protocolo, IPs, puertos) y opciones (content, pcre, threshold). UEBA (User and Entity Behavior Analytics) extiende IDS con ML para detectar anomalías de comportamiento de usuarios y dispositivos a lo largo del tiempo. Falso positivo = alerta incorrecta. Falso negativo = amenaza no detectada. Verdadero positivo = amenaza detectada correctamente.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "cryptography-basics",
+      "slug": "cryptography-basics",
+      "title": "Criptografía Básica Aplicada a Redes",
+      "category": "security_protocols",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "TLS",
+        "JA3",
+        "hash",
+        "MD5",
+        "SHA",
+        "AES",
+        "cipher"
+      ],
+      "prerequisites": [
+        "tls-ssl"
+      ],
+      "next_topics": [
+        "tls-ssl",
+        "ssh-protocol"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Criptografía básica aplicada a redes",
+          "content": "La criptografía simétrica usa la misma clave para cifrar y descifrar (AES-256, ChaCha20). Es rápida pero requiere compartir la clave de forma segura. La criptografía asimétrica usa un par de claves: pública (se comparte) y privada (secreta). Lo cifrado con la pública solo puede descifrarlo la privada (confidencialidad), y lo firmado con la privada puede verificarlo cualquiera con la pública (autenticidad). En TLS se usa asimétrica solo para el intercambio de claves (Diffie-Hellman) y luego simétrica para todo el tráfico. El hashing (SHA-256, SHA-3) produce un digest de tamaño fijo — no es reversible y cualquier cambio en el input cambia completamente el output."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT ja3_hash) FROM flows WHERE ja3_hash IS NOT NULL AND ja3_hash != '' AND timestamp > datetime('now','-6 hours')",
+          "description": "JA3 fingerprints únicos en las últimas 6 horas. Cada JA3 es un hash MD5 de parámetros criptográficos del ClientHello TLS — diferentes aplicaciones y versiones producen JA3s distintos. Muchos JA3s desconocidos pueden indicar herramientas inusuales o malware."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Los cipher suites débiles como RC4 (vulnerable a ataques estadísticos), 3DES (SWEET32 attack) y MD5 (colisiones conocidas) siguen activos en sistemas heredados. Perfect Forward Secrecy (PFS) garantiza que comprometer la clave privada del servidor no permite descifrar sesiones pasadas — se consigue usando Diffie-Hellman efímero (DHE/ECDHE). Sin PFS, si alguien capturó el tráfico cifrado puede descifrarlo en el futuro si obtiene la clave privada del servidor.",
+          "mitre_techniques": [
+            "T1573"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Diffie-Hellman permite que dos partes acuerden una clave secreta sobre un canal inseguro sin nunca transmitirla. ECDHE (Elliptic Curve DH Ephemeral) usa curvas elípticas para DH con claves más cortas e igualmente seguras. HMAC (Hash-based MAC) añade autenticación al hashing — SHA-256 puro no es MAC, pero HMAC-SHA256 sí. AES-GCM es el modo de operación AES recomendado: cifra y autentica en una sola pasada (AEAD — Authenticated Encryption with Associated Data). Argon2 es el algoritmo moderno para hashing de contraseñas (resistente a GPU/ASIC), sustituyendo a bcrypt y PBKDF2.",
+          "references": [
+            "RFC 7748",
+            "RFC 5869"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zero-trust",
+      "slug": "zero-trust",
+      "title": "Zero Trust Architecture",
+      "category": "security_protocols",
+      "level": "advanced",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "trusted",
+        "quarantined",
+        "unknown",
+        "device"
+      ],
+      "prerequisites": [
+        "firewalls",
+        "ids-ips"
+      ],
+      "next_topics": [
+        "zero-trust-home"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es Zero Trust Architecture?",
+          "content": "Zero Trust es el principio de seguridad que establece 'nunca confíes, siempre verifica'. En el modelo tradicional, una vez dentro del perímetro de red (detrás del firewall) un dispositivo es de confianza implícita. Zero Trust elimina ese perímetro: cada acceso a cualquier recurso debe ser autenticado y autorizado explícitamente, independientemente de si el dispositivo está dentro o fuera de la red corporativa. Los pilares son: verificación continua de identidad, acceso de mínimo privilegio, microsegmentación de la red, monitorización continua de comportamiento y encriptación de todo el tráfico. Google BeyondCorp fue la primera implementación a gran escala."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT SUM(CASE WHEN is_trusted=1 THEN 1 ELSE 0 END) as trusted, SUM(CASE WHEN is_quarantined=1 THEN 1 ELSE 0 END) as quarantined, SUM(CASE WHEN is_trusted=0 AND is_quarantined=0 THEN 1 ELSE 0 END) as unknown FROM devices",
+          "description": "Distribución de dispositivos por nivel de confianza. El modelo trusted/unknown/quarantined de HomeNetGuard es una implementación básica de Zero Trust: los dispositivos son untrusted por defecto hasta ser verificados explícitamente."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El perímetro de red tradicional ha muerto: el teletrabajo, la nube y los dispositivos IoT hacen que el concepto 'dentro de la red = seguro' sea inválido. Un empleado con VPN puede conectar un dispositivo comprometido que infecta la red interna. Zero Trust mitiga el movimiento lateral: aunque un atacante comprometa un dispositivo, no puede acceder a otros recursos sin autenticarse de nuevo. La microsegmentación convierte cada servicio en su propio perímetro.",
+          "mitre_techniques": [
+            "T1021",
+            "T1078"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Los componentes técnicos de Zero Trust incluyen: Identity Provider (IdP) con MFA, Service Mesh para comunicación service-to-service autenticada, Policy Engine que evalúa contexto (dispositivo, usuario, hora, localización) para cada acceso, y Continuous Monitoring con SIEM. NIST SP 800-207 define el estándar Zero Trust Architecture. En el contexto doméstico, HomeNetGuard contribuye al pilar de monitorización continua: registra cada conexión de cada dispositivo, detecta comportamientos anómalos y permite aislar dispositivos comprometidos.",
+          "references": [
+            "NIST SP 800-207"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pki-ct",
+      "slug": "pki-ct",
+      "title": "PKI y Certificate Transparency",
+      "category": "security_protocols",
+      "level": "advanced",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "certificate",
+        "TLS",
+        "CA",
+        "CT log"
+      ],
+      "prerequisites": [
+        "digital-certificates"
+      ],
+      "next_topics": [],
+      "standards": [
+        "RFC 9162"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "PKI y Certificate Transparency",
+          "content": "PKI (Public Key Infrastructure) es el ecosistema de certificados, CAs, políticas y software que sustenta la confianza en Internet. Las CA raíz son el núcleo: browsers y OS incluyen ~150 CAs raíz preinstaladas, cada una capaz de emitir certificados para cualquier dominio. Certificate Transparency (CT) fue creado tras descubrirse que CAs emitían certificados fraudulentos. CT obliga a las CAs a publicar cada certificado emitido en logs públicos append-only. Los browsers (Chrome desde 2018) rechazan certificados no registrados en CT. Cualquiera puede monitorizar los CT logs para detectar certificados emitidos fraudulentamente para sus dominios."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(DISTINCT dst_ip) FROM flows WHERE dst_port=443 AND timestamp > datetime('now','-1 hour')",
+          "description": "Servidores HTTPS únicos contactados en la última hora. Cada uno presentó un certificado TLS durante el handshake. HomeNetGuard puede verificar si esos certificados están registrados en CT logs."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "CA compromise es uno de los ataques más severos en Internet: una CA comprometida puede emitir certificados válidos para gmail.com o microsoft.com que los browsers aceptarán sin alertas. DigiNotar (2011) fue comprometida y emitió 531 certificados fraudulentos. Comodo (2011) emitió certificados para google.com y microsoft.com a un atacante iraní. CT logs permiten a los propietarios de dominios detectar certificados no autorizados mediante servicios como crt.sh. Certificate pinning en apps móviles añade una capa adicional al hardcodear el certificado esperado.",
+          "mitre_techniques": [
+            "T1553.004"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Los CT logs son estructuras Merkle Tree append-only: una vez añadido un certificado, no puede modificarse sin invalidar todos los hashes posteriores. Los logs deben ser monitorizados por Certificate Authorities, Monitors y Auditors según el modelo CT. SCT (Signed Certificate Timestamp) es una prueba firmada por el log de que el certificado fue incluido — los browsers modernos requieren al menos 2 SCTs de logs independientes. OCSP Stapling permite al servidor incluir la respuesta de revocación en el handshake TLS para evitar consultas al servidor OCSP en cada conexión.",
+          "references": [
+            "RFC 9162",
+            "RFC 6962",
+            "RFC 6960"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doh-dot",
+      "slug": "doh-dot",
+      "title": "DNS over HTTPS y DNS over TLS",
+      "category": "security_protocols",
+      "level": "advanced",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "DNS",
+        "DoH",
+        "DoT",
+        "443",
+        "853",
+        "encrypted DNS"
+      ],
+      "prerequisites": [
+        "dns-fundamentals",
+        "tls-ssl"
+      ],
+      "next_topics": [],
+      "standards": [
+        "RFC 8484",
+        "RFC 7858"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "DNS over HTTPS (DoH) y DNS over TLS (DoT)",
+          "content": "DoH (RFC 8484) encapsula consultas DNS dentro de HTTPS: el tráfico DNS es indistinguible de tráfico web normal al pasar por puerto 443. DoT (RFC 7858) cifra DNS sobre TLS en el puerto 853 — visible como DNS cifrado pero no oculta que se está haciendo DNS. Ambos protocolos nacieron para proteger la privacidad del usuario: el ISP ya no puede ver ni modificar las consultas DNS. Cloudflare (1.1.1.1), Google (8.8.8.8) y Quad9 (9.9.9.9) ofrecen resolvers DoH/DoT públicos. Los sistemas operativos modernos (Windows 11, iOS, Android) adoptan DoH por defecto."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM dns_queries WHERE timestamp > datetime('now','-1 hour')",
+          "description": "Consultas DNS capturadas en la última hora. Si algún dispositivo usa DoH, sus consultas DNS no aparecerán aquí — HomeNetGuard no puede capturar DNS cifrado sobre HTTPS. Una discrepancia entre este número y el número de conexiones HTTPS puede indicar uso de DoH."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "DoH es un arma de doble filo: aumenta la privacidad del usuario pero ciega a las herramientas de seguridad de red. HomeNetGuard no puede ver consultas DoH — el sinkhole no funciona contra DoH. El malware moderno usa DoH deliberadamente para evadir DNS monitoring: consulta al servidor C2 vía Cloudflare DoH, que parece tráfico HTTPS normal. Detectar DoH requiere identificar IPs de resolvers conocidos (1.1.1.1, 8.8.8.8) como destino de flujos TCP/443, no DNS.",
+          "mitre_techniques": [
+            "T1071.004",
+            "T1090.003"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Oblivious DoH (ODoH, RFC 9230) añade una capa más: un proxy recibe la consulta cifrada del cliente y la reenvía al resolver, que no conoce la IP del cliente original. Esto separa el conocimiento de identidad (proxy) del conocimiento de consulta (resolver). ECH (Encrypted Client Hello) extiende este principio al propio TLS, ocultando el SNI. La combinación DoH + ECH hace prácticamente imposible el DNS monitoring tradicional en redes, empujando hacia análisis de flujos (volumen, destinos, timing) en lugar de análisis de contenido.",
+          "references": [
+            "RFC 8484",
+            "RFC 7858",
+            "RFC 9230"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "port-scanning",
+      "slug": "port-scanning",
+      "title": "Port Scanning — Cómo Funciona Nmap",
+      "category": "threats",
+      "level": "beginner",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "port_scan",
+        "scan",
+        "Nmap",
+        "SYN",
+        "port"
+      ],
+      "prerequisites": [
+        "tcp-protocol",
+        "ports-services"
+      ],
+      "next_topics": [
+        "lateral-movement"
+      ],
+      "standards": [],
+      "mitre_techniques": [
+        "T1046"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es el port scanning?",
+          "content": "El port scanning es la técnica de enviar paquetes a rangos de puertos en uno o más hosts para determinar cuáles están abiertos (servicio escuchando), cerrados (host activo pero sin servicio) o filtrados (firewall bloquea). Nmap es la herramienta estándar. Los tipos principales: TCP Connect scan (conexión completa, más detectable), SYN scan (-sS, solo envía SYN, más sigiloso), UDP scan (más lento, muchos falsos positivos), NULL/FIN/Xmas scan (explotan comportamiento RFC para evadir firewalls sin estado). El OS detection (-O) usa el fingerprint TCP para identificar el sistema operativo. HomeNetGuard detecta port scans cuando un host contacta 15 o más puertos distintos en menos de 60 segundos."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM alerts WHERE alert_type='port_scan' AND timestamp > datetime('now','-24 hours')",
+          "description": "Alertas de port scan en las últimas 24 horas. Cada una indica un host que escaneó rápidamente múltiples puertos en tu red. Puede ser legítimo (escáner de vulnerabilidades propio) o un atacante en reconocimiento."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El port scan es el primer paso del reconocimiento en casi cualquier ataque: el atacante necesita saber qué servicios están expuestos antes de buscar vulnerabilidades en ellos. El tiempo entre el scan inicial y el primer exploit es cada vez menor — botnets automatizadas escanean toda Internet en menos de una hora. Los scans lentos (1 paquete cada 15 minutos al mismo host) evaden detectores basados en tasa pero HomeNetGuard rastrea patrones a largo plazo.",
+          "mitre_techniques": [
+            "T1046",
+            "T1595.001"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Nmap Scripting Engine (NSE) extiende Nmap con scripts Lua para detección de versiones, explotación de vulnerabilidades y enumeración de servicios. Masscan puede escanear toda Internet (3,7 mil millones de IPs) en 6 minutos gracias a su stack TCP asíncrono personalizado. ZMap es otra alternativa de alta velocidad. Los escáneres de vulnerabilidades como OpenVAS y Nessus combinan port scanning con fingerprinting de versiones y correlación con CVEs conocidos.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "malware-types",
+      "slug": "malware-types",
+      "title": "Malware — Tipos y Comportamiento en Red",
+      "category": "threats",
+      "level": "beginner",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "malware",
+        "trojan",
+        "ransomware",
+        "beaconing",
+        "blacklisted"
+      ],
+      "prerequisites": [],
+      "next_topics": [
+        "c2-beaconing",
+        "ransomware-network"
+      ],
+      "standards": [],
+      "mitre_techniques": [
+        "T1071",
+        "T1496",
+        "T1499"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Malware — tipos y comportamiento en red",
+          "content": "Malware es cualquier software diseñado para dañar, robar o controlar sistemas sin consentimiento. Los tipos principales por su comportamiento en red: Trojan (se disfraza de software legítimo, abre backdoor para C2), Worm (se propaga automáticamente por la red explotando vulnerabilidades sin interacción humana), Ransomware (cifra ficheros y exige rescate, usa C2 para la clave de cifrado), Spyware (exfiltra datos sigilosamente), Botnet client (se une a una botnet para ejecutar ataques coordinados), Cryptominer (usa CPU/GPU para minar criptomonedas). Cada tipo genera patrones de tráfico característicos visibles en HomeNetGuard."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT alert_type, COUNT(*) as cnt FROM alerts WHERE acknowledged=0 GROUP BY alert_type ORDER BY cnt DESC LIMIT 5",
+          "description": "Alertas activas (sin acknowledger) por tipo. Beaconing y blacklisted_ip son las señales más comunes de malware activo. Cryptomining aparece cuando un dispositivo se conecta a pools de minería conocidos."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El tráfico de malware tiene patrones reconocibles: beaconing (intervalos regulares al mismo host), conexiones a IPs con mala reputación, consultas DNS a dominios de alta entropía (DGA), transferencias de grandes volúmenes de datos (exfiltración) y escaneo de puertos internos (lateral movement). HomeNetGuard combina detección por reputación de IP, análisis de patrones temporales (beaconing), análisis DNS y detección de anomalías de volumen para cubrir múltiples tipos de malware.",
+          "mitre_techniques": [
+            "T1071",
+            "T1496",
+            "T1486",
+            "T1090"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "La taxonomía de malware se ha vuelto borrosa: el ransomware moderno combina trojan (entrada), lateral movement (propagación), exfiltración (doble extorsión) y ransom (monetización) en una sola campaña. Malware-as-a-Service (MaaS) permite comprar acceso a botnets o ransomware sin conocimientos técnicos. Los indicadores de compromiso (IOCs) a nivel de red — IPs, dominios, JA3 hashes — se distribuyen vía threat feeds para detección proactiva, aunque los atacantes los rotan frecuentemente.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "phishing",
+      "slug": "phishing",
+      "title": "Phishing y Ingeniería Social",
+      "category": "threats",
+      "level": "beginner",
+      "estimated_minutes": 12,
+      "ui_terms": [
+        "phishing",
+        "DNS",
+        "sinkhole",
+        "domain",
+        "blocked"
+      ],
+      "prerequisites": [
+        "dns-fundamentals"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Phishing y Ingeniería Social",
+          "content": "Phishing es el engaño para que una víctima revele credenciales, instale malware o transfiera dinero, suplantando identidades de confianza. Los tipos principales: mass phishing (correos masivos genéricos), spear phishing (dirigido a persona específica con información personalizada), whaling (dirigido a ejecutivos de alto nivel), smishing (via SMS), vishing (por teléfono) y clone phishing (copia exacta de email legítimo con enlace malicioso). Técnicamente, un ataque de phishing típico usa un dominio similar al legítimo (typosquatting: gooogle.com, paypa1.com) con certificado TLS válido y una página web idéntica a la original."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM sinkhole_rules WHERE is_active=1",
+          "description": "Dominios bloqueados activamente por el DNS sinkhole. Incluye dominios de phishing conocidos de los threat feeds. Si algún dispositivo intenta resolver uno de estos dominios, HomeNetGuard lo bloquea y registra el hit."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El 91% de los ciberataques comienzan con phishing — es el vector de entrada más efectivo porque ataca el eslabón más débil: el humano. La defensa técnica incluye: SPF/DKIM/DMARC para autenticar el correo entrante, filtros antispam con ML, sandboxing de adjuntos y MFA para que las credenciales robadas sean inútiles sin el segundo factor. HomeNetGuard contribuye bloqueando dominios de phishing en el DNS sinkhole y alertando cuando dispositivos intentan contactar IPs de phishing conocidas.",
+          "mitre_techniques": [
+            "T1566",
+            "T1566.001",
+            "T1598"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Browser-in-the-Browser (BitB) es una técnica de phishing que simula una ventana de popup de autenticación OAuth dentro del navegador — visualmente indistinguible de un popup real de Google/Microsoft. Adversary-in-the-Middle (AiTM) phishing usa un proxy inverso entre la víctima y el sitio real para robar la sesión autenticada incluso con MFA. EvilGinx2 y Modlishka son herramientas open source para AiTM phishing. Los phishing kits modernos incluyen evasión de bots (CAPTCHA, fingerprinting de navegador) para dificultar el análisis automático.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "ddos",
+      "slug": "ddos",
+      "title": "DDoS — Distributed Denial of Service",
+      "category": "threats",
+      "level": "beginner",
+      "estimated_minutes": 12,
+      "ui_terms": [
+        "DDoS",
+        "flood",
+        "SYN flood",
+        "UDP flood",
+        "packets"
+      ],
+      "prerequisites": [
+        "tcp-protocol",
+        "udp-protocol"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1499"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "DDoS — Distributed Denial of Service",
+          "content": "Un ataque DDoS satura un objetivo con tráfico masivo desde múltiples fuentes hasta que no puede responder peticiones legítimas. Los tres tipos principales: volumétrico (inunda el ancho de banda — UDP flood, ICMP flood, amplificación DNS/NTP), protocolo (agota recursos del servidor o firewall — SYN flood, Ping of Death) y capa de aplicación (agota recursos de la aplicación — HTTP flood, Slowloris). Las botnets coordinan miles de dispositivos comprometidos (frecuentemente IoT) para lanzar los ataques. El volumen récord supera los 3,47 Tbps (Azure, 2021). HomeNetGuard detecta flood local cuando un host genera tráfico anómalamente alto."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM alerts WHERE alert_type='flood' AND timestamp > datetime('now','-24 hours')",
+          "description": "Alertas de flood en las últimas 24 horas. HomeNetGuard detecta flood cuando el volumen de tráfico de una fuente supera el umbral configurado en un corto período de tiempo."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Los dispositivos IoT domésticos (cámaras IP, routers, smart TVs) son el combustible de las botnets DDoS modernas — tienen seguridad deficiente y están siempre conectados. Mirai (2016) comprometió 600.000 dispositivos IoT con credenciales por defecto para lanzar ataques de 620 Gbps. Amplificación DNS/NTP no requiere botnet: el atacante envía peticiones con IP origen falsificada a servidores reflectores, que responden a la víctima con tráfico ×50-556. HomeNetGuard puede detectar si algún dispositivo de tu red participa en una botnet.",
+          "mitre_techniques": [
+            "T1499",
+            "T1498"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Slowloris abre muchas conexiones HTTP parciales al servidor, enviando cabeceras incompletas muy lentamente para mantener la conexión abierta indefinidamente — agota el pool de conexiones del servidor con tráfico mínimo (indetectable como flood volumétrico). RUDY (R-U-Dead-Yet) hace lo mismo con POST requests. HTTP/2 y HTTP/3 mitigaron algunos de estos ataques. Anycast routing + scrubbing centers es la defensa estándar para DDoS a escala: el tráfico se enruta a centros de limpieza que filtran el tráfico malicioso antes de entregarlo al destino.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "mitm",
+      "slug": "mitm",
+      "title": "Man-in-the-Middle (MITM)",
+      "category": "threats",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "MITM",
+        "ARP",
+        "spoofing",
+        "SSL stripping"
+      ],
+      "prerequisites": [
+        "mac-arp",
+        "tls-ssl"
+      ],
+      "next_topics": [
+        "arp-spoofing"
+      ],
+      "standards": [],
+      "mitre_techniques": [
+        "T1557"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Man-in-the-Middle (MITM)",
+          "content": "En un ataque MITM, el atacante se posiciona entre dos partes que creen comunicarse directamente, interceptando y potencialmente modificando el tráfico. Las técnicas de posicionamiento incluyen: ARP spoofing (L2, red local), DNS spoofing (redirigir dominio a IP controlada), rogue WiFi AP (crear un punto de acceso falso), BGP hijacking (L3, escala de Internet) y SSL stripping (forzar degradación HTTPS→HTTP). Una vez posicionado, el atacante puede: leer credenciales en texto plano, inyectar contenido malicioso, robar sesiones autenticadas y modificar transacciones en tiempo real."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM alerts WHERE alert_type='arp_spoofing' AND timestamp > datetime('now','-7 days')",
+          "description": "Alertas de ARP spoofing en los últimos 7 días. ARP spoofing es el método más común para MITM en redes locales. Una sola alerta merece investigación inmediata — puede indicar un dispositivo comprometido intentando interceptar tráfico."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "HSTS (HTTP Strict Transport Security) defiende contra SSL stripping: instruye al browser a rechazar cualquier conexión HTTP y certificados inválidos para un dominio por un período de tiempo. HSTS Preloading va más allá: el dominio se incluye en una lista hardcodeada en browsers. Certificate pinning en apps móviles rechaza cualquier certificado que no sea el esperado, aunque una CA legítima lo haya emitido. Las redes WiFi públicas sin WPA3 son el escenario ideal para MITM — usar VPN en redes públicas es esencial.",
+          "mitre_techniques": [
+            "T1557",
+            "T1557.001",
+            "T1557.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "AiTM (Adversary-in-the-Middle) phishing es MITM aplicado a OAuth: el atacante usa un proxy inverso (EvilGinx2) entre la víctima y el IDP real. La víctima ve el sitio real y se autentica con MFA, pero el atacante captura la sesión cookie. Esto bypasea MFA basado en TOTP. FIDO2/WebAuthn previene este ataque porque el token criptográfico está vinculado al origen (URL del sitio) — un AiTM en un dominio diferente no puede usar las credenciales capturadas.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "arp-spoofing",
+      "slug": "arp-spoofing",
+      "title": "ARP Spoofing — Anatomía del Ataque",
+      "category": "threats",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "ARP",
+        "MAC",
+        "IP",
+        "spoofing",
+        "arp_spoof"
+      ],
+      "prerequisites": [
+        "mac-arp",
+        "mitm"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1557.002"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "ARP Spoofing — anatomía del ataque",
+          "content": "ARP spoofing explota la falta de autenticación de ARP. El atacante envía ARP replies gratuitos (sin haber recibido ARP requests) afirmando que su MAC corresponde a la IP del gateway. Todos los dispositivos de la red actualizan su tabla ARP, enviando su tráfico al atacante en lugar del router. El atacante lo reenvía (IP forwarding habilitado) para no interrumpir la conexión — la víctima no nota nada. Con la posición MITM conseguida, puede: descifrar tráfico HTTP, capturar credenciales, inyectar código malicioso en páginas web o lanzar SSL stripping para degradar HTTPS a HTTP."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT mac_address, COUNT(DISTINCT ip_address) as ips FROM device_ip_history GROUP BY mac_address HAVING ips > 1 ORDER BY ips DESC LIMIT 5",
+          "description": "MACs que han tenido múltiples IPs. Si la misma MAC aparece con IPs muy distintas en poco tiempo, puede indicar ARP spoofing o simplemente cambios de IP legítimos (DHCP renewal). HomeNetGuard rastrea el historial MAC↔IP para detectar estas anomalías."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "ARP spoofing es el vector de MITM más común en redes locales por su simplicidad — Ettercap, arpspoof y Bettercap lo automatizan completamente. La defensa incluye: Dynamic ARP Inspection (DAI) en switches gestionados (verifica ARP contra la tabla DHCP snooping), static ARP entries para el gateway, y detección basada en monitorización como HomeNetGuard. En redes WiFi, el atacante necesita estar conectado al mismo AP — redes con client isolation previenen el ARP spoofing entre clientes.",
+          "mitre_techniques": [
+            "T1557.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "IPv6 reemplaza ARP con NDP (Neighbor Discovery Protocol), pero es igualmente vulnerable: NDP spoofing usando Router Advertisement (RA) falsos puede redirigir todo el tráfico IPv6. RAGuard en switches mitiga esto. ARP poisoning bidireccional requiere envenenar tanto a la víctima (diciéndole que la MAC del gateway es la del atacante) como al gateway (diciéndole que la MAC de la víctima es la del atacante). Sin esto, solo se intercepta tráfico en una dirección. Herramientas como XArp y ARPwatch monitorizan cambios en la tabla ARP para detección.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "dns-poisoning",
+      "slug": "dns-poisoning",
+      "title": "DNS Poisoning y DNS Hijacking",
+      "category": "threats",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "DNS",
+        "poisoning",
+        "hijacking",
+        "rebinding",
+        "NXDOMAIN"
+      ],
+      "prerequisites": [
+        "dns-fundamentals"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1584.002"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "DNS Poisoning y DNS Hijacking",
+          "content": "DNS cache poisoning inyecta respuestas DNS falsas en la caché de un resolver para redirigir usuarios a IPs controladas por el atacante, sin comprometer el servidor DNS autoritativo. El ataque de Kaminsky (2008) demostró cómo envenenar cachés DNS explotando la predecibilidad del transaction ID y el puerto fuente. DNS hijacking modifica directamente la configuración DNS: en el router (via credenciales por defecto), en el malware (cambia las DNS del OS), o mediante compromiso de registrars. DNS rebinding redirige un dominio a IPs privadas (192.168.x.x) para que JavaScript de una web maliciosa acceda a dispositivos de la red local."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM dns_queries WHERE is_suspicious=1 AND timestamp > datetime('now','-24 hours')",
+          "description": "Consultas DNS marcadas como sospechosas en las últimas 24 horas. HomeNetGuard marca como sospechosas: dominios con alta entropía (posible DGA), subdominios muy largos (posible tunneling) y dominios en listas negras de threat feeds."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "DNSSEC (DNS Security Extensions) firma criptográficamente los registros DNS para prevenir cache poisoning — el resolver puede verificar que la respuesta proviene realmente del servidor autoritativo. Sin embargo, DNSSEC solo está desplegado en ~20% de los dominios. DNS over HTTPS elimina el vector de poisoning en tránsito (pero no el hijacking en el router). El DNS sinkhole de HomeNetGuard previene DNS hijacking hacia dominios maliciosos conocidos: aunque el DNS del router esté comprometido, si el sinkhole responde primero con 0.0.0.0, la conexión no llega al atacante.",
+          "mitre_techniques": [
+            "T1584.002",
+            "T1071.004"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El ataque de Kaminsky explotaba que los resolvers DNS usaban transaction IDs de 16 bits (65.536 valores) y puertos UDP predecibles — con suficiente velocidad, un atacante podía adivinar el ID correcto. La solución fue randomizar el puerto fuente (aumentando el espacio a ~32 bits), pero solo DNSSEC resuelve el problema raíz. DNS rebinding usa TTL muy corto (1 segundo) para cambiar el registro DNS del dominio de la IP del atacante a una IP interna (192.168.1.1) en dos pasos, bypasseando same-origin policy del browser.",
+          "references": [
+            "RFC 4034",
+            "RFC 4035"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c2-beaconing",
+      "slug": "c2-beaconing",
+      "title": "Command & Control — Beaconing",
+      "category": "threats",
+      "level": "intermediate",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "beaconing",
+        "C2",
+        "beacon",
+        "command",
+        "control",
+        "interval"
+      ],
+      "prerequisites": [
+        "malware-types",
+        "dns-fundamentals"
+      ],
+      "next_topics": [
+        "apt"
+      ],
+      "standards": [],
+      "mitre_techniques": [
+        "T1071",
+        "T1071.001",
+        "T1071.004"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Command & Control — Beaconing",
+          "content": "C2 (Command & Control) es la infraestructura que el malware usa para recibir instrucciones y enviar datos robados. Beaconing es el patrón de check-in periódico: el malware contacta al servidor C2 a intervalos regulares para recibir nuevas órdenes. Los intervalos pueden ser fijos (60 segundos exactos) o con jitter (±20% de variación) para evadir detección. Las técnicas de evasión incluyen: domain fronting (el tráfico parece ir a CDNs legítimos como Cloudflare), domain generation algorithms (DGA, generan miles de dominios potenciales), tráfico sobre HTTPS puerto 443 (mezclado con tráfico web legítimo) y DNS C2 (comandos codificados en consultas/respuestas DNS)."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM alerts WHERE alert_type='beaconing' AND timestamp > datetime('now','-7 days')",
+          "description": "Alertas de beaconing en los últimos 7 días. HomeNetGuard analiza el intervalo entre conexiones repetidas al mismo destino. Un coeficiente de variación bajo (intervalos muy regulares) dispara la alerta. El detector está en analysis/beaconing_detector.py."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Detectar beaconing es una de las señales más fiables de compromiso activo: el malware necesita comunicarse con su C2, y esa comunicación periódica deja rastro. La clave es el análisis estadístico de los intervalos: tráfico humano es irregular, tráfico de máquina es regular. Cobalt Strike (C2 comercial usado por atacantes APT) permite configurar jitter del 0-100% en el beacon. Con 0% jitter un análisis de intervals lo detecta trivialmente; con 100% se necesita análisis espectral (FFT) para encontrar el período fundamental.",
+          "mitre_techniques": [
+            "T1071",
+            "T1071.001",
+            "T1071.004",
+            "T1132"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Cobalt Strike usa HTTP Malleable C2 Profiles para hacer que el tráfico beacon sea indistinguible de tráfico legítimo: headers HTTP, URIs y payloads se configuran para imitar Amazon, Microsoft o cualquier otro servicio. Domain fronting usa la cabecera Host en HTTPS para redirigir tráfico: el TLS SNI apunta a un dominio CDN legítimo (que el firewall permite), pero la cabecera HTTP Host dentro va al dominio C2 real. Cloudflare y AWS bloquearon domain fronting en 2018-2019 pero la técnica sigue siendo usada en otras CDNs.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "data-exfiltration",
+      "slug": "data-exfiltration",
+      "title": "Exfiltración de Datos",
+      "category": "threats",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "exfiltration",
+        "DNS tunnel",
+        "HTTPS",
+        "entropy",
+        "subdomain"
+      ],
+      "prerequisites": [
+        "dns-fundamentals",
+        "c2-beaconing"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1048",
+        "T1048.003"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Exfiltración de Datos",
+          "content": "Exfiltración es la transferencia no autorizada de datos desde una red comprometida al atacante. Las técnicas principales: DNS tunneling (datos codificados en subdominios de consultas DNS), HTTPS (datos encapsulados en tráfico web cifrado normal), ICMP tunneling (datos en campo payload de echo requests), canales temporales (información codificada en el timing o tamaño de paquetes), steganografía (datos ocultados en imágenes o audio), y uso de servicios legítimos (subir datos a Google Drive, Pastebin, GitHub como C2 encubierto). El objetivo es exfiltrar lentamente para no disparar alertas de volumen."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM dns_queries WHERE LENGTH(queried_domain) > 50 AND timestamp > datetime('now','-24 hours')",
+          "description": "Consultas DNS a dominios con más de 50 caracteres en las últimas 24 horas. Dominios legítimos raramente superan 30 caracteres. Subdominios largos con alta entropía son señal característica de DNS tunneling para exfiltración."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "DNS tunneling es especialmente peligroso porque DNS es un protocolo permitido en casi todos los firewalls — incluso redes muy restrictivas permiten resolución DNS. Iodine y dnscat2 son herramientas de DNS tunneling que crean túneles TCP completos sobre DNS. HomeNetGuard detecta DNS tunneling midiendo la entropía de los subdominios: texto codificado en base64 o hex tiene entropía significativamente más alta que nombres de dominio legítimos. Data Loss Prevention (DLP) a nivel de endpoint es la contrapartida necesaria a la detección de red.",
+          "mitre_techniques": [
+            "T1048",
+            "T1048.003",
+            "T1041"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Los canales temporales usan la temporización de paquetes (inter-packet delay) para codificar información — completamente indetectable por análisis de contenido. La capacidad es baja (~10-100 bits/segundo) pero suficiente para exfiltrar claves de cifrado o hashes de contraseñas. HTTPS como canal de exfiltración es el más difícil de detectar: los datos se mezclan con tráfico legítimo, y el cifrado impide inspeccionar el contenido. La detección requiere análisis de volumen (bytes subidos vs. bajados), timing y destinos inusuales para cada dispositivo.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "cryptojacking",
+      "slug": "cryptojacking",
+      "title": "Cryptojacking — Minería No Autorizada",
+      "category": "threats",
+      "level": "intermediate",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "cryptomining",
+        "mining",
+        "Stratum",
+        "pool",
+        "cryptojacking"
+      ],
+      "prerequisites": [
+        "malware-types"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1496"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Cryptojacking — Minería No Autorizada",
+          "content": "Cryptojacking es el uso no autorizado de recursos computacionales de la víctima para minar criptomonedas. Existen dos formas: in-browser (JavaScript ejecutado en el navegador mientras visita una web, usa la API WebCrypto o WebAssembly) y binary (malware instalado que usa CPU/GPU continuamente). Las criptomonedas más minadas son Monero (XMR, CPU-friendly y privada) y Ethereum (antes de pasar a PoS). El protocolo de comunicación con el pool de minería es Stratum (TCP, puertos 3333, 14444, 45700 entre otros). Los síntomas incluyen: CPU/GPU al 100%, calor excesivo, ralentización del sistema y factura eléctrica elevada."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM alerts WHERE alert_type='cryptomining' AND timestamp > datetime('now','-7 days')",
+          "description": "Alertas de cryptomining en los últimos 7 días. HomeNetGuard detecta connexiones a pools de minería conocidos y tráfico al protocolo Stratum en puertos característicos. El detector está en analysis/cryptomining_detector.py."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Cryptojacking es un indicador de compromiso claro: ningún dispositivo doméstico legítimo mina criptomonedas silenciosamente. Un cryptominer instalado confirma que el dispositivo ha sido comprometido. Además, el consumo continuo de CPU degrada el rendimiento y puede dañar hardware por sobrecalentamiento. Las campañas de cryptojacking a escala corporativa (servidores cloud) pueden costar miles de euros en factura. XMRig es el miner más usado en ataques — su comunicación Stratum sobre TCP es característica.",
+          "mitre_techniques": [
+            "T1496"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Monero es la criptomoneda favorita para cryptojacking porque: su algoritmo RandomX está optimizado para CPU commodity (dificulta ASICs), sus transacciones son privadas por defecto (dificulta rastrear pagos al atacante) y tiene market cap suficiente para ser rentable. Coinhive (cerrado en 2019) fue el mayor servicio de in-browser mining: llegó a ejecutarse en el 1% de las webs del mundo, incluyendo el sitio del gobierno del Reino Unido. WebAssembly hizo el in-browser mining 2-3x más eficiente que JavaScript puro.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "ransomware-network",
+      "slug": "ransomware-network",
+      "title": "Ransomware — Comportamiento en Red",
+      "category": "threats",
+      "level": "intermediate",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "ransomware",
+        "SMB",
+        "445",
+        "lateral",
+        "C2",
+        "beaconing"
+      ],
+      "prerequisites": [
+        "malware-types",
+        "c2-beaconing"
+      ],
+      "next_topics": [
+        "apt"
+      ],
+      "standards": [],
+      "mitre_techniques": [
+        "T1486",
+        "T1021",
+        "T1078"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Ransomware — Comportamiento en Red",
+          "content": "El ransomware moderno es una operación en múltiples fases con fuerte componente de red. Fase 1 - Entrada: phishing, exploit de vulnerabilidad o credenciales robadas. Fase 2 - Persistencia y reconocimiento: el malware se instala y mapea la red (port scan interno, enumeración SMB). Fase 3 - Lateral movement: se mueve a otros sistemas (Pass-the-Hash, RDP, PSExec sobre SMB). Fase 4 - Exfiltración: roba datos para doble extorsión (pagar o publicamos los datos). Fase 5 - Cifrado: despliega el ransomware en todos los sistemas comprometidos simultáneamente. Fase 6 - C2: mantiene comunicación para la negociación. Cada fase genera tráfico de red detectable."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM alerts WHERE severity IN ('critical','high') AND acknowledged=0 AND timestamp > datetime('now','-24 hours')",
+          "description": "Alertas críticas y altas sin resolver en las últimas 24 horas. Un ataque de ransomware activo generaría múltiples alertas en HomeNetGuard: port scan inicial, beaconing de C2, conexiones SMB entre dispositivos internos y eventual volumen masivo de escritura."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El ransomware RaaS (Ransomware as a Service) democratizó los ataques: grupos como LockBit, BlackCat/ALPHV y REvil alquilan su infraestructura a afiliados, que solo necesitan comprometer el acceso inicial. Los primeros indicadores de red de un ataque de ransomware en HomeNetGuard serían: conexión a IPs de C2 conocidas (threat feeds), escaneo de puertos SMB/RDP internos (lateral movement), y beaconing regular. El cifrado en sí genera poco tráfico de red pero sí mucha actividad de disco.",
+          "mitre_techniques": [
+            "T1486",
+            "T1021.002",
+            "T1078",
+            "T1110",
+            "T1048"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "WannaCry (2017) se propagó autónomamente explotando EternalBlue (MS17-010, SMB vulnerability) — se extendió a 200.000 sistemas en 150 países en horas sin phishing. NotPetya (2017) no era ransomware real sino un wiper disfrazado, causando 10 mil millones de daños. Los ransomwares modernos usan cifrado híbrido: AES para cifrar los ficheros (rápido) y RSA asimétrico para cifrar la clave AES — sin la clave privada RSA del atacante, el descifrado es imposible matemáticamente.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "apt",
+      "slug": "apt",
+      "title": "APT — Advanced Persistent Threats",
+      "category": "threats",
+      "level": "advanced",
+      "estimated_minutes": 25,
+      "ui_terms": [
+        "APT",
+        "exfiltration",
+        "persistence",
+        "lateral",
+        "C2"
+      ],
+      "prerequisites": [
+        "c2-beaconing",
+        "lateral-movement"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "TA0001",
+        "TA0002",
+        "TA0010",
+        "TA0011"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "APT — Advanced Persistent Threats",
+          "content": "Un APT es un ataque sofisticado, prolongado y dirigido, normalmente ejecutado por actores estatales o grupos criminales bien financiados. 'Advanced' indica técnicas y zero-days; 'Persistent' indica permanencia en el sistema durante meses o años; 'Threat' indica un actor humano activo con objetivos específicos. Las fases del APT siguen el modelo Cyber Kill Chain: reconocimiento → weaponization → delivery → exploit → install → C2 → acciones sobre objetivos. APT29 (Cozy Bear, Rusia), APT41 (China), Lazarus Group (Corea del Norte) y Sandworm (GRU ruso) son grupos documentados. El objetivo suele ser espionaje, sabotaje industrial o robo de propiedad intelectual."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT mitre_tactic, COUNT(*) as cnt FROM alerts WHERE mitre_tactic IS NOT NULL AND timestamp > datetime('now','-30 days') GROUP BY mitre_tactic ORDER BY cnt DESC",
+          "description": "Distribución de tácticas MITRE ATT&CK detectadas en los últimos 30 días. Un APT activo generaría alertas en múltiples tácticas a lo largo del tiempo: reconocimiento, C2, lateral movement y exfiltración."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "HomeNetGuard no puede detectar un APT directamente — los atacantes APT adaptan sus TTPs para evadir herramientas de seguridad específicas. Sin embargo, puede detectar el comportamiento post-explotación: C2 beaconing, lateral movement entre dispositivos locales, y exfiltración DNS. La clave es la correlación temporal: eventos aparentemente no relacionados en días distintos pueden revelar un patrón de ataque. Threat hunting proactivo con los datos de HomeNetGuard — buscando hipótesis específicas en lugar de esperar alertas — es la aproximación correcta para APTs.",
+          "mitre_techniques": [
+            "TA0001",
+            "TA0002",
+            "TA0010",
+            "TA0011"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "MITRE ATT&CK Enterprise documenta las TTPs de grupos APT reales. El ataque SolarWinds (2020, APT29) comprometió la cadena de suministro del software de monitorización Orion, afectando a 18.000 organizaciones incluyendo agencias gubernamentales de EE.UU. Permanecieron indetectados durante meses usando tráfico C2 que imitaba tráfico legítimo de Orion. La detección requirió correlación de logs entre múltiples sistemas — algo que un IDS de red local como HomeNetGuard no puede hacer de forma aislada.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "supply-chain",
+      "slug": "supply-chain",
+      "title": "Supply Chain Attacks",
+      "category": "threats",
+      "level": "advanced",
+      "estimated_minutes": 22,
+      "ui_terms": [
+        "supply chain",
+        "SolarWinds",
+        "dependency"
+      ],
+      "prerequisites": [
+        "apt"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1195",
+        "T1195.002"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Supply Chain Attacks",
+          "content": "Un ataque de cadena de suministro compromete software o hardware legítimo antes de que llegue al usuario final. En lugar de atacar directamente al objetivo, el atacante compromete a un proveedor de confianza. Casos emblemáticos: SolarWinds Orion (2020, backdoor en actualización legítima de software de monitorización), XZ Utils (2024, backdoor en librería de compresión casi incorporada a distribuciones Linux), event-stream npm (2018, malware en paquete npm con 2M descargas/semana), ASUS Live Update (2019, 1M dispositivos actualizaron malware firmado con certificado legítimo de ASUS)."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM flows WHERE direction='outbound' AND bytes > 1000000 AND timestamp > datetime('now','-24 hours')",
+          "description": "Flujos salientes de más de 1MB en las últimas 24 horas. Un software comprometido en la cadena de suministro generaría tráfico saliente inusual — actualizaciones que exfiltran datos, conexiones a nuevos servidores C2 o backdoors que se activan tras la instalación."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Los ataques de supply chain son devastadores porque el software comprometido llega con firmas digitales válidas y tiene acceso privilegiado al sistema. Los usuarios y herramientas de seguridad confían implícitamente en software firmado por fabricantes conocidos. HomeNetGuard puede detectar comportamiento anómalo post-instalación: un software legítimo que de repente empieza a conectarse a IPs en países inusuales o a generar tráfico DNS de alta entropía es sospechoso aunque esté firmado. SBOM (Software Bill of Materials) es la respuesta estándar: inventariar todos los componentes software para detectar dependencias comprometidas.",
+          "mitre_techniques": [
+            "T1195",
+            "T1195.002"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El backdoor XZ Utils (CVE-2024-3094) fue un ataque de ingeniería social de dos años: el atacante (JiaT75) ganó la confianza de los mantenedores del proyecto xz-utils contribuyendo código legítimo durante meses antes de insertar el backdoor. El backdoor modificaba OpenSSH para permitir acceso remoto no autorizado usando una clave RSA específica. Fue descubierto accidentalmente por un desarrollador de Microsoft que notó que SSH iniciaba 500ms más lento en su máquina. Reproducible builds (builds deterministas verificables) son la defensa técnica principal contra tampering en compilación.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "living-off-land",
+      "slug": "living-off-land",
+      "title": "Living off the Land (LotL)",
+      "category": "threats",
+      "level": "advanced",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "LotL",
+        "curl",
+        "PowerShell",
+        "certutil",
+        "LOLBins"
+      ],
+      "prerequisites": [
+        "malware-types"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1218",
+        "T1059",
+        "T1105"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Living off the Land (LotL)",
+          "content": "Living off the Land es la técnica de usar herramientas y utilidades legítimas del sistema operativo para ejecutar acciones maliciosas, evitando instalar malware propio que podría ser detectado por antivirus. En Windows: PowerShell (scripts, descargas), certutil (descarga de payloads via certificados), mshta (ejecuta HTA), regsvr32 (bypass de AppLocker), bitsadmin (transferencias), wmic (lateral movement). En Linux/macOS: curl/wget (descargas), bash/python (ejecución de payloads), cron (persistencia). El término LOLBins (Living Off the Land Binaries) cataloga estos ejecutables. Los atacantes prefieren LotL porque genera menos alertas en EDR/AV."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT DISTINCT src_ip, dst_ip, dst_port FROM flows WHERE dst_port NOT IN (80,443,53,123,67,68,5353) AND protocol='TCP' AND src_ip LIKE '192.168.%' AND timestamp > datetime('now','-1 hour') LIMIT 10",
+          "description": "Conexiones TCP salientes en puertos no estándar en la última hora. Herramientas LotL como curl o PowerShell pueden conectarse a cualquier puerto. Tráfico a puertos inusuales desde dispositivos internos merece investigación."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "LotL es difícil de detectar porque el tráfico generado por PowerShell o curl es indistinguible del tráfico legítimo de esas mismas herramientas. La detección requiere contexto: ¿es normal que un servidor de producción use curl para contactar una IP en Rusia? La telemetría de endpoint (EDR como CrowdStrike o Defender for Endpoint) que registra qué proceso generó cada conexión es esencial. HomeNetGuard ve el tráfico de red pero no el proceso que lo generó — correlacionar alertas de red con logs del OS es la aproximación correcta.",
+          "mitre_techniques": [
+            "T1218",
+            "T1059",
+            "T1105",
+            "T1571"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "LOLOL (Living Off the Land On Land, o LOTL-on-LOTL) usa servicios cloud legítimos como C2: el malware se comunica exclusivamente a través de OneDrive, GitHub, Slack o Trello — servicios que los firewalls corporativos siempre permiten. Esto elimina el IoC de IP maliciosa. La defensa requiere inspección de tráfico TLS (TLS inspection/SSL decryption en el proxy corporativo) o análisis de comportamiento. Application whitelisting (solo permitir ejecutables firmados y conocidos) mitiga LotL pero es costoso de mantener.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "zero-day",
+      "slug": "zero-day",
+      "title": "Zero-Day Exploits",
+      "category": "threats",
+      "level": "advanced",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "zero-day",
+        "CVE",
+        "exploit",
+        "vulnerability",
+        "patch"
+      ],
+      "prerequisites": [
+        "vulnerability-management"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Zero-Day Exploits",
+          "content": "Un zero-day es una vulnerabilidad de seguridad desconocida para el proveedor del software — no existe parche disponible el día que se descubre y explota. El nombre proviene de que el defensor tiene 'cero días' para protegerse antes del primer ataque. El ciclo de vida: investigador descubre vulnerabilidad → puede venderla en mercado negro (brokers como Zerodium pagan hasta $2.5M por un iOS zero-day) o a gobiernos, o reportarla responsablemente al fabricante (bug bounty). Una vez el fabricante recibe el reporte, tiene un tiempo razonable (90 días según Google Project Zero) para publicar un parche antes de divulgación pública."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM devices WHERE os_guess IS NOT NULL AND os_confidence > 0.7",
+          "description": "Dispositivos con OS identificado con alta confianza. Conocer el OS de cada dispositivo permite buscar CVEs activos. Si HomeNetGuard detecta Windows 10 1903, ese OS específico puede tener vulnerabilidades conocidas sin parchear — es el primer paso para la gestión de vulnerabilidades."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "HomeNetGuard no puede detectar la explotación de un zero-day directamente — por definición no existe firma conocida. Sin embargo, puede detectar el comportamiento post-explotación: el atacante necesita establecer persistencia (nueva conexión C2), moverse lateralmente (tráfico SMB/RDP inusual) o exfiltrar datos (volumen saliente anómalo). Reducir la superficie de ataque (desactivar servicios innecesarios, no exponer RDP/SMB a Internet) y mantener sistemas actualizados (el 60% de los exploits apuntan a vulnerabilidades con parche disponible) son las defensas más efectivas.",
+          "mitre_techniques": [
+            "T1203",
+            "T1068"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "CVSS (Common Vulnerability Scoring System) puntúa vulnerabilidades de 0 a 10 según: vector de ataque, complejidad, privilegios requeridos, interacción del usuario, scope e impacto (C/I/A). EPSS (Exploit Prediction Scoring System) predice la probabilidad de que una CVE sea explotada en los próximos 30 días — más útil para priorización que CVSS. Una CVE con CVSS 7.5 pero EPSS 0.01% es menos urgente que una con CVSS 6.0 y EPSS 80%. Patch Tuesday (Microsoft, segundo martes de cada mes) y ciclos de parches de otros fabricantes definen la ventana de exposición para cada vulnerabilidad.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "lateral-movement",
+      "slug": "lateral-movement",
+      "title": "Lateral Movement",
+      "category": "threats",
+      "level": "advanced",
+      "estimated_minutes": 22,
+      "ui_terms": [
+        "lateral",
+        "SMB",
+        "445",
+        "RDP",
+        "3389",
+        "Pass-the-Hash"
+      ],
+      "prerequisites": [
+        "tcp-protocol",
+        "ports-services"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "mitre_techniques": [
+        "T1021",
+        "T1021.002",
+        "T1550.002"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Lateral Movement",
+          "content": "Lateral movement es el proceso por el que un atacante, una vez comprometido un sistema inicial, se desplaza a otros sistemas dentro de la misma red. El objetivo es expandir el acceso hasta alcanzar los activos de mayor valor (servidores de datos, controladores de dominio, sistemas de producción). Las técnicas principales: Pass-the-Hash (reutilizar hash NTLM sin conocer la contraseña), Pass-the-Ticket (reutilizar tickets Kerberos), RDP (escritorio remoto con credenciales robadas), SMB/PsExec (ejecutar comandos remotamente via servicio), WMI (Windows Management Instrumentation), y SSH (en entornos Linux). Cada técnica genera tráfico de red específico."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT src_ip, dst_ip, dst_port, COUNT(*) as cnt FROM flows WHERE src_ip LIKE '192.168.%' AND dst_ip LIKE '192.168.%' AND dst_port IN (445,3389,22,135,5985) AND timestamp > datetime('now','-24 hours') GROUP BY src_ip,dst_ip ORDER BY cnt DESC LIMIT 10",
+          "description": "Tráfico entre IPs locales en puertos de administración remota (SMB/445, RDP/3389, SSH/22, WMI/135, WinRM/5985) en las últimas 24 horas. Conexiones entre dispositivos domésticos en estos puertos son inusuales y merecen investigación."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El lateral movement es la fase que convierte un compromiso limitado en un compromiso total de la red. Un atacante con acceso a un PC de empleado puede usarlo como trampolín para atacar el servidor NAS, el router, las cámaras IP y cualquier otro dispositivo de la red. HomeNetGuard detecta lateral movement monitorizando conexiones entre IPs privadas en puertos de administración — tráfico que raramente ocurre en redes domésticas normales. La segmentación de red (VLANs) limita dramáticamente las posibilidades de lateral movement.",
+          "mitre_techniques": [
+            "T1021",
+            "T1021.001",
+            "T1021.002",
+            "T1550.002",
+            "T1210"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Mimikatz es la herramienta que popularizó Pass-the-Hash y Pass-the-Ticket — extrae credenciales de la memoria LSASS de Windows. Microsoft introdujo Protected Users security group y Credential Guard (virtualización de LSASS) para mitigarlo. BloodHound/SharpHound mapea relaciones de Active Directory para encontrar paths de escalada hacia Domain Admin — un atacante puede visualizar la ruta más corta hasta comprometer el dominio. Impacket (toolkit Python) implementa protocolos SMB/RDP/Kerberos para lateral movement sin herramientas nativas de Windows.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "logs-basics",
+      "slug": "logs-basics",
+      "title": "Qué es un Log y Para Qué Sirve",
+      "category": "analysis",
+      "level": "beginner",
+      "estimated_minutes": 10,
+      "ui_terms": [
+        "log",
+        "timestamp",
+        "alert",
+        "event"
+      ],
+      "prerequisites": [],
+      "next_topics": [
+        "packet-capture",
+        "siem-basics"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "¿Qué es un log y para qué sirve?",
+          "content": "Un log es un registro cronológico de eventos del sistema, aplicación o red. Contiene: timestamp, origen del evento, tipo de evento, severidad y descripción. Los logs son la memoria de los sistemas: permiten responder a incidentes, depurar problemas, auditar acciones y cumplir normativas. Los tipos principales en seguridad: logs de sistema (syslog, Windows Event Log), logs de aplicación, logs de red (NetFlow, firewall logs), logs de acceso (web server access.log) y logs de autenticación. HomeNetGuard genera logs en logs/homenetguard.log con nivel DEBUG/INFO/WARNING/ERROR y también almacena todos los eventos en la base de datos SQLite."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT severity, COUNT(*) as cnt FROM alerts GROUP BY severity ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END",
+          "description": "Distribución de alertas por severidad. Cada alerta en HomeNetGuard es un evento de log estructurado con timestamp, tipo, severidad, IPs origen/destino y descripción. Estos son los logs de seguridad de tu red."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Sin logs, la respuesta a incidentes es imposible: no puedes saber qué ocurrió, cuándo, desde dónde o qué impacto tuvo. Los atacantes lo saben y a menudo borran logs como parte de su operación. Log centralization (enviar todos los logs a un SIEM remoto) previene su borrado local. La retención de logs es un requisito de cumplimiento normativo: GDPR, PCI-DSS y SOC 2 exigen retención de mínimo 90 días o 1 año. El tiempo medio de detección de un breach es de 197 días — los logs son lo que permite la investigación forense posterior.",
+          "mitre_techniques": [
+            "T1070.001"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Syslog (RFC 5424) es el protocolo estándar de logging en Unix: define facilities (kern, auth, daemon...) y severidades (Emergency, Alert, Critical, Error, Warning, Notice, Info, Debug). SIEM (Security Information and Event Management) centraliza, correlaciona y analiza logs de múltiples fuentes. La normalización es el primer paso del SIEM: convertir logs de formatos heterogéneos (Apache access log, Windows EventLog, syslog, CEF) a un esquema común para correlacionar. Log volumes en organizaciones grandes superan fácilmente 1TB/día.",
+          "references": [
+            "RFC 5424"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "packet-capture",
+      "slug": "packet-capture",
+      "title": "Captura de Paquetes con Wireshark y tshark",
+      "category": "analysis",
+      "level": "beginner",
+      "estimated_minutes": 15,
+      "ui_terms": [
+        "pcap",
+        "capture",
+        "packet",
+        "Wireshark",
+        "tshark"
+      ],
+      "prerequisites": [
+        "tcp-protocol"
+      ],
+      "next_topics": [
+        "wireshark-analysis",
+        "netflow-analysis"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Captura de Paquetes con Wireshark y tshark",
+          "content": "La captura de paquetes (packet capture o PCAP) registra cada paquete que pasa por una interfaz de red. El formato .pcap almacena los paquetes con su timestamp y payload completo. Wireshark es la herramienta GUI de análisis de paquetes más usada: permite filtrar, seguir streams TCP, decodificar protocolos y exportar objetos (ficheros descargados, imágenes). tshark es la versión de línea de comandos. tcpdump es la herramienta de captura estándar en Unix. HomeNetGuard usa libpcap (via Scapy) para captura en tiempo real y puede leer ficheros .pcap pregrabados para análisis offline."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) as total_flows, SUM(bytes) as total_bytes, SUM(packets) as total_packets FROM flows WHERE timestamp > datetime('now','-1 hour')",
+          "description": "Flujos, bytes y paquetes capturados en la última hora. HomeNetGuard no guarda los paquetes completos (privacidad) sino metadata de flujos — equivalente a NetFlow. Para inspección de payload necesitas Wireshark sobre las capturas .pcap."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El análisis de paquetes permite ver exactamente qué datos se transfieren. En tráfico no cifrado (HTTP, FTP, Telnet) se pueden ver credenciales en texto plano, contenido de páginas y ficheros transferidos. Para tráfico cifrado (HTTPS, SSH), el pcap revela metadata: quién habla con quién, cuánto tráfico, con qué timing. Wireshark tiene disectores para 3000+ protocolos. En respuesta a incidentes, los pcaps son evidencia forense que permite reconstruir la secuencia exacta del ataque.",
+          "mitre_techniques": [
+            "T1040"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "BPF (Berkeley Packet Filter) es el motor de filtrado que usan tcpdump, Wireshark y libpcap. Los filtros de captura BPF se compilan a bytecode y ejecutan en el kernel — zero-copy hasta el filtro coincide. Los filtros de display de Wireshark son distintos: más expresivos pero se aplican post-captura. pcapng es el sucesor del formato pcap clásico: permite múltiples interfaces, metadatos y comentarios por paquete. Zeek (antes Bro) genera logs de protocolo estructurados a partir de pcaps — más manejable que analizar paquetes raw para análisis de amenazas.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "netflow-analysis",
+      "slug": "netflow-analysis",
+      "title": "Network Flow Analysis — NetFlow e IPFIX",
+      "category": "analysis",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "flow",
+        "NetFlow",
+        "IPFIX",
+        "5-tuple",
+        "session"
+      ],
+      "prerequisites": [
+        "packet-capture",
+        "tcp-protocol"
+      ],
+      "next_topics": [
+        "threat-hunting"
+      ],
+      "standards": [
+        "RFC 3954",
+        "RFC 7011"
+      ],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Network Flow Analysis — NetFlow e IPFIX",
+          "content": "Un flow record es un resumen de todos los paquetes de una conversación de red: src/dst IP, src/dst puerto, protocolo, bytes totales, paquetes y duración. NetFlow (Cisco, RFC 3954) exporta estos records desde routers. IPFIX (RFC 7011) es el estándar IETF basado en NetFlow v9. La ventaja frente a pcap: volumen 1000x menor (metadatos vs payload completo), privacidad (no se almacena el contenido) y escalabilidad (puede analizar redes de 10 Gbps). HomeNetGuard genera sus propios flow records a partir de la captura de paquetes y los almacena en la tabla flows de SQLite."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT protocol, COUNT(*) as flows, SUM(bytes) as bytes FROM flows WHERE timestamp > datetime('now','-1 hour') GROUP BY protocol ORDER BY bytes DESC",
+          "description": "Distribución de flujos y bytes por protocolo en la última hora. TCP domina en la mayoría de redes. UDP aparece principalmente por DNS. Protocolos inusuales (ICMP en gran cantidad, protocolos desconocidos) merecen investigación."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El análisis de flujos permite detectar patrones que serían imposibles de ver paquete a paquete: beaconing (flujos regulares al mismo destino), exfiltración (flujos grandes salientes a destinos inusuales), scanning (muchos flujos pequeños a muchos destinos distintos), DDoS (flujos masivos a un solo destino). Los SIEMs corporativos ingieren NetFlow de todos los routers para tener visibilidad completa de la red. HomeNetGuard hace lo mismo a escala doméstica con su tabla flows.",
+          "mitre_techniques": [
+            "T1049"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "sFlow es una alternativa a NetFlow basada en sampling: en lugar de registrar todos los flows, registra una muestra estadística (1 de cada N paquetes). Más eficiente para redes de alta velocidad pero menos preciso para flujos pequeños. IPFIX extendió NetFlow con plantillas variables: permite exportar campos personalizados (URL HTTP, subject del certificado TLS, etc.) además de los campos estándar. La correlación de flow data con inteligencia de amenazas (threat feeds) en tiempo real es la función central de los NDR (Network Detection and Response) modernos.",
+          "references": [
+            "RFC 3954",
+            "RFC 7011"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "threat-hunting",
+      "slug": "threat-hunting",
+      "title": "Threat Hunting — Búsqueda Proactiva",
+      "category": "analysis",
+      "level": "intermediate",
+      "estimated_minutes": 25,
+      "ui_terms": [
+        "hunting",
+        "hypothesis",
+        "pivot",
+        "IOC",
+        "forensics"
+      ],
+      "prerequisites": [
+        "ids-ips",
+        "iocs"
+      ],
+      "next_topics": [
+        "mitre-attack"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Threat Hunting — Búsqueda Proactiva",
+          "content": "Threat hunting es la búsqueda proactiva de amenazas que han evadido los controles de seguridad existentes, en lugar de esperar a que las alertas automáticas las detecten. El proceso: (1) formular una hipótesis basada en inteligencia ('¿hay APTs usando DNS para C2 en mi red?'), (2) recopilar y analizar datos relevantes, (3) descubrir TTPs no detectadas, (4) documentar y convertir los hallazgos en nuevas alertas o reglas para detección futura. La diferencia con el análisis reactivo es la actitud: el hunter asume que el atacante ya está dentro y busca evidencias."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT src_ip, dst_ip, COUNT(*) as connections, MIN(timestamp) as first_seen, MAX(timestamp) as last_seen FROM flows WHERE protocol='TCP' AND timestamp > datetime('now','-24 hours') GROUP BY src_ip, dst_ip HAVING connections > 10 ORDER BY connections DESC LIMIT 10",
+          "description": "Pares de IPs con más de 10 conexiones TCP en las últimas 24 horas. Muchas conexiones repetidas entre los mismos endpoints puede indicar beaconing (si son a IPs externas) o servicios internos (si son locales). Esta query es un punto de partida para hunting."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Las herramientas de detección automática tienen tasas de falso negativo — hay amenazas que evaden las reglas conocidas. Threat hunting cubre esa brecha usando creatividad humana y conocimiento del negocio que los algoritmos no tienen. La pirámide del dolor de Bianco muestra que huntar por TTPs (comportamiento del atacante) es mucho más efectivo que huntar por IOCs (IPs/hashes que rotan frecuentemente). HomeNetGuard proporciona los datos de red necesarios para hunting: flows, DNS queries, alerts history y forensics.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El framework PEAK (Prepare, Execute, Act with Knowledge) estructura el proceso de threat hunting. Las herramientas de hunting más usadas: Elastic Stack (indexación y búsqueda de grandes volúmenes de logs), Jupyter Notebooks (análisis ad-hoc con Python/pandas), Sigma (formato de reglas de detección agnóstico a plataforma). El concepto de 'assume breach' — asumir que el atacante ya está dentro — es la mentalidad correcta para hunting. La clave no es encontrar IOCs conocidos sino comportamientos anómalos que indiquen presencia de un atacante.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "iocs",
+      "slug": "iocs",
+      "title": "IOCs — Indicators of Compromise",
+      "category": "analysis",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "IOC",
+        "IP",
+        "domain",
+        "hash",
+        "JA3",
+        "blacklisted",
+        "reputation"
+      ],
+      "prerequisites": [
+        "malware-types"
+      ],
+      "next_topics": [
+        "mitre-attack",
+        "threat-hunting"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "IOCs — Indicators of Compromise",
+          "content": "Un IOC (Indicator of Compromise) es cualquier artefacto observable que indica con alta probabilidad que un sistema ha sido comprometido. Los tipos principales: IOCs de red (IPs maliciosas, dominios de C2, URLs de descarga de malware), IOCs de archivo (hashes MD5/SHA1/SHA256 de malware), IOCs de comportamiento (JA3 hashes de clientes TLS maliciosos, User-Agent strings) y IOCs de host (claves de registro, rutas de ficheros, nombres de procesos). David Bianco describe la pirámide del dolor: IPs/hashes son fáciles de usar pero triviales de cambiar para el atacante; TTPs (comportamiento) son difíciles de cambiar y los más valiosos."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM ip_reputation WHERE is_blacklisted=1",
+          "description": "IPs marcadas como blacklisted en la base de reputación. Cada una es un IOC de red que HomeNetGuard ha obtenido de los threat feeds. Si algún flujo actual conecta con estas IPs, genera alerta inmediata."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "HomeNetGuard recopila múltiples tipos de IOC: IPs en ip_reputation (de threat feeds), dominios en sinkhole_rules, JA3 hashes en flows. Los threat feeds como Feodo Tracker, URLhaus y AbuseCH SSL actualizan sus listas de IOCs continuamente. El problema de los IOCs de bajo nivel (IPs y dominios) es su corta vida: los atacantes rotan infraestructura frecuentemente, haciendo obsoletos los IOCs en días o semanas. Los IOCs de comportamiento (JA3, patrones de beaconing) son más duraderos porque cambiarlos requiere modificar el malware.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "STIX (Structured Threat Information eXpression) es el estándar JSON para describir inteligencia de amenazas — actores, malware, TTPs, IOCs y sus relaciones. TAXII (Trusted Automated eXchange of Intelligence Information) es el protocolo para compartir STIX entre organizaciones. OpenCTI y MISP son plataformas de threat intelligence management que agregan IOCs de múltiples fuentes. La correlación de IOCs — un dominio que aparece con la misma IP que otro dominio malicioso conocido — permite descubrir infraestructura del atacante antes de que sea usada activamente.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "mitre-attack",
+      "slug": "mitre-attack",
+      "title": "MITRE ATT&CK Framework",
+      "category": "analysis",
+      "level": "advanced",
+      "estimated_minutes": 25,
+      "ui_terms": [
+        "MITRE",
+        "ATT&CK",
+        "tactic",
+        "technique",
+        "TTP",
+        "T1046",
+        "T1071"
+      ],
+      "prerequisites": [
+        "iocs",
+        "threat-hunting"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "MITRE ATT&CK Framework",
+          "content": "MITRE ATT&CK (Adversarial Tactics, Techniques & Common Knowledge) es una base de conocimiento de TTPs (tácticas, técnicas y procedimientos) usados por atacantes reales, documentada a partir de incidentes reales. Se organiza en matrices: Enterprise (Windows/Linux/macOS/cloud), Mobile y ICS. Las tácticas son los objetivos del atacante (Reconocimiento, Acceso Inicial, Ejecución, Persistencia, Evasión, Credenciales, Descubrimiento, Lateral Movement, Recolección, C2, Exfiltración, Impacto). Las técnicas son los métodos específicos (T1071.004: C2 sobre DNS). Los procedimientos son las implementaciones concretas observadas en grupos APT específicos."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT mitre_tactic, mitre_technique, COUNT(*) as cnt FROM alerts WHERE mitre_tactic IS NOT NULL AND timestamp > datetime('now','-30 days') GROUP BY mitre_tactic, mitre_technique ORDER BY cnt DESC LIMIT 10",
+          "description": "Top técnicas ATT&CK detectadas por HomeNetGuard en los últimos 30 días. Cada alerta está mapeada a su táctica y técnica MITRE. Ver la vista /intelligence para el mapa visual completo de cobertura."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "ATT&CK permite comunicar con precisión sobre comportamiento de atacantes sin ambigüedad: 'detectamos T1071.004' es más preciso que 'detectamos comunicación C2 extraña por DNS'. Permite evaluar la cobertura de detección: ¿qué técnicas ATT&CK detectamos y cuáles no? Los purple teams usan ATT&CK para planificar ejercicios: el red team ejecuta técnicas específicas del framework y el blue team verifica si las detectó. MITRE D3FEND es el complemento defensivo: mapea controles de seguridad a las técnicas ATT&CK que mitigan.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "ATT&CK Navigator es la herramienta web para visualizar coberturas sobre la matriz — puedes colorear técnicas según estado de detección, frecuencia de uso por grupos APT, o cualquier métrica personalizada. Los grupos ATT&CK documentan qué técnicas usan actores conocidos: APT28 usa T1566.001 (spearphishing con attachment), T1055 (process injection) y T1003 (OS credential dumping) consistentemente. Cyber Analytics Repository (CAR) de MITRE complementa ATT&CK con analíticas concretas implementables en SIEMs para detectar técnicas específicas.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "siem-basics",
+      "slug": "siem-basics",
+      "title": "SIEM — Security Information and Event Management",
+      "category": "analysis",
+      "level": "advanced",
+      "estimated_minutes": 22,
+      "ui_terms": [
+        "SIEM",
+        "CEF",
+        "Splunk",
+        "Elastic",
+        "Graylog",
+        "export"
+      ],
+      "prerequisites": [
+        "logs-basics",
+        "ids-ips"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "SIEM — Security Information and Event Management",
+          "content": "Un SIEM centraliza logs y eventos de seguridad de múltiples fuentes, los normaliza, correlaciona y genera alertas. Las funciones principales: recopilación (agentes en endpoints, syslog, APIs), normalización (esquema común independiente del origen), correlación (reglas que unen eventos de múltiples fuentes), alerting y reporting. Los SIEMs comerciales líderes son Splunk, IBM QRadar y Microsoft Sentinel. Las alternativas open source incluyen Elastic Stack (ELK/OpenSearch) con el módulo Security y Wazuh. HomeNetGuard exporta eventos en formato CEF (Common Event Format) compatible con la mayoría de SIEMs."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) as total_alerts, COUNT(DISTINCT alert_type) as unique_types, COUNT(DISTINCT src_ip) as unique_sources FROM alerts WHERE timestamp > datetime('now','-7 days')",
+          "description": "Resumen de alertas de la última semana: total, tipos únicos y fuentes únicas. Esta es la información que HomeNetGuard exportaría a un SIEM. Cada alerta incluye timestamp, tipo, severidad, IPs y descripción en formato estandarizado."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Un SIEM puede detectar ataques que ninguna herramienta individual vería: correlacionando un login fallido (Active Directory) + acceso a VPN inusual (VPN log) + conexión a IP externa nueva (firewall log) de la misma IP de origen, puede identificar un ataque de credential stuffing que cada log individualmente parecería normal. HomeNetGuard + Elastic Stack es una combinación viable para redes domésticas avanzadas: HomeNetGuard captura el tráfico de red y Elastic ingesta y correlaciona con otros logs del sistema.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "La exportación SIEM de HomeNetGuard usa el formato CEF (Common Event Format) de ArcSight, ampliamente soportado. Formato: 'CEF:0|HomeNetGuard|Monitor|1.0|100|Port Scan|7|src=192.168.1.5 dst=192.168.1.1 ...'. SOAR (Security Orchestration, Automation and Response) extiende el SIEM con playbooks de respuesta automática: si SIEM detecta brute force SSH, SOAR puede automáticamente bloquear la IP en el firewall, crear un ticket en Jira y enviar notificación a Slack. Elastic Security incluye SIEM y SOAR básico en su versión gratuita.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "network-forensics",
+      "slug": "network-forensics",
+      "title": "Análisis Forense de Red",
+      "category": "analysis",
+      "level": "advanced",
+      "estimated_minutes": 25,
+      "ui_terms": [
+        "forensics",
+        "timeline",
+        "evidence",
+        "chain of custody",
+        "pcap"
+      ],
+      "prerequisites": [
+        "packet-capture",
+        "netflow-analysis"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Análisis Forense de Red",
+          "content": "El análisis forense de red reconstruye qué ocurrió en la red durante un incidente, preservando evidencias de forma admisible legalmente. La metodología: identificación (determinar qué capturar), preservación (chain of custody, hashes de evidencias), análisis (reconstruir eventos, timeline) y presentación (informe). Las fuentes de evidencia de red incluyen: capturas pcap, logs de firewall, logs DNS, NetFlow/IPFIX y registros de acceso web. La cadena de custodia documenta quién tuvo acceso a la evidencia y cuándo — esencial en procedimientos legales."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT type, timestamp, src_ip, dst_ip FROM (SELECT 'flow' as type, timestamp, src_ip, dst_ip FROM flows UNION ALL SELECT 'alert' as type, timestamp, src_ip, dst_ip FROM alerts UNION ALL SELECT 'dns' as type, timestamp, src_ip, '' as dst_ip FROM dns_queries) ORDER BY timestamp DESC LIMIT 20",
+          "description": "Timeline unificada de los últimos 20 eventos (flujos, alertas y consultas DNS). La vista Forensics de HomeNetGuard hace exactamente esto para un IP o MAC específico — reconstruye la secuencia de eventos para un dispositivo en el tiempo."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "En un incidente de seguridad, las preguntas forenses son: ¿cuándo comenzó el ataque?, ¿qué sistemas fueron comprometidos?, ¿qué datos fueron accedidos o exfiltrados?, ¿cómo entró el atacante? La vista Forensics de HomeNetGuard responde estas preguntas para la red local: dado un IP o MAC, muestra todos los flujos, alertas y consultas DNS en orden cronológico. Para forense completo se necesita también evidencia de endpoint (logs del OS, memoria, disco) correlacionada con la evidencia de red.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "NetworkMiner analiza pcaps extrayendo: ficheros transferidos, credenciales en texto plano, imágenes, certificados TLS y metadatos de hosts. Zeek/Bro genera logs estructurados de protocolos desde pcaps — conn.log (flujos), dns.log, http.log, ssl.log, files.log — más útiles para análisis automatizado que pcap raw. Volatility es el framework estándar para análisis de memoria RAM — puede extraer artefactos de red (conexiones activas, sockets) de un volcado de memoria. La correlación de evidencias de red con artefactos de memoria es la técnica más potente en respuesta a incidentes.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "cia-triad",
+      "slug": "cia-triad",
+      "title": "Principios de Seguridad: CIA Triad",
+      "category": "defense",
+      "level": "beginner",
+      "estimated_minutes": 10,
+      "ui_terms": [
+        "confidentiality",
+        "integrity",
+        "availability",
+        "alert",
+        "monitor"
+      ],
+      "prerequisites": [],
+      "next_topics": [
+        "defense-in-depth"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Principios de Seguridad: CIA Triad",
+          "content": "La triada CIA define los tres objetivos fundamentales de la seguridad de la información. Confidencialidad: solo las personas autorizadas acceden a la información (cifrado, control de acceso). Integridad: la información no es modificada sin autorización y podemos detectarlo (hashing, firmas digitales). Disponibilidad: los sistemas y datos están accesibles cuando se necesitan (redundancia, backups, protección DDoS). Cada control de seguridad protege uno o más de estos principios. Un ransomware viola la disponibilidad. Un keylogger viola la confidencialidad. SQL injection puede violar la integridad. La tensión entre ellos es real: más cifrado aumenta confidencialidad pero puede reducir disponibilidad."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT severity, COUNT(*) as cnt FROM alerts WHERE timestamp > datetime('now','-7 days') GROUP BY severity",
+          "description": "Alertas por severidad en los últimos 7 días. Los ataques critical/high suelen afectar Confidencialidad (exfiltración, beaconing C2) o Disponibilidad (flood/DDoS). HomeNetGuard defiende principalmente la Confidencialidad de tu red doméstica."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El NIST Cybersecurity Framework (CSF) amplía CIA con dos dimensiones adicionales: Identify (inventario de activos, evaluación de riesgos) y Respond/Recover (planes de respuesta e incidentes). La ISO 27001 añade autenticidad y no repudio como propiedades adicionales. En práctica, los equipos de seguridad priorizan controles evaluando: ¿qué activos protegemos? (Identify), ¿cuáles son las amenazas? (Protect), ¿podemos detectarlas? (Detect), ¿cómo respondemos? (Respond), ¿cómo nos recuperamos? (Recover).",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Parkerian Hexad extiende CIA con tres propiedades adicionales: posesión/control (tener acceso físico o lógico al activo), autenticidad (verificar que el origen es quien dice ser) y utilidad (que la información sea usable en su forma actual — un fichero cifrado cuya clave se perdió viola la utilidad aunque sea íntegro). En ciberseguridad industrial (ICS/SCADA), el orden de prioridad se invierte: Disponibilidad > Integridad > Confidencialidad, porque una planta química que se detiene por un falso positivo de seguridad puede ser más peligrosa que una brecha de datos.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "defense-in-depth",
+      "slug": "defense-in-depth",
+      "title": "Defense in Depth — Defensa en Profundidad",
+      "category": "defense",
+      "level": "beginner",
+      "estimated_minutes": 12,
+      "ui_terms": [
+        "firewall",
+        "IDS",
+        "antivirus",
+        "monitor",
+        "layer"
+      ],
+      "prerequisites": [
+        "cia-triad"
+      ],
+      "next_topics": [
+        "firewalls",
+        "ids-ips"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Defense in Depth — Defensa en Profundidad",
+          "content": "Defense in depth (DiD) es la estrategia de implementar múltiples capas de controles de seguridad de forma que el fallo de una capa no comprometa toda la defensa. El modelo de queso suizo: cada capa tiene agujeros (vulnerabilidades) pero las capas sucesivas cubren los agujeros de las anteriores. Las capas típicas en una red doméstica: seguridad física (acceso al router), seguridad perimetral (firewall del router, WPA3 en WiFi), seguridad de red (HomeNetGuard, VLAN IoT), seguridad de host (antivirus, actualizaciones, disco cifrado), seguridad de aplicación (MFA, gestor de contraseñas) y seguridad de datos (backups cifrados offsite)."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT (SELECT COUNT(*) FROM firewall_rules WHERE is_active=1) as firewall_rules, (SELECT COUNT(*) FROM sinkhole_rules WHERE is_active=1) as sinkhole_rules, (SELECT COUNT(*) FROM alerts WHERE timestamp > datetime('now','-7 days')) as recent_alerts",
+          "description": "Controles de seguridad activos en HomeNetGuard: reglas de firewall, reglas de sinkhole DNS y alertas recientes. HomeNetGuard es una capa — no es suficiente por sí solo. Combínalo con firewall del router y antivirus en los dispositivos."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Depender de un único control de seguridad es el error más común en redes domésticas: 'el antivirus me protege' o 'tengo firewall' pero sin monitorización de red. HomeNetGuard cubre la capa de monitorización de red y detección de intrusiones. Para defense in depth completa en casa: router con firewall y WPA3 + contraseñas únicas + MFA en cuentas importantes + actualizaciones automáticas + HomeNetGuard para monitorización + backups regulares. La combinación hace que un atacante necesite superar varias barreras independientes.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "El concepto Zero Trust (nunca confíes, siempre verifica) puede verse como un evolution de DiD aplicado al acceso: en lugar de perímetro + interior de confianza, cada acceso se verifica independientemente. Microsegmentación es DiD aplicada a la red interna: cada servicio o grupo de dispositivos en su propio segmento con reglas de acceso mínimas. En cloud security, el modelo de responsabilidad compartida define qué capas defiende el proveedor (infraestructura física) y cuáles el cliente (configuración, datos, aplicaciones).",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "least-privilege",
+      "slug": "least-privilege",
+      "title": "Principio de Mínimo Privilegio",
+      "category": "defense",
+      "level": "beginner",
+      "estimated_minutes": 10,
+      "ui_terms": [
+        "privilege",
+        "permission",
+        "root",
+        "sudo",
+        "trusted"
+      ],
+      "prerequisites": [
+        "cia-triad"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Principio de Mínimo Privilegio",
+          "content": "El principio de mínimo privilegio establece que cada entidad (usuario, proceso, servicio) debe tener únicamente los permisos necesarios para realizar su función, y nada más. La aplicación a redes: un dispositivo IoT solo necesita acceso a Internet, no a otros dispositivos de la red; un servidor web solo necesita los puertos 80 y 443 abiertos; HomeNetGuard solo necesita permisos de captura de red (CAP_NET_RAW), no acceso root completo. La violación de este principio multiplica el impacto de cualquier compromiso: si cada servicio tiene acceso mínimo, comprometer uno no compromete todo."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) as total, SUM(CASE WHEN is_trusted=1 THEN 1 ELSE 0 END) as trusted FROM devices",
+          "description": "Dispositivos totales vs. marcados como 'trusted' en HomeNetGuard. El principio de mínimo privilegio aplicado a dispositivos: solo los que reconoces y necesitas deben estar en la red y tener acceso confiable. El resto debería estar en una VLAN separada."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "La violación del mínimo privilegio amplifica el impacto de los ataques: si un proceso con acceso root es comprometido, el atacante tiene control total del sistema. Si solo tiene permisos de lectura en un directorio específico, el daño es limitado. En redes: si los dispositivos IoT están en la misma subred que el NAS con datos importantes, comprometer una cámara IP puede permitir acceder al NAS. La segmentación de red (VLANs) es la aplicación de mínimo privilegio a la red: cada segmento solo puede comunicarse con lo estrictamente necesario.",
+          "mitre_techniques": [
+            "T1078"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "Linux capabilities dividen los privilegios root en capacidades granulares: CAP_NET_RAW (captura de paquetes), CAP_NET_ADMIN (configuración de red), CAP_SYS_ADMIN (operaciones de administración del sistema). HomeNetGuard puede ejecutarse con solo CAP_NET_RAW + CAP_NET_ADMIN en lugar de root completo, reduciendo la superficie de ataque si el proceso es comprometido. SELinux y AppArmor aplican MAC (Mandatory Access Control) para confinar procesos incluso si escalan privilegios. El principio de zero trust lleva el mínimo privilegio al extremo: cada acceso, en cualquier momento, requiere verificación explícita.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "network-segmentation",
+      "slug": "network-segmentation",
+      "title": "Segmentación de Red y VLANs",
+      "category": "defense",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "VLAN",
+        "subnet",
+        "IoT",
+        "guest",
+        "segment"
+      ],
+      "prerequisites": [
+        "subnets-cidr",
+        "firewalls"
+      ],
+      "next_topics": [
+        "zero-trust-home"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Segmentación de Red y VLANs",
+          "content": "La segmentación de red divide la red en zonas lógicas aisladas, limitando la comunicación entre ellas mediante firewalls o ACLs. En redes domésticas: VLAN de dispositivos confiables (PCs, móviles), VLAN IoT (cámaras, smart speakers, electrodomésticos conectados), VLAN invitados (WiFi separada para visitas) y VLAN gestión (acceso al router y HomeNetGuard). VLANs (IEEE 802.1Q) etiquetan tramas Ethernet con un identificador de VLAN (1-4094), permitiendo que varios switches gestionen múltiples redes lógicas sobre la misma infraestructura física. El router actúa como gateway entre VLANs y aplica las reglas de acceso."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT ip_address, vendor, is_trusted FROM devices WHERE ip_address IS NOT NULL ORDER BY is_trusted DESC, vendor",
+          "description": "Dispositivos con su vendor. Identifica cuáles son IoT (smart TV, cámara, termostato) vs. equipos de confianza (PC, móvil). Los dispositivos IoT deberían estar en una VLAN separada — si están todos en la misma red, el riesgo de lateral movement es alto."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Los dispositivos IoT son notoriamente inseguros: firmware rara vez actualizado, contraseñas por defecto, sin cifrado y con vulnerabilidades conocidas. Comprometer una cámara IP o una smart TV es relativamente fácil. Sin segmentación, ese dispositivo comprometido puede escanear y atacar tu NAS, tu PC y cualquier otro dispositivo de la red. Con una VLAN IoT correctamente configurada, la cámara solo puede acceder a Internet y está completamente bloqueada de la red de datos. Esta es la aplicación más impactante de segmentación en redes domésticas.",
+          "mitre_techniques": [
+            "T1021",
+            "T1570"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "802.1X es el protocolo de autenticación de red que verifica la identidad de un dispositivo antes de conectarlo a la VLAN correcta. Requiere un servidor RADIUS y certificados o credenciales por dispositivo — más complejo de implementar pero ideal para redes con muchos dispositivos. DMZ (Demilitarized Zone) es una subred entre la red pública e interna donde se colocan servicios accesibles desde Internet (servidor web, VPN) — si son comprometidos, no tienen acceso directo a la red interna. Micro-segmentación extiende VLANs al nivel de aplicación: cada servicio en su propio segmento, incluso dentro del mismo servidor físico.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "system-hardening",
+      "slug": "system-hardening",
+      "title": "Hardening de Sistemas — CIS Benchmarks",
+      "category": "defense",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "hardening",
+        "CIS",
+        "compliance",
+        "benchmark",
+        "check"
+      ],
+      "prerequisites": [
+        "least-privilege"
+      ],
+      "next_topics": [
+        "vulnerability-management"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Hardening de Sistemas — CIS Benchmarks",
+          "content": "Hardening es el proceso de reducir la superficie de ataque de un sistema eliminando servicios innecesarios, aplicando configuraciones seguras y actualizando software. CIS (Center for Internet Security) publica benchmarks detallados de configuración segura para Windows, Linux, macOS, Docker, Kubernetes, AWS y decenas de otros sistemas. Los CIS Controls son 18 controles de seguridad prioritizados por impacto: inventario de activos, gestión de configuración, protección de datos, gestión de cuentas, etc. HomeNetGuard implementa un subconjunto de estos controles en su compliance checker."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM firewall_rules WHERE auto_added=1 AND is_active=1",
+          "description": "Reglas de firewall añadidas automáticamente por HomeNetGuard en respuesta a amenazas detectadas. Las reglas automáticas son hardening reactivo — complementan el hardening proactivo de configurar bien el sistema desde el inicio."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Los sistemas con configuración por defecto son los más vulnerables: cuentas admin con contraseña por defecto, servicios innecesarios escuchando en todos los interfaces, puertos de gestión expuestos públicamente. El 85% de los ataques exitosos explotan configuraciones incorrectas o falta de parches, no zero-days. El hardening básico previene la gran mayoría de ataques oportunistas. Las acciones de mayor impacto: cambiar credenciales por defecto, desactivar servicios no usados, habilitar firewall local, aplicar actualizaciones automáticas y configurar MFA en cuentas críticas.",
+          "mitre_techniques": [
+            "T1078.001"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "DISA STIGs (Security Technical Implementation Guides) son los estándares de hardening del Departamento de Defensa de EE.UU. — más estrictos que CIS Benchmarks. OpenSCAP (Security Content Automation Protocol) automatiza la verificación de cumplimiento de benchmarks CIS/DISA. Ansible y Chef/Puppet permiten aplicar configuraciones de hardening como código (Infrastructure as Code) de forma reproducible y auditable. El compliance checker de HomeNetGuard implementa verificaciones básicas: ¿está el firmware del router actualizado? ¿hay dispositivos con contraseñas por defecto conocidas?",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "vulnerability-management",
+      "slug": "vulnerability-management",
+      "title": "Gestión de Vulnerabilidades",
+      "category": "defense",
+      "level": "intermediate",
+      "estimated_minutes": 18,
+      "ui_terms": [
+        "CVE",
+        "vulnerability",
+        "OS",
+        "patch",
+        "version"
+      ],
+      "prerequisites": [
+        "system-hardening"
+      ],
+      "next_topics": [
+        "zero-day"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Gestión de Vulnerabilidades",
+          "content": "La gestión de vulnerabilidades es el proceso continuo de identificar, clasificar, priorizar y remediar vulnerabilidades de seguridad en los sistemas. El ciclo: descubrir (escaneo de vulnerabilidades con OpenVAS, Nessus o Qualys), evaluar (CVSS score, EPSS, contexto del negocio), priorizar (no todas las vuln requieren remediación inmediata), remediar (parchar, mitigar o aceptar el riesgo) y verificar (confirmar que el parche funcionó). CVE (Common Vulnerabilities and Exposures) es el identificador estándar. CVSS v3 puntúa de 0 a 10 con métricas de vector de ataque, complejidad y impacto."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT mac_address, vendor, ip_address, os_guess, os_confidence FROM devices WHERE os_guess IS NOT NULL ORDER BY os_confidence DESC LIMIT 10",
+          "description": "Dispositivos con OS identificado. Conocer el OS y versión es el primer paso para buscar CVEs aplicables. Un Windows 10 sin actualizar puede tener docenas de vulnerabilidades conocidas con exploits públicos disponibles."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El 60% de los brechas de datos explotan vulnerabilidades para las que había un parche disponible — el problema no es la existencia de la vulnerabilidad sino la falta de proceso de parcheo. EPSS (Exploit Prediction Scoring System) predice qué CVEs serán explotadas activamente en los próximos 30 días con ~80% de accuracy — mejor guía de priorización que CVSS solo. El tiempo medio entre publicación de CVE y primer exploit público es 14 días. Patch management automatizado (Windows Update, unattended-upgrades en Linux) reduce drásticamente la ventana de exposición.",
+          "mitre_techniques": [
+            "T1190",
+            "T1203"
+          ]
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "NVD (National Vulnerability Database) del NIST mantiene el repositorio oficial de CVEs con CVSS scores y referencias. OVAL (Open Vulnerability and Assessment Language) permite describir condiciones de vulnerabilidad de forma machine-readable para automatizar detección. KEV (Known Exploited Vulnerabilities) catalog de CISA lista CVEs con exploit activo conocido — prioridad máxima de parcheo. El concepto de 'vulnerability chaining' — combinar múltiples vulnerabilidades de bajo CVSS para conseguir impacto crítico — es subestimado en la gestión tradicional basada solo en CVSS.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "zero-trust-home",
+      "slug": "zero-trust-home",
+      "title": "Zero Trust en la Red Doméstica",
+      "category": "defense",
+      "level": "advanced",
+      "estimated_minutes": 22,
+      "ui_terms": [
+        "Zero Trust",
+        "trusted",
+        "quarantined",
+        "monitor",
+        "always verify"
+      ],
+      "prerequisites": [
+        "zero-trust",
+        "network-segmentation"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Zero Trust en la Red Doméstica",
+          "content": "Aplicar principios Zero Trust en casa no requiere infraestructura corporativa — puede implementarse gradualmente con herramientas accesibles. Los cuatro pilares prácticos: (1) Visibilidad total con HomeNetGuard — saber qué hay en la red y qué hace. (2) Segmentación con VLANs — IoT separado de datos personales. (3) Autenticación fuerte — WPA3 con contraseña robusta, MFA en cuentas importantes. (4) Acceso mínimo — dispositivos IoT sin acceso a la red de datos, reglas de firewall restrictivas. Zero Trust doméstico no es un producto sino una filosofía aplicada con las herramientas disponibles."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT is_trusted, is_quarantined, COUNT(*) as cnt FROM devices GROUP BY is_trusted, is_quarantined",
+          "description": "Estado de confianza de los dispositivos. Un modelo Zero Trust doméstico empieza aquí: cada dispositivo es desconocido por defecto hasta que lo verificas y marcas como trusted. Los dispositivos quarantined están aislados — principio de mínimo acceso aplicado."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El perímetro doméstico tradicional (router con firewall) tiene agujeros: dispositivos IoT inseguros, WiFi de invitados sin aislamiento, apps maliciosas en móviles que tienen acceso total a la red. Zero Trust asume que cualquier dispositivo puede estar comprometido y requiere verificación continua. HomeNetGuard es el componente de 'monitorización continua' en esta arquitectura: detecta comportamiento anómalo independientemente de si el dispositivo es de confianza o no. Un dispositivo 'trusted' que empieza a hacer port scans genera alerta inmediatamente.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "NIST SP 800-207 define los siete principios Zero Trust: todas las fuentes de datos y servicios se consideran recursos, toda comunicación se asegura independientemente de la localización, el acceso a recursos individuales se concede por sesión, el acceso está determinado por política dinámica, la integridad de todos los dispositivos se monitoriza, toda autenticación y autorización es dinámica y estrictamente verificada. Un home lab Zero Trust completo: pfSense/OPNsense como firewall con VLANs + 802.1X + HomeNetGuard como IDS + Wazuh como SIEM + Vaultwarden para passwords + Authelia para SSO con MFA.",
+          "references": [
+            "NIST SP 800-207"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "threat-modeling",
+      "slug": "threat-modeling",
+      "title": "Threat Modeling — STRIDE",
+      "category": "defense",
+      "level": "advanced",
+      "estimated_minutes": 25,
+      "ui_terms": [
+        "threat",
+        "model",
+        "STRIDE",
+        "risk",
+        "attack"
+      ],
+      "prerequisites": [
+        "cia-triad",
+        "mitre-attack"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Threat Modeling — STRIDE",
+          "content": "Threat modeling es el proceso de identificar sistemáticamente amenazas potenciales a un sistema y planificar mitigaciones. STRIDE (Microsoft) categoriza amenazas por tipo: Spoofing (suplantar identidad), Tampering (modificar datos), Repudiation (negar acciones), Information Disclosure (revelar información), Denial of Service (degradar disponibilidad), Elevation of Privilege (obtener más permisos). El proceso STRIDE: (1) modelar el sistema (diagrama de flujo de datos), (2) identificar amenazas STRIDE en cada elemento, (3) evaluar el riesgo (DREAD o CVSS), (4) planificar mitigaciones, (5) validar la cobertura."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT alert_type, COUNT(*) as cnt FROM alerts GROUP BY alert_type ORDER BY cnt DESC",
+          "description": "Distribución histórica de alertas por tipo. Mapea a STRIDE: arp_spoofing → Spoofing, dns_anomaly → Information Disclosure/Tampering, port_scan → Elevation of Privilege (reconocimiento previo), flood → DoS, beaconing → Information Disclosure (exfiltración C2)."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "El threat modeling convierte la seguridad de reactiva a proactiva: en lugar de esperar a que ocurra un ataque y responder, identificas los vectores de ataque posibles antes de que se materialicen. Aplicado a una red doméstica: el threat model revela que el mayor riesgo no es un hacker remoto sino el comprometer un dispositivo IoT con acceso a toda la red. Esta insight lleva a implementar segmentación con VLANs — una mitigación que no se haría sin el análisis sistemático. HomeNetGuard es el instrumento de validación: verifica que los controles implementados realmente reducen las alertas del tipo mitigado.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "deeper",
+          "title": "Más profundo",
+          "content": "PASTA (Process for Attack Simulation and Threat Analysis) es una metodología alternativa más orientada al negocio: empieza con los objetivos de negocio y trabaja hacia las amenazas técnicas. MITRE ATT&CK puede usarse como catálogo de amenazas en el threat modeling: para cada activo, identificar qué técnicas ATT&CK podrían usarse para comprometeerlo y qué controles las mitigan. Microsoft Threat Modeling Tool automatiza parte del proceso STRIDE para diagramas de sistemas. El concepto 'abuse case' complementa los casos de uso funcionales con escenarios de cómo un atacante podría abusar del sistema.",
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "scapy-basics",
+      "slug": "scapy-basics",
+      "title": "Scapy — Creando y Analizando Paquetes con Python",
+      "category": "tools",
+      "level": "beginner",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "Scapy",
+        "packet",
+        "Python",
+        "capture",
+        "sniff"
+      ],
+      "prerequisites": [
+        "tcp-protocol",
+        "udp-protocol"
+      ],
+      "next_topics": [
+        "build-detector"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Scapy — Creando y Analizando Paquetes con Python",
+          "content": "Scapy es la librería Python de referencia para manipulación de paquetes de red. Permite: crear paquetes arbitrarios de cualquier protocolo, enviarlos y recibir respuestas, capturar tráfico en tiempo real (sniffing) y leer/escribir ficheros pcap. Su sintaxis es expresiva: IP(dst='8.8.8.8')/TCP(dport=80)/HTTP() crea un paquete TCP/IP/HTTP completo. HomeNetGuard usa Scapy internamente en capture/sniffer.py para captura de paquetes. Es la herramienta perfecta para aprender redes porque permite experimentar con protocolos a bajo nivel sin necesidad de herramientas externas."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT SUM(packets) as total_packets, COUNT(*) as total_flows FROM flows WHERE timestamp > datetime('now','-1 hour')",
+          "description": "Paquetes y flujos capturados en la última hora por el sniffer de HomeNetGuard. Cada paquete fue procesado por Scapy internamente. El sniffer está en homenetguard/capture/sniffer.py — puedes ver exactamente cómo usa Scapy para capturar y parsear paquetes."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Scapy es la herramienta favorita de investigadores de seguridad porque permite construir cualquier tipo de paquete, incluyendo los malformados o imposibles de generar con herramientas estándar. Se usa para: fuzzing de protocolos, testing de firewalls (¿bloquea RST spoofing?), implementación de herramientas de análisis de red personalizadas y PoC (Proof of Concept) de vulnerabilidades. Nmap usa su propia implementación para OS fingerprinting; Scapy permite replicar esto con pocas líneas de Python.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "lab",
+          "title": "Ejercicio práctico con Scapy",
+          "steps": [
+            "Instalar Scapy: pip install scapy (requiere Python 3.8+)",
+            "Abrir Python como root/admin: sudo python3",
+            "Importar Scapy: from scapy.all import *",
+            "Crear y enviar un ICMP echo (ping): resp = sr1(IP(dst='8.8.8.8')/ICMP(), timeout=2); resp.show()",
+            "Capturar 5 paquetes DNS: pkts = sniff(filter='port 53', count=5); pkts.summary()",
+            "Inspeccionar el primer paquete: pkts[0].show()",
+            "Leer un fichero pcap: pkts2 = rdpcap('/ruta/a/fichero.pcap'); pkts2.summary()",
+            "Resultado esperado: cada comando muestra la estructura del paquete con todos los campos de cabecera desglosados"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nmap-guide",
+      "slug": "nmap-guide",
+      "title": "Nmap — El Escáner de Red Definitivo",
+      "category": "tools",
+      "level": "intermediate",
+      "estimated_minutes": 20,
+      "ui_terms": [
+        "Nmap",
+        "scan",
+        "port",
+        "service",
+        "OS detection",
+        "NSE"
+      ],
+      "prerequisites": [
+        "port-scanning",
+        "tcp-protocol"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Nmap — El Escáner de Red Definitivo",
+          "content": "Nmap (Network Mapper) es la herramienta de exploración de red y auditoría de seguridad más usada. Sus capacidades principales: descubrimiento de hosts (¿quién está activo?), port scanning (¿qué puertos están abiertos?), detección de servicios y versiones (-sV), OS fingerprinting (-O) y scripting con NSE. Los tipos de scan: TCP SYN (-sS, más rápido y sigiloso), TCP Connect (-sT, sin root), UDP (-sU, lento pero necesario), scripts NSE (-sC, enumeración avanzada). Nmap genera el mismo tipo de tráfico que usan los atacantes durante el reconocimiento — por eso HomeNetGuard debe detectarlo."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) FROM alerts WHERE alert_type='port_scan' AND timestamp > datetime('now','-24 hours')",
+          "description": "Port scans detectados en las últimas 24 horas. Ejecutar 'nmap -sS 192.168.1.0/24' en tu red local debería generar alertas en HomeNetGuard en tiempo real. Es una forma excelente de verificar que el detector funciona correctamente."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Nmap es la herramienta número 1 en el arsenal de cualquier auditor de seguridad y también de cualquier atacante en reconocimiento. Conocer cómo funciona te permite: auditar tu propia red para encontrar servicios expuestos que no deberían estarlo, entender qué ve un atacante cuando escanea tu red y verificar que HomeNetGuard detecta el escaneo. Hacer un 'nmap -sV -O 192.168.1.0/24' en tu red local es la primera acción recomendada para cualquier auditoría doméstica.",
+          "mitre_techniques": [
+            "T1046",
+            "T1595.001"
+          ]
+        },
+        {
+          "type": "lab",
+          "title": "Auditoría de tu red con Nmap",
+          "steps": [
+            "Instalar Nmap: sudo apt install nmap (Linux) o descargar de nmap.org (Windows/macOS)",
+            "Descubrir tu subred: ip route (Linux) o ipconfig (Windows) para ver el rango",
+            "Scan de descubrimiento: nmap -sn 192.168.1.0/24 (lista hosts activos sin port scan)",
+            "Scan completo con detección de OS y versiones: sudo nmap -sV -O -sS 192.168.1.0/24",
+            "Verificar en HomeNetGuard /alerts que aparecen alertas de port_scan",
+            "Scan UDP de los hosts más interesantes: sudo nmap -sU --top-ports 20 <target-ip>",
+            "Resultado esperado: lista de dispositivos con puertos abiertos, versiones de servicios y OS detectado. HomeNetGuard genera alertas para cada host escaneado."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wireshark-analysis",
+      "slug": "wireshark-analysis",
+      "title": "Wireshark — Análisis Profundo de Paquetes",
+      "category": "tools",
+      "level": "intermediate",
+      "estimated_minutes": 22,
+      "ui_terms": [
+        "Wireshark",
+        "pcap",
+        "capture",
+        "display filter",
+        "stream"
+      ],
+      "prerequisites": [
+        "packet-capture"
+      ],
+      "next_topics": [
+        "network-forensics"
+      ],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Wireshark — Análisis Profundo de Paquetes",
+          "content": "Wireshark es el analizador de protocolos de red GUI más usado, con soporte para 3000+ protocolos. La interfaz tiene tres paneles: lista de paquetes (resumen por línea), detalle del paquete (árbol expandible de capas) e interpretación hexadecimal. Los filtros de captura (BPF) se aplican al capturar y reducen el volumen; los filtros de display se aplican post-captura para análisis. La función 'Follow TCP Stream' reconstruye la conversación completa. 'Export Objects' extrae ficheros transferidos en HTTP. El colorizado automático distingue visualmente protocolos. tshark es su equivalente de línea de comandos."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT COUNT(*) as flows, SUM(bytes) as bytes FROM flows WHERE timestamp > datetime('now','-10 minutes')",
+          "description": "Flujos y bytes en los últimos 10 minutos. HomeNetGuard almacena metadata de flujos, no pcaps completos. Para inspeccionar el payload necesitas capturar con Wireshark directamente en tu interfaz de red, aplicando el mismo filtro BPF del sniffer de HomeNetGuard."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Wireshark es la herramienta de referencia para análisis forense de red y depuración de problemas. En respuesta a incidentes: analizar pcaps permite ver exactamente qué datos fueron exfiltrados, qué comandos ejecutó el malware o qué credenciales fueron enviadas en texto plano. La integración de Wireshark con HomeNetGuard: los pcaps generados por HomeNetGuard (si está configurado para guardarlos) pueden abrirse directamente en Wireshark para análisis detallado de los flujos que generaron alertas.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "lab",
+          "title": "Análisis de tráfico con Wireshark",
+          "steps": [
+            "Instalar Wireshark desde wireshark.org — incluye tshark para línea de comandos",
+            "Abrir Wireshark como administrador y seleccionar tu interfaz de red",
+            "Capturar durante 30 segundos y parar (botón rojo)",
+            "Aplicar filtro de display: 'dns' para ver todas las consultas DNS. ¿Reconoces todos los dominios?",
+            "Aplicar filtro: 'http' para ver tráfico HTTP sin cifrar. ¿Hay algo inesperado?",
+            "Seleccionar un flujo TCP y usar Analyze > Follow > TCP Stream para ver la conversación completa",
+            "Aplicar filtro: 'tls.handshake.type == 1' para ver todos los ClientHello TLS y sus SNI",
+            "Resultado esperado: visión completa de todos los protocolos activos en tu red, con posibilidad de inspeccionar cada paquete en detalle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "build-detector",
+      "slug": "build-detector",
+      "title": "Construir un Detector de Amenazas con Python",
+      "category": "tools",
+      "level": "advanced",
+      "estimated_minutes": 35,
+      "ui_terms": [
+        "detector",
+        "Python",
+        "Scapy",
+        "threshold",
+        "alert",
+        "signature"
+      ],
+      "prerequisites": [
+        "scapy-basics",
+        "ids-ips"
+      ],
+      "next_topics": [],
+      "standards": [],
+      "sections": [
+        {
+          "type": "concept",
+          "title": "Construir un Detector de Amenazas con Python",
+          "content": "Construir un detector propio desde cero es la mejor forma de entender cómo funcionan herramientas como HomeNetGuard. Los componentes de un detector básico son: captura de paquetes (Scapy sniff()), parsing de protocolos (acceder a capas con pkt[IP].src, pkt[TCP].dport), estado en memoria (diccionarios Python para rastrear conexiones por IP), aplicación de reglas (umbrales, patrones) y generación de alertas. El detector de port scan de HomeNetGuard está en analysis/threat_detector.py — puedes comparar tu implementación con la de producción para entender las diferencias."
+        },
+        {
+          "type": "live_example",
+          "title": "En tu red ahora mismo",
+          "query": "SELECT alert_type, COUNT(*) as cnt, MIN(timestamp) as first, MAX(timestamp) as last FROM alerts GROUP BY alert_type ORDER BY cnt DESC",
+          "description": "Todos los tipos de alerta generados por HomeNetGuard históricamente. Tu detector del lab debería generar los mismos tipos de alerta que ves aquí. Comparar los resultados te permite calibrar tus umbrales."
+        },
+        {
+          "type": "security",
+          "title": "Por qué importa en seguridad",
+          "content": "Construir tus propias herramientas de seguridad te da ventajas que las herramientas comerciales no dan: adaptación exacta a tu entorno, comprensión profunda de qué detectas y qué no, y capacidad de modificar los umbrales según tus necesidades. El análisis del código de HomeNetGuard (especialmente analysis/threat_detector.py, analysis/beaconing_detector.py y analysis/dns_analyzer.py) es una guía de implementación real. Cada decisión de diseño en el código tiene una razón de seguridad.",
+          "mitre_techniques": []
+        },
+        {
+          "type": "lab",
+          "title": "Detector de port scan con Python y Scapy",
+          "steps": [
+            "Crear fichero detector.py con el siguiente contenido básico:",
+            "from scapy.all import sniff, IP, TCP; from collections import defaultdict; import time",
+            "scan_tracker = defaultdict(set)  # {src_ip: set(dst_ports)}",
+            "def process_packet(pkt):\n    if IP in pkt and TCP in pkt:\n        src = pkt[IP].src\n        dst_port = pkt[TCP].dport\n        scan_tracker[src].add(dst_port)\n        if len(scan_tracker[src]) > 15:\n            print(f'[ALERT] Port scan from {src} — {len(scan_tracker[src])} ports')",
+            "sniff(filter='tcp', prn=process_packet, store=False)  # requiere root/admin",
+            "Ejecutar: sudo python3 detector.py",
+            "En otra terminal, ejecutar: nmap -sS 127.0.0.1",
+            "Resultado esperado: el detector genera '[ALERT] Port scan from 127.0.0.1' cuando Nmap supera 15 puertos. Compara con el código real en homenetguard/analysis/threat_detector.py"
+          ]
+        }
+      ]
+    }
+  ],
+  "learning_paths": [
+    {
+      "id": "zero-to-monitoring",
+      "title": "De cero a monitorizar tu red",
+      "description": "Para quien empieza desde cero. Aprende qué es cada protocolo y cómo leer lo que muestra HomeNetGuard.",
+      "level": "beginner",
+      "estimated_minutes": 90,
+      "topics": [
+        "osi-model",
+        "ip-addressing",
+        "dns-fundamentals",
+        "mac-arp",
+        "logs-basics",
+        "packet-capture",
+        "cia-triad",
+        "defense-in-depth"
+      ]
+    },
+    {
+      "id": "understand-threats",
+      "title": "Entiende las amenazas que detecta HomeNetGuard",
+      "description": "Aprende qué hay detrás de cada alerta — cómo funciona cada ataque y cómo lo detecta HomeNetGuard.",
+      "level": "intermediate",
+      "estimated_minutes": 120,
+      "topics": [
+        "port-scanning",
+        "mitm",
+        "arp-spoofing",
+        "dns-poisoning",
+        "c2-beaconing",
+        "data-exfiltration",
+        "cryptojacking",
+        "iocs",
+        "mitre-attack",
+        "ids-ips"
+      ]
+    },
+    {
+      "id": "defensive-security",
+      "title": "Ciberseguridad defensiva",
+      "description": "Cómo proteger activamente tu red. Desde principios básicos hasta implementación de controles reales.",
+      "level": "intermediate",
+      "estimated_minutes": 150,
+      "topics": [
+        "cia-triad",
+        "defense-in-depth",
+        "least-privilege",
+        "tls-ssl",
+        "firewalls",
+        "ids-ips",
+        "network-segmentation",
+        "system-hardening",
+        "threat-hunting",
+        "iocs",
+        "mitre-attack",
+        "zero-trust-home"
+      ]
+    },
+    {
+      "id": "advanced-forensics",
+      "title": "Análisis y forense avanzado",
+      "description": "Técnicas avanzadas de análisis de red y forense digital usando HomeNetGuard como plataforma.",
+      "level": "advanced",
+      "estimated_minutes": 120,
+      "topics": [
+        "netflow-analysis",
+        "threat-hunting",
+        "iocs",
+        "mitre-attack",
+        "siem-basics",
+        "network-forensics",
+        "wireshark-analysis",
+        "build-detector"
+      ]
+    }
+  ],
+  "tooltip_terms": {
+    "TCP": {
+      "slug": "tcp-protocol",
+      "short": "Protocolo orientado a conexión. Garantiza entrega ordenada de datos."
+    },
+    "UDP": {
+      "slug": "udp-protocol",
+      "short": "Protocolo sin conexión. Más rápido que TCP, sin garantía de entrega."
+    },
+    "DNS": {
+      "slug": "dns-fundamentals",
+      "short": "Sistema de resolución de nombres de dominio a IPs. Puerto 53."
+    },
+    "ARP": {
+      "slug": "mac-arp",
+      "short": "Mapea IPs a MACs en la red local. Vulnerable a spoofing."
+    },
+    "TLS": {
+      "slug": "tls-ssl",
+      "short": "Protocolo de cifrado en tránsito. Protege HTTPS (puerto 443)."
+    },
+    "HTTPS": {
+      "slug": "tls-ssl",
+      "short": "HTTP cifrado con TLS. El candado no garantiza que el servidor sea legítimo."
+    },
+    "ICMP": {
+      "slug": "icmp",
+      "short": "Mensajes de control de red. Usado por ping y traceroute."
+    },
+    "SSH": {
+      "slug": "ssh-protocol",
+      "short": "Acceso remoto seguro (puerto 22). Brute force SSH es ataque muy común."
+    },
+    "JA3": {
+      "slug": "tls-ssl",
+      "short": "Fingerprint del cliente TLS. Identifica aplicaciones aunque el tráfico esté cifrado."
+    },
+    "port_scan": {
+      "slug": "port-scanning",
+      "short": "Reconocimiento de puertos abiertos en un host. Nmap es la herramienta más común."
+    },
+    "beaconing": {
+      "slug": "c2-beaconing",
+      "short": "Comunicación periódica de malware con servidor C2. Intervalos regulares son la señal."
+    },
+    "flood": {
+      "slug": "ddos",
+      "short": "Ataque de denegación de servicio por saturación de tráfico."
+    },
+    "arp_spoof": {
+      "slug": "arp-spoofing",
+      "short": "Falsificación de tabla ARP para interceptar tráfico (MITM)."
+    },
+    "cryptomining": {
+      "slug": "cryptojacking",
+      "short": "Minería no autorizada de criptomonedas usando recursos del sistema."
+    },
+    "MITRE": {
+      "slug": "mitre-attack",
+      "short": "Framework de tácticas y técnicas de ciberataques reales (200+ técnicas)."
+    },
+    "IOC": {
+      "slug": "iocs",
+      "short": "Indicator of Compromise: IP, dominio, hash u otro artefacto de actividad maliciosa."
+    },
+    "SMB": {
+      "slug": "lateral-movement",
+      "short": "Server Message Block (puerto 445). Vector común de movimiento lateral."
+    },
+    "CVE": {
+      "slug": "vulnerability-management",
+      "short": "Identificador estándar de vulnerabilidades. Formato CVE-YYYY-NNNNN."
+    },
+    "VLAN": {
+      "slug": "network-segmentation",
+      "short": "Virtual LAN — segmentación lógica sin hardware extra."
+    },
+    "CIDR": {
+      "slug": "subnets-cidr",
+      "short": "Notación para subredes. /24 = 254 hosts, /16 = 65534 hosts."
+    },
+    "ASN": {
+      "slug": "bgp-routing",
+      "short": "Autonomous System Number. Identifica el operador de un bloque de IPs."
+    }
+  }
+}

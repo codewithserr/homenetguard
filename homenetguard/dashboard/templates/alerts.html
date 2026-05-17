@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">ALERTS</span>
+  <span class="page-title">ALERTS <a href="/learn/anomaly-detection" class="learn-link" title="Learn about threat detection">?</a></span>
   <div style="display:flex;gap:8px;">
     <button class="btn btn-danger" onclick="clearAllAlerts()">Clear All</button>
     <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
@@ -197,7 +197,7 @@ async function loadAlerts() {
       </td>
       <td>
         <span style="margin-right:4px;">${TYPE_ICONS[a.alert_type] || TYPE_ICONS.default}</span>
-        <span style="font-size:0.72rem;">${TYPE_LABELS[a.alert_type] || a.alert_type.replace(/_/g,' ')}</span>
+        <span style="font-size:0.72rem;" data-learn-term="${a.alert_type}">${TYPE_LABELS[a.alert_type] || a.alert_type.replace(/_/g,' ')}</span>
       </td>
       <td><span class="badge badge-${a.severity}">${a.severity}</span></td>
       <td class="ip-address">${a.src_ip || '—'}</td>
@@ -214,6 +214,7 @@ async function loadAlerts() {
       </td>
     </tr>
   `).join('');
+  if (window.initLearnTooltips) window.initLearnTooltips();
 }
 
 async function openThreatDetail(alertId) {

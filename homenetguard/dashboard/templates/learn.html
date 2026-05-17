@@ -1,0 +1,1073 @@
+{% extends "base.html" %}
+{% block title %}Learn — HomeNetGuard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <span class="page-title">LEARN</span>
+  <span class="text-muted" style="font-size:0.72rem;align-self:center;">Networks &amp; Security — from this app's data</span>
+</div>
+
+<div class="learn-shell">
+
+  <!-- LEFT: topic list -->
+  <aside class="learn-sidebar">
+    <input class="filter-input" id="learn-search" placeholder="Search topics..." oninput="filterTopics()" style="width:100%;margin-bottom:12px;">
+
+    <div id="learn-topic-list"></div>
+  </aside>
+
+  <!-- RIGHT: content pane -->
+  <section class="learn-content-pane" id="learn-pane">
+    <div class="learn-welcome">
+      <div style="font-size:2rem;margin-bottom:12px;">📡</div>
+      <div style="font-family:'Orbitron',monospace;font-size:1rem;color:var(--accent-primary);margin-bottom:8px;">NETWORK KNOWLEDGE BASE</div>
+      <div style="color:var(--text-secondary);font-size:0.8rem;max-width:480px;line-height:1.6;">
+        Select a topic from the left panel to learn how it works — and how HomeNetGuard uses it to monitor your network.<br><br>
+        Content is organized in three levels: <span style="color:var(--accent-primary);">Beginner</span>, <span style="color:var(--accent-cyan);">Intermediate</span>, and <span style="color:var(--severity-medium);">Advanced</span>.
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<style>
+.learn-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--gap);
+  height: calc(100vh - 56px - 60px);
+}
+.learn-sidebar {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.learn-content-pane {
+  background: var(--bg-panel);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--panel-radius);
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+.learn-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  opacity: 0.7;
+}
+.learn-cat-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 14px 0 4px;
+  border-top: 1px solid var(--bg-border);
+  margin-top: 8px;
+}
+.learn-cat-label:first-child { border-top: none; margin-top: 0; padding-top: 4px; }
+.learn-topic-item {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.learn-topic-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.learn-topic-item.active { background: var(--bg-elevated); color: var(--accent-primary); border-left: 2px solid var(--accent-primary); }
+.learn-topic-item .topic-tag {
+  float: right;
+  font-size: 0.58rem;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: var(--bg-border);
+  color: var(--text-muted);
+}
+
+/* Content pane styles */
+.learn-topic-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  color: var(--accent-primary);
+  margin-bottom: 4px;
+}
+.learn-topic-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.learn-app-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--accent-cyan);
+  background: rgba(0,212,255,0.08);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 3px;
+  padding: 4px 10px;
+  margin-bottom: 16px;
+  text-decoration: none;
+}
+.learn-app-link:hover { background: rgba(0,212,255,0.15); }
+.learn-levels {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+.learn-level-btn {
+  padding: 5px 14px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--bg-border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.learn-level-btn.active-beginner { background: rgba(0,255,136,0.12); border-color: var(--accent-primary); color: var(--accent-primary); }
+.learn-level-btn.active-intermediate { background: rgba(0,212,255,0.12); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.learn-level-btn.active-advanced { background: rgba(255,204,0,0.1); border-color: var(--severity-medium); color: var(--severity-medium); }
+.learn-body { font-size: 0.8rem; line-height: 1.75; color: var(--text-secondary); }
+.learn-body h3 { font-size: 0.78rem; color: var(--text-primary); margin: 16px 0 6px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; }
+.learn-body p { margin-bottom: 10px; }
+.learn-body ul { padding-left: 18px; margin-bottom: 10px; }
+.learn-body li { margin-bottom: 4px; }
+.learn-body code {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+  border-radius: 2px;
+  padding: 1px 5px;
+  font-size: 0.78rem;
+  color: var(--text-mono);
+}
+.learn-body pre {
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+  border-radius: 3px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 10px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  color: var(--text-mono);
+  line-height: 1.5;
+}
+.learn-body .highlight { color: var(--accent-primary); }
+.learn-body .highlight-cyan { color: var(--accent-cyan); }
+.learn-body .highlight-warn { color: var(--severity-medium); }
+.learn-refs {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bg-border);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.learn-refs .ref-chip {
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+  border-radius: 2px;
+  padding: 2px 7px;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.67rem;
+}
+</style>
+
+<script>
+// ─── Topic database ──────────────────────────────────────────────────────────
+const TOPICS = {
+
+  // ── PROTOCOLS ──────────────────────────────────────────────────────────────
+
+  "tcp": {
+    title: "TCP",
+    subtitle: "Transmission Control Protocol",
+    category: "Protocols",
+    appPage: "/flows",
+    appLabel: "See TCP flows →",
+    standards: ["RFC 793", "RFC 9293"],
+    levels: {
+      beginner: `
+<h3>WHAT IS TCP?</h3>
+<p>TCP is the transport protocol that most internet traffic uses — web pages, email, file transfers. It guarantees that data arrives <span class="highlight">in order</span> and <span class="highlight">without gaps</span>.</p>
+<p>Think of TCP like a phone call: both sides agree to connect first (handshake), then take turns sending, and say goodbye before hanging up.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>The <a href="/flows" class="learn-app-link" style="display:inline;">Flows</a> page shows every TCP connection your devices make. Each row is one "conversation" between a source IP/port and a destination IP/port. If you see a device connecting to an unexpected IP on port 443 (HTTPS), that's a TCP flow.</p>
+<h3>KEY NUMBERS TO KNOW</h3>
+<ul>
+  <li><code>80</code> = HTTP (unencrypted web)</li>
+  <li><code>443</code> = HTTPS (encrypted web)</li>
+  <li><code>22</code> = SSH (remote access)</li>
+  <li><code>25</code> = SMTP (email sending)</li>
+</ul>`,
+      intermediate: `
+<h3>THE THREE-WAY HANDSHAKE</h3>
+<p>Every TCP connection starts with:</p>
+<pre>Client → Server: SYN   (I want to connect)
+Server → Client: SYN-ACK (OK, I'm ready)
+Client → Server: ACK   (Great, let's go)</pre>
+<p>HomeNetGuard's sniffer captures these packets. A device sending many <code>SYN</code> packets to many IPs without completing handshakes is a sign of a <span class="highlight-warn">port scan</span>.</p>
+<h3>FLOW METADATA</h3>
+<p>HomeNetGuard doesn't store full packet payloads — it records <em>flow metadata</em>: src/dst IP, src/dst port, protocol, byte count, duration. This is enough to detect most threats without invading privacy.</p>
+<h3>FLAGS & STATE</h3>
+<ul>
+  <li><code>SYN</code> — open connection</li>
+  <li><code>FIN</code> — close gracefully</li>
+  <li><code>RST</code> — close immediately (often an error)</li>
+  <li><code>ACK</code> — acknowledge received data</li>
+</ul>
+<p>Many <code>RST</code> responses from a server indicate a port scan or a blocked service.</p>`,
+      advanced: `
+<h3>TCP SEGMENT STRUCTURE</h3>
+<pre>0      15 16     31
++--------+--------+
+|Src Port|Dst Port|
++--------+--------+
+|  Sequence Num  |
++----------------+
+|   Ack Number   |
++--+--+----------+
+|Off|Res|  Flags |
++--+--+----------+
+|Window | Checksum|
++-------+---------+</pre>
+<h3>TCP FOR THREAT DETECTION</h3>
+<p>Advanced patterns HomeNetGuard's detectors look for:</p>
+<ul>
+  <li><span class="highlight">Beaconing</span>: regular TCP connections to the same external IP at fixed intervals — C2 callback pattern</li>
+  <li><span class="highlight">SYN floods</span>: many half-open connections = DoS attempt</li>
+  <li><span class="highlight">Low-and-slow scans</span>: SYN packets spread over hours to evade rate detectors</li>
+  <li><span class="highlight">Unusual window sizes</span>: TCP window size is used for OS fingerprinting (see OS Fingerprint topic)</li>
+</ul>
+<h3>RFC 9293 (2022 UPDATE)</h3>
+<p>RFC 9293 obsoletes RFC 793, clarifying ambiguities around simultaneous opens, TIME_WAIT, and RST handling. HomeNetGuard's flow correlator aligns with the updated state machine.</p>`
+    }
+  },
+
+  "udp": {
+    title: "UDP",
+    subtitle: "User Datagram Protocol",
+    category: "Protocols",
+    appPage: "/flows",
+    appLabel: "See UDP flows →",
+    standards: ["RFC 768"],
+    levels: {
+      beginner: `
+<h3>WHAT IS UDP?</h3>
+<p>UDP is TCP's faster but less reliable sibling. It sends packets without confirming they arrived. This makes it ideal for real-time traffic where a tiny delay matters more than a missing packet — video calls, gaming, DNS.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>Filter the <a href="/flows" class="learn-app-link" style="display:inline;">Flows</a> page by <code>UDP</code> to see DNS queries (port 53), NTP time sync (port 123), and media streams. Unexpected UDP to unusual ports can indicate a <span class="highlight-warn">tunneling attack</span>.</p>
+<h3>COMMON UDP PORTS</h3>
+<ul>
+  <li><code>53</code> = DNS</li>
+  <li><code>123</code> = NTP (time sync)</li>
+  <li><code>67/68</code> = DHCP</li>
+  <li><code>5353</code> = mDNS (local discovery)</li>
+</ul>`,
+      intermediate: `
+<h3>UDP VS TCP: WHEN EACH IS USED</h3>
+<p>UDP lacks: connection state, ordering, retransmission, flow control. Applications that need reliability over UDP implement it themselves (e.g., QUIC/HTTP3).</p>
+<h3>DNS OVER UDP</h3>
+<p>Most DNS queries use UDP port 53. HomeNetGuard captures these and shows them on the <a href="/dns" class="learn-app-link" style="display:inline;">DNS page</a>. Unusual DNS behavior (high query rate, random subdomains, large TXT records) suggests <span class="highlight-warn">DNS tunneling</span> — data exfiltration hidden inside DNS traffic.</p>
+<h3>UDP AMPLIFICATION ATTACKS</h3>
+<p>Attackers spoof source IPs to send small UDP requests to servers that reply with huge responses. The reply floods the victim. Common amplifiers: DNS (50x), NTP (556x), Memcached (50,000x). Seeing your IP as destination in many large UDP responses you didn't initiate is a sign.</p>`,
+      advanced: `
+<h3>QUIC — UDP REPLACING TCP</h3>
+<p>HTTP/3 runs over QUIC, which uses UDP port 443. QUIC implements its own reliability, encryption (mandatory TLS 1.3), and multiplexing. HomeNetGuard may show QUIC as <code>UDP:443</code> flows with high byte counts.</p>
+<h3>UDP DNS TUNNELING DETECTION</h3>
+<p>HomeNetGuard's DNS analyzer looks for:</p>
+<ul>
+  <li>Domain names > 50 chars (base64-encoded data)</li>
+  <li>High entropy subdomains (random-looking strings)</li>
+  <li>Unusually large TXT record responses</li>
+  <li>Many unique subdomains of the same domain</li>
+</ul>
+<pre># Suspicious DNS tunnel query example
+a3bcd2f1.evil.com  TXT  (payload chunk)
+e9f12a3b.evil.com  TXT  (payload chunk)</pre>`
+    }
+  },
+
+  "icmp": {
+    title: "ICMP",
+    subtitle: "Internet Control Message Protocol",
+    category: "Protocols",
+    appPage: "/flows",
+    appLabel: "See ICMP flows →",
+    standards: ["RFC 792", "RFC 4443 (ICMPv6)"],
+    levels: {
+      beginner: `
+<h3>WHAT IS ICMP?</h3>
+<p>ICMP is the protocol networks use to send error messages and diagnostic information. The <code>ping</code> command uses ICMP. It's not for application data — it's for infrastructure signaling.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>Filter flows by <code>ICMP</code>. Normal home networks have very little ICMP — mostly your router pinging gateways. A sudden burst of ICMP from a device is unusual and worth investigating.</p>`,
+      intermediate: `
+<h3>ICMP TYPES</h3>
+<ul>
+  <li><code>Type 0</code> — Echo Reply (ping response)</li>
+  <li><code>Type 3</code> — Destination Unreachable</li>
+  <li><code>Type 8</code> — Echo Request (ping)</li>
+  <li><code>Type 11</code> — Time Exceeded (used by traceroute)</li>
+</ul>
+<h3>ICMP TUNNELING</h3>
+<p>Data can be hidden inside ICMP echo packets. The payload of a ping is normally just padding — but attackers encode real data there. Tools like <code>icmptunnel</code> create full IP-in-ICMP tunnels. HomeNetGuard flags ICMP flows with unusually large or variable-size payloads.</p>`,
+      advanced: `
+<h3>NETWORK RECONNAISSANCE VIA ICMP</h3>
+<p>Attackers use ICMP to map a network before attacking: ping sweeps identify live hosts, timestamp requests reveal OS time offsets for fingerprinting, and ICMP redirect messages can be used to redirect traffic.</p>
+<h3>ICMP IN THREAT DETECTION</h3>
+<p>HomeNetGuard's anomaly detector flags:</p>
+<ul>
+  <li>ICMP to >10 unique IPs in 60 seconds (ping sweep)</li>
+  <li>ICMP payload > 1024 bytes (potential tunnel)</li>
+  <li>ICMP from a device that has never used it before</li>
+</ul>`
+    }
+  },
+
+  "dns": {
+    title: "DNS",
+    subtitle: "Domain Name System",
+    category: "Protocols",
+    appPage: "/dns",
+    appLabel: "Open DNS page →",
+    standards: ["RFC 1034", "RFC 1035", "RFC 8484 (DoH)"],
+    levels: {
+      beginner: `
+<h3>WHAT IS DNS?</h3>
+<p>DNS translates human-readable names like <code>google.com</code> into IP addresses like <code>142.250.80.46</code> that computers use. Every time you load a website, your device first asks a DNS server for the IP.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>The <a href="/dns" class="learn-app-link" style="display:inline;">DNS page</a> shows every domain your devices resolve. This reveals exactly which services each device talks to — even if the traffic is encrypted (you can't read HTTPS content, but you can see the domain name).</p>
+<h3>DNS SINKHOLE</h3>
+<p>HomeNetGuard can block domains by responding with a fake IP (usually <code>0.0.0.0</code>). This is called a DNS sinkhole. See <a href="/intelligence" class="learn-app-link" style="display:inline;">Intelligence → DNS Sinkhole</a>.</p>`,
+      intermediate: `
+<h3>DNS RECORD TYPES</h3>
+<ul>
+  <li><code>A</code> — IPv4 address for a domain</li>
+  <li><code>AAAA</code> — IPv6 address</li>
+  <li><code>CNAME</code> — alias to another domain</li>
+  <li><code>MX</code> — mail server for the domain</li>
+  <li><code>TXT</code> — text data (used for SPF, DKIM, DMARC)</li>
+  <li><code>PTR</code> — reverse lookup (IP → domain)</li>
+</ul>
+<h3>DNS QUERY FLOW</h3>
+<pre>Device → Router (resolving DNS)
+Router → ISP resolver (if not cached)
+ISP → Root nameserver (.)
+Root → TLD server (.com)
+TLD → Authoritative NS (google.com)
+Auth NS → IP address → back to device</pre>
+<h3>THREAT DETECTION</h3>
+<p>HomeNetGuard's DNS analyzer detects: high-entropy domains (DGA malware), fast-flux (rapid IP changes), unusually large responses, and queries to known malicious domains via threat feed matching.</p>`,
+      advanced: `
+<h3>DNS OVER HTTPS (DOH) & DOT</h3>
+<p>DoH (RFC 8484) encrypts DNS inside HTTPS, hiding queries from the network. DoT (RFC 7858) uses TLS on port 853. These bypass traditional DNS monitoring — HomeNetGuard detects DoH by DPI on port 443 traffic to known DoH resolvers (Cloudflare 1.1.1.1, Google 8.8.8.8).</p>
+<h3>DGA — DOMAIN GENERATION ALGORITHMS</h3>
+<p>Malware uses algorithms to generate thousands of random-looking domain names. The C2 server registers just a few — the malware cycles through until it finds one. HomeNetGuard's DNS analyzer scores domain entropy: real domains have low entropy (<code>google.com</code>), DGA domains have high entropy (<code>xk3q9mf2.cn</code>).</p>
+<h3>DNS AS DATA EXFILTRATION</h3>
+<pre># Attacker encodes stolen data as subdomains
+aGVsbG8gd29ybGQ.evil.com  (base64: "hello world")
+# Queries logged by HomeNetGuard's DNS analyzer</pre>
+<p>Signs: many NXDOMAIN responses, high query rate to one domain, large TXT record payloads.</p>`
+    }
+  },
+
+  "tls": {
+    title: "TLS / SSL",
+    subtitle: "Transport Layer Security",
+    category: "Protocols",
+    appPage: "/flows",
+    appLabel: "See encrypted flows →",
+    standards: ["RFC 8446 (TLS 1.3)", "RFC 5246 (TLS 1.2)"],
+    levels: {
+      beginner: `
+<h3>WHAT IS TLS?</h3>
+<p>TLS (formerly SSL) encrypts the data flowing between your device and a server. The padlock icon in your browser means TLS is active. Without it, anyone on your network could read your traffic in plain text.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>HomeNetGuard sees TLS flows as <code>TCP:443</code> or <code>TCP:8443</code>. It cannot read the encrypted content — but it can read the TLS handshake, which reveals the destination server name (SNI) and the TLS version.</p>`,
+      intermediate: `
+<h3>TLS HANDSHAKE</h3>
+<pre>Client → Server: ClientHello (supported ciphers, TLS version)
+Server → Client: ServerHello (chosen cipher)
+Server → Client: Certificate
+Client → Server: KeyExchange
+Both sides derive session keys
+Application data flows encrypted</pre>
+<h3>SNI — SERVER NAME INDICATION</h3>
+<p>In TLS 1.2, the ClientHello includes the target hostname in plain text (SNI field). HomeNetGuard reads this to know which domain a device is connecting to, even on shared IPs. TLS 1.3 with ECH (Encrypted Client Hello) hides this.</p>
+<h3>CERTIFICATE INSPECTION</h3>
+<p>HomeNetGuard's TLS analyzer checks: certificate validity, self-signed vs CA-signed, expiry, and subject/issuer fields. Malware often uses self-signed certs or certs from free CAs with short lifespans.</p>`,
+      advanced: `
+<h3>JA3/JA4 TLS FINGERPRINTING</h3>
+<p>The TLS ClientHello contains: TLS version, cipher suites, extensions, elliptic curves. This combination is hashed into a <strong>JA3 fingerprint</strong> — a 32-char MD5. Different applications have distinct JA3s even if traffic is encrypted.</p>
+<pre># JA3 example
+769,47-53-5-10-49161-49162-49171-49172-50-56-19-4,0-10-11,23-24-25,0
+→ MD5: a0e9f5d64349fb13191bc781f81f42e1</pre>
+<p>HomeNetGuard's TLS fingerprinter stores JA3 hashes per flow. Known malware families have documented JA3 signatures. JA4 is the successor — more stable across TLS library updates.</p>
+<h3>TLS 1.3 CHANGES</h3>
+<ul>
+  <li>0-RTT resumption (faster reconnects, but replay attack risk)</li>
+  <li>Forward secrecy mandatory</li>
+  <li>SNI can be encrypted with ECH</li>
+  <li>Removed weak ciphers (RC4, 3DES, MD5)</li>
+</ul>`
+    }
+  },
+
+  // ── NETWORKING ──────────────────────────────────────────────────────────────
+
+  "ip-addresses": {
+    title: "IP Addresses",
+    subtitle: "Private, public, and subnets",
+    category: "Networking",
+    appPage: "/flows",
+    appLabel: "See IPs in flows →",
+    standards: ["RFC 1918", "RFC 4291 (IPv6)"],
+    levels: {
+      beginner: `
+<h3>WHAT IS AN IP ADDRESS?</h3>
+<p>An IP address is a unique number assigned to every device on a network. IPv4 uses 4 numbers separated by dots: <code>192.168.1.5</code>. IPv6 uses a longer hex format: <code>2001:db8::1</code>.</p>
+<h3>PRIVATE VS PUBLIC</h3>
+<p>Your home network uses <strong>private IPs</strong> — ranges reserved for internal use. Your router has one public IP facing the internet.</p>
+<ul>
+  <li><code>10.0.0.0/8</code> — private</li>
+  <li><code>172.16.0.0/12</code> — private</li>
+  <li><code>192.168.0.0/16</code> — private (most home routers)</li>
+</ul>
+<h3>IN HOMENETGUARD</h3>
+<p>In the Flows page, source IPs starting with <code>192.168.</code> are your local devices. Destination IPs are usually public (internet servers). HomeNetGuard geo-locates public IPs to show which country each server is in.</p>`,
+      intermediate: `
+<h3>CIDR NOTATION</h3>
+<p>The <code>/24</code> in <code>192.168.1.0/24</code> means 24 bits are the network prefix, leaving 8 bits for hosts — giving 254 usable addresses (<code>192.168.1.1</code> to <code>192.168.1.254</code>).</p>
+<pre>192.168.1.0/24  → 254 hosts
+192.168.1.0/16  → 65,534 hosts
+10.0.0.0/8      → 16,777,214 hosts</pre>
+<h3>NAT — NETWORK ADDRESS TRANSLATION</h3>
+<p>Your router uses NAT to map many private IPs to one public IP. From the internet, all your devices look like one IP. HomeNetGuard runs inside your network and sees the real private IPs.</p>
+<h3>THREAT RELEVANCE</h3>
+<p>Seeing a private IP connecting to a private IP in a different subnet than expected can indicate lateral movement — an attacker moving from one compromised device to attack others.</p>`,
+      advanced: `
+<h3>IP REPUTATION & ASN</h3>
+<p>Every public IP belongs to an Autonomous System (AS) — a network block operated by an ISP or organization. HomeNetGuard maps IPs to ASNs via ip-api.com and the local GeoIP database. Flows to ASNs known for hosting bulletproof infrastructure are flagged.</p>
+<h3>IP SPOOFING</h3>
+<p>Attackers can forge source IP addresses in UDP/ICMP packets (not TCP — the handshake catches it). HomeNetGuard's anomaly detector flags packets with source IPs that claim to be in your private range but arrive from a public interface.</p>
+<h3>IPv6 PRIVACY EXTENSIONS</h3>
+<p>RFC 4941 allows devices to generate random IPv6 addresses that rotate, making device tracking harder. Your iPhone may appear with different IPv6 addresses daily. HomeNetGuard tracks devices by MAC address to handle this.</p>`
+    }
+  },
+
+  "mac-addresses": {
+    title: "MAC Addresses",
+    subtitle: "Physical layer device identity",
+    category: "Networking",
+    appPage: "/devices",
+    appLabel: "See device MACs →",
+    standards: ["IEEE 802 (OUI)", "RFC 7042"],
+    levels: {
+      beginner: `
+<h3>WHAT IS A MAC ADDRESS?</h3>
+<p>A MAC (Media Access Control) address is a hardware identifier burned into every network interface. Format: <code>AA:BB:CC:DD:EE:FF</code> — 6 hex pairs. Unlike IPs, MACs don't change (usually) and don't route across the internet.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>The <a href="/devices" class="learn-app-link" style="display:inline;">Devices page</a> lists every device by MAC address. The first 3 bytes (OUI) identify the manufacturer — HomeNetGuard looks these up in the IEEE OUI database to show "Apple", "Raspberry Pi", "Samsung", etc.</p>`,
+      intermediate: `
+<h3>ARP — HOW MACS ARE DISCOVERED</h3>
+<p>To send data to <code>192.168.1.5</code>, your device broadcasts: "Who has <code>192.168.1.5</code>? Tell me your MAC." The target replies with its MAC. This is ARP (Address Resolution Protocol). HomeNetGuard's scanner uses ARP to discover devices.</p>
+<h3>MAC RANDOMIZATION</h3>
+<p>Modern phones (iOS 14+, Android 10+) randomize their MAC address per network to prevent tracking. You may see a device appear with a random MAC, then re-appear with the real one after connecting. Randomized MACs have the locally-administered bit set: second hex digit is <code>2</code>, <code>6</code>, <code>A</code>, or <code>E</code>.</p>`,
+      advanced: `
+<h3>ARP SPOOFING (MitM)</h3>
+<p>ARP has no authentication. An attacker can broadcast false ARP replies claiming their MAC owns another device's IP — causing traffic to flow through them. Signs: two MACs claiming the same IP in ARP tables, sudden flow routing changes. HomeNetGuard's scanner detects IP/MAC mapping inconsistencies.</p>
+<h3>OUI DATABASE & DEVICE FINGERPRINTING</h3>
+<p>The IEEE OUI list has 35,000+ vendor prefixes. HomeNetGuard combines OUI lookup with passive OS fingerprinting (TCP stack analysis) to identify devices even when they don't advertise themselves. A Raspberry Pi MAC + Linux TCP signature = high confidence it's a Pi.</p>`
+    }
+  },
+
+  "osi-model": {
+    title: "OSI Model",
+    subtitle: "The 7-layer networking stack",
+    category: "Networking",
+    appPage: "/",
+    appLabel: "Overview →",
+    standards: ["ISO/IEC 7498-1"],
+    levels: {
+      beginner: `
+<h3>THE 7 LAYERS</h3>
+<p>The OSI model divides networking into 7 layers, each responsible for one job:</p>
+<ul>
+  <li><code>7. Application</code> — HTTP, DNS, FTP (your apps)</li>
+  <li><code>6. Presentation</code> — encoding, encryption (TLS)</li>
+  <li><code>5. Session</code> — connection management</li>
+  <li><code>4. Transport</code> — TCP, UDP (reliability)</li>
+  <li><code>3. Network</code> — IP (routing)</li>
+  <li><code>2. Data Link</code> — MAC, Ethernet, WiFi (local)</li>
+  <li><code>1. Physical</code> — cables, radio waves, voltage</li>
+</ul>
+<h3>IN HOMENETGUARD</h3>
+<p>HomeNetGuard operates at layers 2–7. It reads MAC addresses (L2), IP addresses (L3), TCP/UDP ports (L4), TLS fingerprints (L5/6), and DNS/HTTP patterns (L7).</p>`,
+      intermediate: `
+<h3>TCP/IP MODEL VS OSI</h3>
+<p>In practice, the TCP/IP model (4 layers) is what's actually implemented:</p>
+<ul>
+  <li>Application (OSI 5-7): HTTP, DNS, SMTP</li>
+  <li>Transport (OSI 4): TCP, UDP</li>
+  <li>Internet (OSI 3): IP, ICMP</li>
+  <li>Link (OSI 1-2): Ethernet, WiFi</li>
+</ul>
+<h3>WHY LAYERS MATTER</h3>
+<p>Each layer adds a header when sending, strips it when receiving (encapsulation). A DNS query over TCP over IP over Ethernet looks like: <code>[Eth][IP][TCP][DNS payload]</code>. HomeNetGuard's DPI analyzer dissects these layers.</p>`,
+      advanced: `
+<h3>LAYER VIOLATIONS</h3>
+<p>Threats often abuse layer boundaries: DNS tunneling hides L3/4 data in L7 DNS, ICMP tunneling hides TCP/IP inside L3 ICMP, and covert channels embed data in protocol fields not meant for data (IP ID field, TCP timestamps). HomeNetGuard's DPI and anomaly detection targets these violations.</p>
+<h3>DEEP PACKET INSPECTION (DPI)</h3>
+<p>Traditional firewalls inspect only L3/4 headers. DPI reads L7 content — identifying applications, protocols, and malware regardless of port. HomeNetGuard's DPI analyzer identifies HTTP, TLS, DNS, and other protocols even on non-standard ports (port knocking evasion).</p>`
+    }
+  },
+
+  "network-flows": {
+    title: "Network Flows",
+    subtitle: "NetFlow, IPFIX and flow records",
+    category: "Networking",
+    appPage: "/flows",
+    appLabel: "Flow Explorer →",
+    standards: ["RFC 3954 (NetFlow v9)", "RFC 7011 (IPFIX)"],
+    levels: {
+      beginner: `
+<h3>WHAT IS A NETWORK FLOW?</h3>
+<p>A flow is a summary of a network conversation: who talked to whom, using what protocol, for how long, and how many bytes were exchanged. Instead of storing every packet, HomeNetGuard stores one flow record per conversation.</p>
+<h3>FLOW FIELDS</h3>
+<ul>
+  <li>Source IP + Port</li>
+  <li>Destination IP + Port</li>
+  <li>Protocol (TCP/UDP/ICMP)</li>
+  <li>Byte count</li>
+  <li>Packet count</li>
+  <li>Start/end timestamp</li>
+</ul>`,
+      intermediate: `
+<h3>NETFLOW vs IPFIX</h3>
+<p>NetFlow (Cisco, RFC 3954) exports flow records from routers. IPFIX (RFC 7011) is the IETF standard that extended NetFlow. HomeNetGuard generates its own flow records from raw packet capture — functionally equivalent but computed locally.</p>
+<h3>FLOW CORRELATION</h3>
+<p>HomeNetGuard's flow correlator (<code>flow_correlator.py</code>) groups packets into flows using a 5-tuple key: <code>(src_ip, src_port, dst_ip, dst_port, protocol)</code>. When a flow ends (FIN/RST for TCP, timeout for UDP), the record is written to the database.</p>
+<h3>TRAFFIC BASELINES</h3>
+<p>Anomaly detection compares current flow volume/destination distribution against a rolling baseline. Sudden spikes in outbound bytes or flows to new countries trigger alerts.</p>`,
+      advanced: `
+<h3>FLOW ANALYSIS FOR THREAT HUNTING</h3>
+<p>Key flow-based detection patterns:</p>
+<ul>
+  <li><span class="highlight">Beaconing</span>: regular intervals, small byte counts, same destination</li>
+  <li><span class="highlight">Exfiltration</span>: large outbound bytes to rare destination</li>
+  <li><span class="highlight">Scanning</span>: many flows, few bytes each, many unique destinations</li>
+  <li><span class="highlight">C2 check-in</span>: small bidirectional flows on a schedule</li>
+</ul>
+<h3>THE FORENSICS VIEW</h3>
+<p>HomeNetGuard's <a href="/forensics" class="learn-app-link" style="display:inline;">Forensics</a> page reconstructs a timeline of all flows, DNS queries, and alerts for a given IP or MAC — enabling post-incident analysis.</p>`
+    }
+  },
+
+  // ── DETECTION ──────────────────────────────────────────────────────────────
+
+  "packet-capture": {
+    title: "Packet Capture",
+    subtitle: "How HomeNetGuard sees your traffic",
+    category: "Detection",
+    appPage: "/",
+    appLabel: "Overview stats →",
+    standards: ["PCAP format", "RFC 5280"],
+    levels: {
+      beginner: `
+<h3>WHAT IS PACKET CAPTURE?</h3>
+<p>Packet capture means intercepting and copying every packet that passes through a network interface before forwarding it normally. The network continues to work — capture is passive and transparent.</p>
+<h3>HOW HOMENETGUARD DOES IT</h3>
+<p>HomeNetGuard's sniffer (<code>sniffer.py</code>) uses <strong>libpcap</strong> (via Scapy) to capture packets on your network interface in promiscuous mode. The SNIFFER status in the sidebar shows whether capture is active.</p>
+<h3>PROMISCUOUS MODE</h3>
+<p>Normally a network card ignores packets not addressed to it. Promiscuous mode disables this filter — the card captures all packets it sees. HomeNetGuard needs root/admin privileges for this.</p>`,
+      intermediate: `
+<h3>CAPTURE FILTER vs DISPLAY FILTER</h3>
+<p>HomeNetGuard applies BPF (Berkeley Packet Filter) expressions at capture time to reduce CPU load. Only relevant packets are processed — not every packet on a busy network. This is different from the display filter in the Flows UI which runs post-capture.</p>
+<h3>PCAP FILES</h3>
+<p>HomeNetGuard can read pre-captured <code>.pcap</code> files (<code>pcap_reader.py</code>) — useful for offline analysis or importing captures from Wireshark. The same analysis pipeline runs on both live and recorded traffic.</p>
+<h3>PRIVACY CONSIDERATIONS</h3>
+<p>Packet capture sees all unencrypted traffic. HomeNetGuard stores only flow metadata, not packet payloads. TLS-encrypted content is unreadable — only metadata (IPs, ports, timing, SNI) is captured.</p>`,
+      advanced: `
+<h3>BPF — BERKELEY PACKET FILTER</h3>
+<p>BPF is a VM running in the kernel that filters packets before they reach user space. A BPF program like <code>tcp and dst port 443</code> is compiled to BPF bytecode, executed per-packet in kernel — zero-copy until the filter matches.</p>
+<pre># Example BPF filters used by HomeNetGuard
+not arp and not stp
+ip or ip6
+port 53 or port 443</pre>
+<h3>RING BUFFERS & ZERO-COPY</h3>
+<p>High-throughput capture uses kernel ring buffers (AF_PACKET TPACKET_V3) to avoid per-packet syscalls. For home networks, Scapy's standard interface is sufficient. On 1Gbps+ links, PF_RING or DPDK would be needed.</p>`
+    }
+  },
+
+  "dpi": {
+    title: "DPI",
+    subtitle: "Deep Packet Inspection",
+    category: "Detection",
+    appPage: "/flows",
+    appLabel: "See protocol flows →",
+    standards: [],
+    levels: {
+      beginner: `
+<h3>WHAT IS DPI?</h3>
+<p>Deep Packet Inspection looks inside packets beyond the headers to identify the actual application or protocol — even if it's using a non-standard port. A web server on port 8080 still speaks HTTP; DPI detects it.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>HomeNetGuard's <code>dpi_analyzer.py</code> identifies protocols from payload signatures. It can detect HTTP, TLS, DNS, SSH, and others regardless of port number. This helps catch malware using port 80 for non-HTTP traffic.</p>`,
+      intermediate: `
+<h3>HOW DPI WORKS</h3>
+<p>DPI uses signature matching against the first few bytes of a payload:</p>
+<ul>
+  <li><code>GET / HTTP</code> → HTTP</li>
+  <li><code>\\x16\\x03</code> → TLS ClientHello</li>
+  <li><code>SSH-2.0</code> → SSH</li>
+  <li><code>\\x00\\x00</code> byte patterns → DNS</li>
+</ul>
+<p>More advanced DPI uses statistical analysis and ML models to identify encrypted protocols.</p>
+<h3>DPI VS HEADER INSPECTION</h3>
+<p>A basic firewall sees: <code>dst_port=443 → allow HTTPS</code>. DPI sees: <code>dst_port=443, payload=TLS with JA3=a0e9f5→ flag as Cobalt Strike C2</code>.</p>`,
+      advanced: `
+<h3>ENCRYPTED PROTOCOL IDENTIFICATION</h3>
+<p>With TLS 1.3 + ECH hiding even the SNI, DPI must rely on traffic patterns: packet size distributions, inter-arrival times, flow duration. These statistical fingerprints can identify Tor traffic, VPN protocols, and C2 frameworks with ~90% accuracy.</p>
+<h3>DPI EVASION TECHNIQUES</h3>
+<ul>
+  <li>Protocol mimicry (C2 over real HTTP, indistinguishable from browser)</li>
+  <li>Packet fragmentation to split signatures across packets</li>
+  <li>Domain fronting (traffic appears to go to CDN, actually C2)</li>
+  <li>Steganography in valid protocol fields</li>
+</ul>`
+    }
+  },
+
+  "os-fingerprint": {
+    title: "OS Fingerprinting",
+    subtitle: "Identifying devices from TCP stack behavior",
+    category: "Detection",
+    appPage: "/devices",
+    appLabel: "See device OS guesses →",
+    standards: ["RFC 6056"],
+    levels: {
+      beginner: `
+<h3>WHAT IS OS FINGERPRINTING?</h3>
+<p>Different operating systems implement TCP/IP slightly differently — different window sizes, TTL values, option ordering. These differences create a "fingerprint" that can identify Windows, Linux, macOS, iOS, etc. without the device announcing itself.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>The <a href="/devices" class="learn-app-link" style="display:inline;">Devices page</a> shows an "OS Guess" column with a confidence percentage. HomeNetGuard's <code>os_fingerprint.py</code> compares observed TCP packet fields against a signature database.</p>`,
+      intermediate: `
+<h3>FINGERPRINT FIELDS</h3>
+<ul>
+  <li><code>TTL</code>: Linux starts at 64, Windows at 128, Cisco at 255</li>
+  <li><code>Window Size</code>: varies by OS and version</li>
+  <li><code>TCP Options</code>: MSS, SACK, timestamps, window scale — order matters</li>
+  <li><code>DF bit</code>: Don't Fragment — set by most modern OSes</li>
+</ul>
+<h3>PASSIVE VS ACTIVE</h3>
+<p>HomeNetGuard uses <em>passive</em> fingerprinting — analyzing traffic the device already sends, without probing it. Active fingerprinting (sending custom packets) is more accurate but detectable.</p>`,
+      advanced: `
+<h3>P0F SIGNATURE FORMAT</h3>
+<p>HomeNetGuard's signatures follow a format similar to p0f:</p>
+<pre># sig format: ver:ttl:olen:mss:wsize,scale:olayout:quirks:pclass
+# Linux 5.x example
+4:64:0:1460:mss*20,7:mss,sok,ts,nop,ws::0
+# Windows 10
+4:128:0:1460:8192,8:mss,nop,ws,nop,nop,sok::0</pre>
+<h3>FINGERPRINT EVASION</h3>
+<p>Attackers modify TCP stack parameters to impersonate other OSes. Tools like <code>nmap --spoof-mac</code> or custom kernel parameters can defeat passive fingerprinting. HomeNetGuard combines OS fingerprint with OUI (MAC vendor) — a "Raspberry Pi" OUI with a "Windows" TCP signature is suspicious.</p>`
+    }
+  },
+
+  "beaconing": {
+    title: "Beaconing Detection",
+    subtitle: "Identifying C2 check-ins by timing",
+    category: "Detection",
+    appPage: "/alerts",
+    appLabel: "See beaconing alerts →",
+    standards: ["MITRE ATT&CK T1071"],
+    levels: {
+      beginner: `
+<h3>WHAT IS BEACONING?</h3>
+<p>When malware infects a device, it "beacons" — periodically contacts its command-and-control (C2) server to check for instructions. Like a soldier checking in with headquarters every 60 seconds.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>HomeNetGuard's <code>beaconing_detector.py</code> analyzes flow timing. If a device connects to the same IP at suspiciously regular intervals (e.g., every 57 seconds), that triggers a beaconing alert on the <a href="/alerts" class="learn-app-link" style="display:inline;">Alerts page</a>.</p>`,
+      intermediate: `
+<h3>HOW DETECTION WORKS</h3>
+<p>For each (src_ip, dst_ip) pair, HomeNetGuard collects connection timestamps and computes the <strong>jitter coefficient</strong> of inter-connection intervals. Very low jitter = machine-like regularity = beaconing.</p>
+<ul>
+  <li>Human browsing: irregular intervals, high jitter</li>
+  <li>Background sync (iCloud, Google Drive): moderate regularity</li>
+  <li>C2 malware: very precise intervals, low jitter</li>
+</ul>
+<h3>JITTER ANALYSIS</h3>
+<pre>Intervals: [60.1, 59.9, 60.0, 60.2, 59.8]
+Mean: 60.0s
+Std dev: 0.14s → Jitter: 0.23% → SUSPICIOUS</pre>`,
+      advanced: `
+<h3>JITTER INJECTION BY MALWARE</h3>
+<p>Sophisticated C2 frameworks (Cobalt Strike, Metasploit) add configurable jitter (e.g., ±20%) to their beacon intervals to defeat simple interval analysis. HomeNetGuard uses <strong>spectral analysis</strong> (FFT) on interval sequences — even jittered beacons show a dominant frequency peak.</p>
+<h3>FAST-FLUX C2</h3>
+<p>Some C2 infrastructure rotates IPs rapidly (TTL < 60 seconds) to evade IP-based blocking. HomeNetGuard correlates DNS queries with flow destinations — if a device resolves a domain to a new IP every minute and immediately connects, that's fast-flux beaconing regardless of the IP changing.</p>
+<h3>MITRE MAPPING</h3>
+<p>Beaconing maps to <code>T1071 — Application Layer Protocol</code> and <code>T1132 — Data Encoding</code> in MITRE ATT&CK. See the <a href="/intelligence" class="learn-app-link" style="display:inline;">Intelligence</a> page for the full MITRE coverage map.</p>`
+    }
+  },
+
+  "anomaly-detection": {
+    title: "Anomaly Detection",
+    subtitle: "Statistical deviation from baseline",
+    category: "Detection",
+    appPage: "/alerts",
+    appLabel: "See anomaly alerts →",
+    standards: ["MITRE ATT&CK TA0010"],
+    levels: {
+      beginner: `
+<h3>WHAT IS ANOMALY DETECTION?</h3>
+<p>Instead of matching known bad patterns (signatures), anomaly detection establishes a "normal" baseline for your network and alerts when something deviates significantly. It can catch <em>unknown</em> threats that have no signature yet.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>HomeNetGuard's <code>anomaly_detector.py</code> tracks: bytes per hour per device, number of unique destinations, protocol distribution, and connection rates. Sudden spikes or shifts trigger alerts.</p>`,
+      intermediate: `
+<h3>ROLLING BASELINE</h3>
+<p>HomeNetGuard computes rolling averages over the past 24 hours. A device that normally uploads ~10 MB/hour but suddenly sends 500 MB would exceed the 3-sigma threshold and generate a HIGH alert.</p>
+<h3>FALSE POSITIVE TRADEOFFS</h3>
+<p>Anomaly detection has a fundamental tension: too sensitive = alert fatigue (false positives), too lenient = missed attacks. HomeNetGuard uses a 3-sigma threshold by default, tunable in <a href="/config" class="learn-app-link" style="display:inline;">Config</a>.</p>
+<h3>WHAT TRIGGERS ALERTS</h3>
+<ul>
+  <li>Traffic volume spike (>3σ from hourly baseline)</li>
+  <li>New country in destinations (first-time geo)</li>
+  <li>Protocol shift (device suddenly using protocols it never has)</li>
+  <li>Connection count spike (potential scanner/botnet)</li>
+</ul>`,
+      advanced: `
+<h3>STATISTICAL MODELS</h3>
+<p>HomeNetGuard uses mean ± N*σ (normal distribution assumption). More robust alternatives: MAD (Median Absolute Deviation) for non-Gaussian distributions, EWMA (Exponentially Weighted Moving Average) for faster adaptation to legitimate changes, and isolation forests for multivariate anomalies.</p>
+<h3>CONCEPT DRIFT</h3>
+<p>Baselines must adapt to legitimate change. If you install a NAS and start regular backup traffic, the anomaly detector should update its baseline rather than alert forever. HomeNetGuard updates baselines on a sliding window; you can acknowledge alerts to inform the system.</p>`
+    }
+  },
+
+  // ── SECURITY ──────────────────────────────────────────────────────────────
+
+  "firewall": {
+    title: "Firewall",
+    subtitle: "Blocking unwanted traffic",
+    category: "Security",
+    appPage: "/firewall",
+    appLabel: "Firewall rules →",
+    standards: ["RFC 2979"],
+    levels: {
+      beginner: `
+<h3>WHAT IS A FIREWALL?</h3>
+<p>A firewall is a gatekeeper that decides which network traffic is allowed and which is blocked. Rules are checked in order; the first match wins.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>The <a href="/firewall" class="learn-app-link" style="display:inline;">Firewall page</a> lets you block IP addresses using the OS firewall (<code>iptables</code> on Linux, <code>pfctl</code> on macOS). When HomeNetGuard detects a threat, you can block the source IP with one click.</p>`,
+      intermediate: `
+<h3>RULE DIRECTIONS</h3>
+<ul>
+  <li><strong>Inbound</strong>: block traffic coming into your network (external attacks)</li>
+  <li><strong>Outbound</strong>: block traffic leaving your network (malware calling home)</li>
+  <li><strong>Both</strong>: block all traffic to/from the IP</li>
+</ul>
+<h3>STATEFUL VS STATELESS</h3>
+<p>Stateless firewalls check each packet independently. Stateful firewalls track connection state — allowing return traffic for established connections without explicit rules. HomeNetGuard adds stateless IP blocks via iptables DROP rules.</p>`,
+      advanced: `
+<h3>IPTABLES IMPLEMENTATION</h3>
+<p>HomeNetGuard's <code>firewall.py</code> adds rules to the <code>INPUT</code> and <code>OUTPUT</code> chains:</p>
+<pre># Block outbound to malicious IP
+iptables -I OUTPUT -d 1.2.3.4 -j DROP
+# Block inbound from malicious IP
+iptables -I INPUT -s 1.2.3.4 -j DROP</pre>
+<p>Rules use <code>-I</code> (insert at top) to take precedence over existing rules. Each rule gets a comment for tracking.</p>
+<h3>FIREWALL EVASION</h3>
+<p>IP blocks are trivially bypassed by moving to a new IP. More robust: block ASNs, use reputation-based dynamic blocklists (updated threat feeds), or use application-layer controls (DNS sinkhole + TLS inspection).</p>`
+    }
+  },
+
+  "dns-sinkhole": {
+    title: "DNS Sinkhole",
+    subtitle: "Block domains before connection",
+    category: "Security",
+    appPage: "/intelligence",
+    appLabel: "Manage sinkhole →",
+    standards: [],
+    levels: {
+      beginner: `
+<h3>WHAT IS A DNS SINKHOLE?</h3>
+<p>A DNS sinkhole intercepts DNS queries for blocked domains and returns a fake IP (like <code>0.0.0.0</code>) instead of the real one. The device tries to connect to <code>0.0.0.0</code> — which goes nowhere — so the connection never happens.</p>
+<h3>WHY IT'S POWERFUL</h3>
+<p>IP addresses change, but domain names stay the same. Blocking a domain name is more durable than blocking an IP. A single domain block can stop thousands of malware C2 IPs from rotating underneath it.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>Add domains to block on the <a href="/intelligence" class="learn-app-link" style="display:inline;">Intelligence</a> page. HomeNetGuard integrates with threat feed blocklists (Feodo Tracker, URLhaus, AbuseCH) to auto-populate the sinkhole.</p>`,
+      intermediate: `
+<h3>HOW IT WORKS TECHNICALLY</h3>
+<p>HomeNetGuard's <code>dns_sinkhole.py</code> maintains a blocklist of domains. When the DNS analyzer sees a query for a blocked domain, it injects a fake DNS response before the real one arrives. The HITS counter on each rule shows how many queries have been blocked.</p>
+<h3>THREAT FEED INTEGRATION</h3>
+<p>HomeNetGuard downloads and parses several threat feeds:</p>
+<ul>
+  <li><strong>Feodo Tracker</strong>: banking trojans, botnet C2s</li>
+  <li><strong>URLhaus</strong>: malware distribution URLs</li>
+  <li><strong>AbuseCH SSL</strong>: malicious TLS certificates/IPs</li>
+</ul>`,
+      advanced: `
+<h3>SINKHOLE VS PIHOLE</h3>
+<p>Pi-hole sinkholes DNS at the network level via DHCP (set Pi-hole as the DNS server for all devices). HomeNetGuard's sinkhole is inline on the capture interface — it works even for hardcoded DNS servers (devices ignoring DHCP DNS). For best coverage, combine both approaches.</p>
+<h3>FALSE POSITIVE RISK</h3>
+<p>Overzealous sinkholing breaks legitimate services. CDN-hosted domains (Cloudflare, Fastly) may share IPs with malicious content. HomeNetGuard allows per-domain exceptions and logs all block hits for audit.</p>`
+    }
+  },
+
+  "mitre-attack": {
+    title: "MITRE ATT&CK",
+    subtitle: "Adversary tactics and techniques",
+    category: "Security",
+    appPage: "/intelligence",
+    appLabel: "ATT&CK coverage →",
+    standards: ["MITRE ATT&CK v15"],
+    levels: {
+      beginner: `
+<h3>WHAT IS MITRE ATT&CK?</h3>
+<p>MITRE ATT&CK is a knowledge base of real-world attacker behaviors, organized into <strong>Tactics</strong> (goals) and <strong>Techniques</strong> (methods). Think of it as a catalog of "how attackers do things."</p>
+<h3>TACTICS (THE "WHY")</h3>
+<ul>
+  <li>Discovery — mapping your network</li>
+  <li>Lateral Movement — spreading to more devices</li>
+  <li>Command & Control — maintaining access</li>
+  <li>Exfiltration — stealing data</li>
+</ul>
+<h3>IN HOMENETGUARD</h3>
+<p>The <a href="/intelligence" class="learn-app-link" style="display:inline;">Intelligence</a> page maps detected alerts to ATT&CK tactics. A beaconing alert maps to T1071 (C2 via application protocol). A port scan maps to T1046 (Network Service Discovery).</p>`,
+      intermediate: `
+<h3>TECHNIQUES (THE "HOW")</h3>
+<p>Each tactic has dozens of techniques. Examples in HomeNetGuard's mapping:</p>
+<ul>
+  <li><code>T1046</code> Port Scanning → detected by flow analysis</li>
+  <li><code>T1071</code> App Layer C2 → beaconing detector</li>
+  <li><code>T1048</code> Exfiltration → DNS tunnel / large outbound</li>
+  <li><code>T1583</code> Acquire Infrastructure → seen as flows to known bulletproof hosting</li>
+</ul>
+<h3>COVERAGE HEATMAP</h3>
+<p>The Intelligence page shows which tactics HomeNetGuard has detected alerts for. Zero hits on a tactic doesn't mean you're safe — it may mean that tactic goes undetected.</p>`,
+      advanced: `
+<h3>NAVIGATOR LAYERS</h3>
+<p>MITRE provides the ATT&CK Navigator — a heatmap tool for overlaying detection coverage. HomeNetGuard's coverage aligns with the following sub-techniques: T1071.001 (Web protocols for C2), T1071.004 (DNS for C2), T1595.001 (Scanning IP blocks).</p>
+<h3>D3FEND — THE DEFENSIVE COUNTERPART</h3>
+<p>MITRE D3FEND maps defensive techniques to the ATT&CK techniques they counter. HomeNetGuard's DNS sinkhole corresponds to D3FEND's "DNS Denylisting" (D3-DNSBL), and its network traffic analysis corresponds to "Network Traffic Analysis" (D3-NTA).</p>`
+    }
+  },
+
+  "threat-feeds": {
+    title: "Threat Feeds",
+    subtitle: "IOC lists and intelligence sharing",
+    category: "Security",
+    appPage: "/intelligence",
+    appLabel: "Feed status →",
+    standards: ["STIX 2.1", "TAXII 2.1"],
+    levels: {
+      beginner: `
+<h3>WHAT ARE THREAT FEEDS?</h3>
+<p>Threat feeds are lists of known-bad indicators: malicious IPs, domains, file hashes, URLs. Security organizations research attacks and publish these lists so defenders can block them automatically.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>HomeNetGuard downloads and parses 3 feeds automatically. See their status (entries, last updated) on the <a href="/intelligence" class="learn-app-link" style="display:inline;">Intelligence</a> page. Click "Update All" to fetch the latest data.</p>
+<ul>
+  <li><strong>Feodo Tracker</strong>: botnet C2 IPs</li>
+  <li><strong>URLhaus</strong>: malware download URLs</li>
+  <li><strong>AbuseCH SSL Blacklist</strong>: malicious TLS cert fingerprints</li>
+</ul>`,
+      intermediate: `
+<h3>IOCs — INDICATORS OF COMPROMISE</h3>
+<p>An IOC is any observable artifact associated with malicious activity:</p>
+<ul>
+  <li>IP addresses of C2 servers</li>
+  <li>Domain names used by malware</li>
+  <li>File hashes of malware samples</li>
+  <li>JA3 hashes of malware TLS clients</li>
+  <li>URLs of malware download sites</li>
+</ul>
+<h3>IOC LIFECYCLE</h3>
+<p>IOCs have a short shelf life — attackers rotate infrastructure. An IP blocked today may be reassigned to a legitimate service in a month. HomeNetGuard's feeds update regularly to add new IOCs and remove stale ones.</p>`,
+      advanced: `
+<h3>STIX & TAXII</h3>
+<p>STIX (Structured Threat Information eXpression) is a JSON schema for describing threat intelligence. TAXII is the protocol for distributing it. ISACs (Information Sharing and Analysis Centers) share STIX bundles via TAXII servers. HomeNetGuard currently uses simpler flat-file feeds but could be extended to consume STIX.</p>
+<h3>THREAT FEED QUALITY</h3>
+<p>Low-quality feeds have high false positive rates — blocking legitimate IPs. HomeNetGuard uses established, well-maintained feeds from reputable researchers. Quality metrics: freshness (update frequency), true positive rate, false positive rate, indicator lifetime.</p>`
+    }
+  },
+
+  "ip-reputation": {
+    title: "IP Reputation",
+    subtitle: "Geo-location, ASN, and blacklists",
+    category: "Security",
+    appPage: "/alerts",
+    appLabel: "Alert detail view →",
+    standards: [],
+    levels: {
+      beginner: `
+<h3>WHAT IS IP REPUTATION?</h3>
+<p>IP reputation is a score or label indicating how trustworthy an IP address is. IPs associated with spam, malware, or attacks get a bad reputation. Home network monitoring checks which "neighborhood" traffic comes from.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>Click on any alert to see IP reputation data: country, ISP/org, ASN, abuse score, and whether it's on any blacklist. The Overview map shows the geo-distribution of your traffic.</p>`,
+      intermediate: `
+<h3>WHAT MAKES AN IP SUSPICIOUS?</h3>
+<ul>
+  <li>Listed in threat feeds (Feodo, URLhaus, AbuseIPDB)</li>
+  <li>ASN known for bulletproof hosting (some Eastern European/offshore providers)</li>
+  <li>High AbuseIPDB confidence score (crowd-sourced reports)</li>
+  <li>Unusual country for your normal traffic patterns</li>
+  <li>Tor exit node or anonymous VPN exit</li>
+</ul>
+<h3>GEO-IP LIMITATIONS</h3>
+<p>GeoIP databases map IPs to countries with ~95% accuracy at country level, ~70% at city level. CDNs (Cloudflare, Akamai) show as their US headquarters even if you're connecting to a local edge node. Don't over-rely on geography alone.</p>`,
+      advanced: `
+<h3>ASN ANALYSIS</h3>
+<p>An ASN (Autonomous System Number) identifies a network operator. AS13335 = Cloudflare, AS15169 = Google. HomeNetGuard stores ASN data from ip-api.com enrichment. Seeing traffic to an ASN associated with bulletproof hosting (known to ignore abuse reports) is a high-confidence threat signal.</p>
+<h3>REPUTATION DATA PIPELINE</h3>
+<pre>Flow captured → src/dst IPs extracted
+→ Check local DB cache (ip_reputation table)
+→ If uncached: query ip-api.com batch API
+→ Cross-reference threat feed IOC list
+→ Store result with TTL
+→ Return enriched data to dashboard</pre>
+<p>The reputation table in HomeNetGuard's SQLite DB persists between sessions to avoid re-querying the same IPs repeatedly.</p>`
+    }
+  },
+
+  "quarantine": {
+    title: "Quarantine",
+    subtitle: "Isolating compromised devices",
+    category: "Security",
+    appPage: "/devices",
+    appLabel: "Device management →",
+    standards: [],
+    levels: {
+      beginner: `
+<h3>WHAT IS QUARANTINE?</h3>
+<p>Network quarantine isolates a device from the rest of the network — it can't communicate with other devices or the internet — while still being powered on and observable. Used when a device is suspected of being compromised.</p>
+<h3>IN HOMENETGUARD</h3>
+<p>On the <a href="/devices" class="learn-app-link" style="display:inline;">Devices page</a>, click "Quarantine" on any device. HomeNetGuard uses firewall rules and optionally ARP manipulation to isolate the device. The badge changes to 🔒 Quarantine. Click "Release" to restore normal access.</p>`,
+      intermediate: `
+<h3>HOW QUARANTINE WORKS</h3>
+<p>HomeNetGuard's <code>quarantine.py</code> implements quarantine by adding iptables rules that block all traffic from/to the device's MAC address or IP. On macOS, it uses pf rules instead. The device still has link connectivity but all packets are dropped.</p>
+<h3>FORENSICS DURING QUARANTINE</h3>
+<p>Quarantine doesn't stop monitoring — HomeNetGuard continues capturing any traffic the device attempts. This lets you observe the malware's behavior without it spreading. Use the <a href="/forensics" class="learn-app-link" style="display:inline;">Forensics</a> page to build a timeline.</p>`,
+      advanced: `
+<h3>VLAN-BASED QUARANTINE</h3>
+<p>For more robust isolation on managed switches, devices can be moved to a quarantine VLAN via 802.1X or SNMP. HomeNetGuard's current quarantine is host-based (iptables), which can be defeated by a device with raw socket access. VLAN quarantine enforces isolation at the switch level.</p>
+<h3>ZERO TRUST ALTERNATIVE</h3>
+<p>Zero Trust architecture treats every device as untrusted by default, requiring continuous authentication and micro-segmentation. Quarantine becomes the default state, not the exception. HomeNetGuard's trusted/quarantined device model is a simplified version of this concept.</p>`
+    }
+  }
+};
+
+// ─── Category order ──────────────────────────────────────────────────────────
+const CATEGORIES = ["Protocols", "Networking", "Detection", "Security"];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let activeTopicId = "{{ active_topic | default('') }}";
+let activeLevel = "beginner";
+
+// ─── Build sidebar ────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const container = document.getElementById("learn-topic-list");
+  let html = "";
+  for (const cat of CATEGORIES) {
+    const topics = Object.entries(TOPICS).filter(([,t]) => t.category === cat);
+    if (!topics.length) continue;
+    html += `<div class="learn-cat-label" data-cat="${cat}">${cat}</div>`;
+    for (const [id, topic] of topics) {
+      html += `<button class="learn-topic-item" id="nav-${id}" onclick="selectTopic('${id}')">${topic.title}</button>`;
+    }
+  }
+  container.innerHTML = html;
+}
+
+// ─── Render topic ─────────────────────────────────────────────────────────────
+function selectTopic(id) {
+  activeTopicId = id;
+  const topic = TOPICS[id];
+  if (!topic) return;
+
+  // Update sidebar active state
+  document.querySelectorAll(".learn-topic-item").forEach(el => el.classList.remove("active"));
+  const navItem = document.getElementById(`nav-${id}`);
+  if (navItem) navItem.classList.add("active");
+
+  // Render pane
+  renderTopicContent(id, activeLevel);
+
+  // Update URL without reload
+  history.replaceState(null, "", `/learn/${id}`);
+}
+
+function renderTopicContent(id, level) {
+  const topic = TOPICS[id];
+  activeLevel = level;
+
+  const levelColors = {beginner: "beginner", intermediate: "intermediate", advanced: "advanced"};
+  const levelLabels = {beginner: "BEGINNER", intermediate: "INTERMEDIATE", advanced: "ADVANCED"};
+
+  const refsHtml = topic.standards.length
+    ? `<div class="learn-refs"><span>Standards:</span>${topic.standards.map(s => `<span class="ref-chip">${s}</span>`).join("")}</div>`
+    : "";
+
+  const levelsHtml = Object.keys(topic.levels).map(l => {
+    const cls = level === l ? `learn-level-btn active-${l}` : "learn-level-btn";
+    return `<button class="${cls}" onclick="renderTopicContent('${id}','${l}')">${levelLabels[l]}</button>`;
+  }).join("");
+
+  const appLink = topic.appPage
+    ? `<a href="${topic.appPage}" class="learn-app-link">⟶ ${topic.appLabel}</a>`
+    : "";
+
+  document.getElementById("learn-pane").innerHTML = `
+    <div class="learn-topic-title">${topic.title}</div>
+    <div class="learn-topic-subtitle">${topic.subtitle}</div>
+    ${appLink}
+    <div class="learn-levels">${levelsHtml}</div>
+    <div class="learn-body">${topic.levels[level] || "<p>No content for this level yet.</p>"}</div>
+    ${refsHtml}
+  `;
+}
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+function filterTopics() {
+  const q = document.getElementById("learn-search").value.toLowerCase().trim();
+  document.querySelectorAll(".learn-topic-item").forEach(el => {
+    const id = el.id.replace("nav-", "");
+    const topic = TOPICS[id];
+    const match = !q
+      || topic.title.toLowerCase().includes(q)
+      || topic.subtitle.toLowerCase().includes(q)
+      || topic.category.toLowerCase().includes(q);
+    el.style.display = match ? "" : "none";
+  });
+  // Show/hide category labels
+  document.querySelectorAll(".learn-cat-label").forEach(label => {
+    const cat = label.dataset.cat;
+    const anyVisible = Object.entries(TOPICS)
+      .filter(([,t]) => t.category === cat)
+      .some(([id]) => {
+        const el = document.getElementById(`nav-${id}`);
+        return el && el.style.display !== "none";
+      });
+    label.style.display = anyVisible ? "" : "none";
+  });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+buildSidebar();
+if (activeTopicId && TOPICS[activeTopicId]) {
+  selectTopic(activeTopicId);
+}
+</script>
+
+{% endblock %}

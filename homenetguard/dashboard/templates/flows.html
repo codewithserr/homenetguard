@@ -19,9 +19,14 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th>TIME</th><th>SRC IP</th><th>DST IP</th><th>PROTO</th>
-          <th>SRC PORT</th><th>DST PORT</th><th>BYTES</th>
-          <th>DIR</th><th>SRC GEO</th><th>DST GEO</th>
+          <th>TIME</th>
+          <th>SRC IP <a href="/learn/ip-addresses" class="learn-link" title="Learn about IP addresses">?</a></th>
+          <th>DST IP</th>
+          <th>PROTO <a href="/learn/tcp" class="learn-link" title="Learn about protocols">?</a></th>
+          <th>SRC PORT <a href="/learn/tcp" class="learn-link" title="Learn about ports">?</a></th>
+          <th>DST PORT</th>
+          <th>BYTES <a href="/learn/network-flows" class="learn-link" title="Learn about network flows">?</a></th>
+          <th>DIR</th><th>SRC GEO <a href="/learn/ip-reputation" class="learn-link" title="Learn about IP geo-location">?</a></th><th>DST GEO</th>
         </tr>
       </thead>
       <tbody id="flows-explorer-tbody">
@@ -60,7 +65,7 @@ function renderFlows() {
       <td class="text-mono" style="font-size:0.7rem;">${(f.timestamp||'').slice(11,19)}</td>
       <td class="ip-address">${f.src_ip||'—'}</td>
       <td class="ip-address">${f.dst_ip||'—'}</td>
-      <td><span class="badge badge-${(f.protocol||'').toLowerCase()}">${f.protocol||'?'}</span></td>
+      <td><span class="badge badge-${(f.protocol||'').toLowerCase()}" data-learn-term="${f.protocol||''}">${f.protocol||'?'}</span></td>
       <td class="port">${f.src_port||'—'}</td>
       <td class="port">${f.dst_port||'—'}</td>
       <td class="text-mono">${fmtBytes(f.bytes||0)}</td>
@@ -69,6 +74,7 @@ function renderFlows() {
       <td style="font-size:0.7rem;">${f.dst_country||'—'}</td>
     </tr>
   `).join('');
+  if (window.initLearnTooltips) window.initLearnTooltips();
 }
 
 function fmtBytes(b) {
