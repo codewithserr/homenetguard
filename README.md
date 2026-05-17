@@ -159,6 +159,18 @@ homenetguard dashboard
 # Open http://127.0.0.1:5000 in your browser
 ```
 
+> **⚠ Common pitfall — dashboard shows no data**
+>
+> `homenetguard monitor` is an **interactive TUI** (like htop). It **does not capture packets**.
+> If you open the dashboard after running `monitor`, the flow table will be empty because nothing was written to the database.
+>
+> **Rule:** if you want live data in the dashboard, always start with:
+> ```bash
+> sudo homenetguard start --interface <iface>
+> ```
+> This starts both the packet sniffer **and** the dashboard together.
+> The dashboard polls the database every 2 seconds — you will see flows appear within a few seconds of launch.
+
 ### Analyze a PCAP file
 
 ```bash

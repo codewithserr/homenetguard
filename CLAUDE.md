@@ -23,9 +23,12 @@ homenetguard/
 ```bash
 pip install -e .
 homenetguard --help
-homenetguard monitor --interface en0
+sudo homenetguard start --interface en0   # starts sniffer + dashboard
 # Dashboard at http://localhost:5000
 ```
+
+> **`homenetguard monitor`** is a TUI viewer (like htop). It does NOT capture packets.
+> Capture requires `sudo homenetguard start`.
 
 ## Tests
 

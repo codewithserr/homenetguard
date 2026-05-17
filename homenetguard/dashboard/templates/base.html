@@ -7,12 +7,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/leaflet.css') }}">
+  <script src="{{ url_for('static', filename='js/vendor/leaflet.js') }}" defer></script>
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="{{ url_for('static', filename='js/vendor/chart.umd.min.js') }}" defer></script>
   <!-- Socket.IO -->
-  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
   <!-- Main JS -->
   <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
 </head>
@@ -128,20 +128,5 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/learn.js') }}" defer></script>
-<script>
-// Update sidebar stats from socket data
-socket.on('stats_update', (data) => {
-  const sniffer = data.sniffer || {};
-  const sysSniff = document.getElementById('sys-sniffer');
-  const sysBps = document.getElementById('sys-bps');
-  const sysPkts = document.getElementById('sys-packets');
-  if (sysSniff) sysSniff.textContent = sniffer.running ? 'ACTIVE' : 'IDLE';
-  if (sysBps && data.stats) {
-    const bytes = data.stats.total_bytes || 0;
-    sysBps.textContent = bytes > 0 ? (bytes > 1048576 ? (bytes/1048576).toFixed(1)+' MB' : (bytes/1024).toFixed(0)+' KB') : '0 B';
-  }
-  if (sysPkts) sysPkts.textContent = sniffer.packets_captured || 0;
-});
-</script>
 </body>
 </html>

@@ -2,7 +2,9 @@
 'use strict';
 
 // ─── Socket.IO connection ────────────────────────────────────
-const socket = io({ transports: ['websocket', 'polling'] });
+// WebSocket upgrades break Werkzeug 3.x (simple-websocket bypasses WSGI start_response).
+// Polling transport is pure HTTP — fully compatible and data still arrives in ≤2s.
+const socket = io({ transports: ['polling'] });
 
 // ─── IP Ownership cache & classifier ─────────────────────────
 const _ownershipCache = {};
@@ -107,7 +109,23 @@ socket.on('stats_update', (data) => {
   updateAlertFeed(data.alerts || []);
   updateFlowsTable(data.flows || []);
   updateBpsChart(data.stats?.total_bytes || 0);
+  updateSidebarStats(data);
 });
+
+function updateSidebarStats(data) {
+  const sniffer = data.sniffer || {};
+  const sysSniff = $('sys-sniffer');
+  const sysBps = $('sys-bps');
+  const sysPkts = $('sys-packets');
+  if (sysSniff) sysSniff.textContent = sniffer.running ? 'ACTIVE' : 'IDLE';
+  if (sysBps && data.stats) {
+    const bytes = data.stats.total_bytes || 0;
+    sysBps.textContent = bytes > 0
+      ? (bytes > 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : (bytes / 1024).toFixed(0) + ' KB')
+      : '0 B';
+  }
+  if (sysPkts) sysPkts.textContent = sniffer.packets_captured || 0;
+}
 
 // ─── KPI update ───────────────────────────────────────────────
 function updateKPIs(stats) {
