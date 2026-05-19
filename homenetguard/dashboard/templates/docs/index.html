@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Documentation — HomeNetGuard{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">
+
+<div class="page-header">
+  <span class="page-title">DOCUMENTATION</span>
+  <span class="docs-version">v{{ docs.version }}</span>
+</div>
+
+<div style="padding: 0 32px 40px;">
+  <div class="docs-search-wrap">
+    <input id="docs-search-input" class="docs-search-input"
+           type="search" placeholder="Search documentation…" autocomplete="off">
+    <div id="docs-search-results" class="docs-search-results"></div>
+  </div>
+
+  <div class="docs-index-grid">
+    {% for section in docs.sections %}
+    <a class="docs-index-card" href="/docs/{{ section.id }}">
+      <div class="docs-index-card-title">{{ section.title }}</div>
+      <div class="docs-index-card-desc">{{ section.description }}</div>
+      <div class="docs-index-card-count">{{ section.articles|length }} articles</div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top: 40px;">
+    <div style="font-size:0.65rem;letter-spacing:0.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px;">QUICK START</div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <a href="/docs/getting-started/what-is-homenetguard" style="color:var(--accent-cyan);font-size:13px;text-decoration:none;">→ ¿Qué es HomeNetGuard?</a>
+      <a href="/docs/getting-started/installation" style="color:var(--accent-cyan);font-size:13px;text-decoration:none;">→ Instalación y requisitos</a>
+      <a href="/docs/getting-started/first-launch" style="color:var(--accent-cyan);font-size:13px;text-decoration:none;">→ Primer arranque</a>
+      <a href="/docs/cli-reference/cli-reference" style="color:var(--accent-cyan);font-size:13px;text-decoration:none;">→ Referencia de la CLI</a>
+      <a href="/docs/troubleshooting/troubleshooting" style="color:var(--accent-cyan);font-size:13px;text-decoration:none;">→ Solución de problemas</a>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/docs.js') }}" defer></script>
+{% endblock %}

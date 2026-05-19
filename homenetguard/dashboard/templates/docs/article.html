@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} — HomeNetGuard Docs{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">
+
+<div class="docs-layout">
+  <nav class="docs-nav">
+    <div style="padding:8px 20px 12px;">
+      <input id="docs-search-input" class="docs-search-input"
+             type="search" placeholder="Search…" autocomplete="off" style="font-size:12px;padding:6px 10px;">
+      <div id="docs-search-results" class="docs-search-results"></div>
+    </div>
+    {% for s in docs.sections %}
+    <div class="docs-nav-section">{{ s.title }}</div>
+    {% for a in s.articles %}
+    <a class="docs-nav-item {% if s.id == section.id and a.id == article.id %}active{% endif %}"
+       href="/docs/{{ s.id }}/{{ a.id }}">{{ a.title }}</a>
+    {% endfor %}
+    {% endfor %}
+  </nav>
+
+  <div style="display:grid;grid-template-columns:1fr 200px;align-items:start;">
+    <div class="docs-content">
+      <div class="docs-breadcrumb">
+        <a href="/docs">Docs</a><span>›</span>
+        <a href="/docs/{{ section.id }}">{{ section.title }}</a><span>›</span>
+        {{ article.title }}
+      </div>
+
+      {{ article.content | safe }}
+
+      <div style="display:flex;justify-content:space-between;margin-top:48px;padding-top:16px;border-top:1px solid var(--bg-border);">
+        {% if prev_article %}
+        <a href="/docs/{{ section.id }}/{{ prev_article.id }}"
+           style="color:var(--accent-cyan);font-size:13px;text-decoration:none;">← {{ prev_article.title }}</a>
+        {% else %}<span></span>{% endif %}
+        {% if next_article %}
+        <a href="/docs/{{ section.id }}/{{ next_article.id }}"
+           style="color:var(--accent-cyan);font-size:13px;text-decoration:none;">{{ next_article.title }} →</a>
+        {% endif %}
+      </div>
+
+      {% if article.updated_at %}
+      <div style="margin-top:24px;font-size:11px;color:var(--text-muted);">Updated {{ article.updated_at }}</div>
+      {% endif %}
+    </div>
+
+    <div class="docs-toc">
+      <div class="docs-toc-title">On this page</div>
+      <div id="docs-toc-links"></div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/docs.js') }}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Generate IDs first, same logic as docs.js initHeadingIds
+  document.querySelectorAll('.docs-content h2, .docs-content h3').forEach(h => {
+    if (!h.id) {
+      h.id = h.textContent.trim().toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-');
+    }
+  });
+  // Then build TOC
+  const container = document.getElementById('docs-toc-links');
+  if (!container) return;
+  document.querySelectorAll('.docs-content h2, .docs-content h3').forEach(h => {
+    const link = document.createElement('a');
+    link.className = 'docs-toc-link' + (h.tagName === 'H3' ? ' toc-h3' : '');
+    link.href = '#' + h.id;
+    link.textContent = h.textContent;
+    if (h.tagName === 'H3') link.style.paddingLeft = '16px';
+    container.appendChild(link);
+  });
+});
+</script>
+{% endblock %}

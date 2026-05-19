@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ section.title }} — HomeNetGuard Docs{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">
+
+<div class="docs-layout">
+  <nav class="docs-nav">
+    {% for s in docs.sections %}
+    <div class="docs-nav-section">{{ s.title }}</div>
+    {% for article in s.articles %}
+    <a class="docs-nav-item" href="/docs/{{ s.id }}/{{ article.id }}">{{ article.title }}</a>
+    {% endfor %}
+    {% endfor %}
+  </nav>
+
+  <div class="docs-content">
+    <div class="docs-breadcrumb">
+      <a href="/docs">Docs</a><span>›</span>{{ section.title }}
+    </div>
+    <h1>{{ section.title }}</h1>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:32px;">{{ section.description }}</p>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      {% for article in section.articles %}
+      <a href="/docs/{{ section.id }}/{{ article.id }}"
+         style="display:block;background:var(--bg-elevated);border:1px solid var(--bg-border);padding:16px 20px;text-decoration:none;transition:border-color 0.15s;">
+        <div style="font-size:13px;color:var(--text-primary);font-weight:600;margin-bottom:4px;">{{ article.title }}</div>
+        {% if article.description %}
+        <div style="font-size:12px;color:var(--text-muted);">{{ article.description }}</div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/docs.js') }}" defer></script>
+{% endblock %}

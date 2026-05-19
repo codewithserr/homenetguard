@@ -47,6 +47,28 @@ def _run_live_query(query: str) -> str | None:
     except Exception:
         return None
 
+# ─── Docs loader ─────────────────────────────────────
+_DOCS_PATH = Path(__file__).parent / "static" / "data" / "docs_content.json"
+_docs_cache: dict | None = None
+
+def _load_docs() -> dict:
+    global _docs_cache
+    if _docs_cache is None:
+        try:
+            with open(_DOCS_PATH, encoding="utf-8") as f:
+                _docs_cache = json.load(f)
+        except Exception:
+            _docs_cache = {"sections": [], "version": "1.0.0"}
+    return _docs_cache
+
+def _find_docs_article(section_id: str, article_id: str) -> tuple[dict | None, dict | None]:
+    docs = _load_docs()
+    section = next((s for s in docs.get("sections", []) if s["id"] == section_id), None)
+    if not section:
+        return None, None
+    article = next((a for a in section.get("articles", []) if a["id"] == article_id), None)
+    return section, article
+
 bp = Blueprint("main", __name__)
 
 
@@ -106,6 +128,71 @@ def forensics_view():
 @bp.route("/wifi")
 def wifi_view():
     return render_template("wifi.html")
+
+
+# ─── Docs routes ─────────────────────────────────────────────
+
+@bp.route("/docs")
+def docs_index():
+    docs = _load_docs()
+    return render_template("docs/index.html", docs=docs)
+
+
+@bp.route("/docs/<section_id>")
+def docs_section(section_id: str):
+    docs = _load_docs()
+    section = next((s for s in docs.get("sections", []) if s["id"] == section_id), None)
+    if not section:
+        return render_template("docs/index.html", docs=docs), 404
+    return render_template("docs/section.html", docs=docs, section=section)
+
+
+@bp.route("/docs/<section_id>/<article_id>")
+def docs_article(section_id: str, article_id: str):
+    docs = _load_docs()
+    section, article = _find_docs_article(section_id, article_id)
+    if not article:
+        return render_template("docs/index.html", docs=docs), 404
+    articles = section.get("articles", [])
+    idx = next((i for i, a in enumerate(articles) if a["id"] == article_id), None)
+    prev_article = articles[idx - 1] if idx and idx > 0 else None
+    next_article = articles[idx + 1] if idx is not None and idx < len(articles) - 1 else None
+    return render_template(
+        "docs/article.html",
+        docs=docs,
+        section=section,
+        article=article,
+        prev_article=prev_article,
+        next_article=next_article,
+    )
+
+
+@bp.route("/api/v1/docs/content")
+def api_docs_content():
+    return jsonify(_load_docs())
+
+
+@bp.route("/api/v1/docs/search")
+def api_docs_search():
+    q = request.args.get("q", "").lower().strip()
+    if not q:
+        return jsonify([])
+    docs = _load_docs()
+    results = []
+    for section in docs.get("sections", []):
+        for article in section.get("articles", []):
+            if (q in article["title"].lower()
+                    or q in (article.get("description") or "").lower()
+                    or any(q in t for t in article.get("tags", []))):
+                results.append({
+                    "section_id": section["id"],
+                    "section_title": section["title"],
+                    "article_id": article["id"],
+                    "title": article["title"],
+                    "description": article.get("description", ""),
+                    "url": f"/docs/{section['id']}/{article['id']}",
+                })
+    return jsonify(results[:10])
 
 
 @bp.route("/learn")

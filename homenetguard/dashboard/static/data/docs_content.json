@@ -1,0 +1,310 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-05-19",
+  "sections": [
+    {
+      "id": "getting-started",
+      "icon": "play-circle",
+      "title": "Getting Started",
+      "description": "Installation, configuration, and first launch",
+      "articles": [
+        {
+          "id": "what-is-homenetguard",
+          "title": "¿Qué es HomeNetGuard?",
+          "description": "Visión general, casos de uso y arquitectura",
+          "tags": ["overview", "architecture"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>¿Qué es HomeNetGuard?</h2>\n<p>HomeNetGuard es una herramienta de monitorización y seguridad de red para uso doméstico y personal. Captura paquetes en tiempo real, analiza flujos, detecta amenazas y presenta todo en un dashboard web.</p>\n<h3>Arquitectura por capas</h3>\n<pre class=\"docs-code\">┌─────────────────────────────────────────────────────┐\n│                  PRESENTACIÓN                       │\n│   CLI (Click)  │  TUI (Rich)  │  Dashboard (Flask)  │\n├─────────────────────────────────────────────────────┤\n│                   ANÁLISIS                          │\n│   DPI  │  TLS Fingerprint  │  ML Anomaly           │\n├─────────────────────────────────────────────────────┤\n│                 PERSISTENCIA                        │\n│           SQLite  │  PCAP Files                    │\n├─────────────────────────────────────────────────────┤\n│                   CAPTURA                           │\n│        Scapy Sniffer  │  Device Scanner             │\n└─────────────────────────────────────────────────────┘</pre>\n<h3>Casos de uso</h3>\n<ul><li>Monitorización continua en casa</li><li>Auditoría de redes WiFi con permiso</li><li>Aprendizaje de ciberseguridad</li><li>Detección de amenazas domésticas</li></ul>\n<h3>Qué hace</h3>\n<ul><li>Captura paquetes en la interfaz de red</li><li>Analiza flujos y detecta amenazas</li><li>Genera alertas y reportes</li><li>Gestiona firewall y DNS sinkhole</li></ul>\n<h3>Qué NO hace</h3>\n<ul><li>No es un antivirus</li><li>No protege contra amenazas en el dispositivo</li><li>No monitoriza tráfico cifrado end-to-end</li></ul>\n<div class=\"docs-warning\">⚠ Solo usar en redes propias o con permiso explícito del propietario.</div>"
+        },
+        {
+          "id": "installation",
+          "title": "Instalación y requisitos",
+          "description": "Sistemas operativos, hardware y pasos de instalación",
+          "tags": ["install", "requirements"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Instalación y requisitos</h2>\n<h3>Sistemas operativos</h3>\n<p>Linux (Ubuntu 20.04+, Debian 11+, Arch) y macOS 12+.</p>\n<h3>Requisitos de hardware</h3>\n<ul><li>Mínimo 2 GB RAM</li><li>10 GB disco para capturas</li></ul>\n<h3>Dependencias</h3>\n<p>Python 3.11+, tshark, libpcap, iptables (Linux) o pf (macOS).</p>\n<h3>Instalación paso a paso</h3>\n<pre class=\"docs-code\">git clone https://github.com/[usuario]/homenetguard\ncd homenetguard\npython -m venv venv &amp;&amp; source venv/bin/activate\npip install -r requirements.txt\nbash scripts/install_system_deps.sh\nbash scripts/download_geoip.sh\ncp config/config.example.yaml config/config.yaml</pre>\n<h3>Verificación</h3>\n<pre class=\"docs-code\">homenetguard status</pre>\n<h3>Problemas comunes</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Error</th><th>Causa</th><th>Solución</th></tr></thead>\n<tbody>\n<tr><td>Permission denied</td><td>Sin CAP_NET_RAW</td><td>Ejecutar con sudo</td></tr>\n<tr><td>Module not found: scapy</td><td>venv no activado</td><td>source venv/bin/activate</td></tr>\n<tr><td>tshark: command not found</td><td>No instalado</td><td>apt install tshark</td></tr>\n</tbody></table>"
+        },
+        {
+          "id": "initial-config",
+          "title": "Configuración inicial",
+          "description": "config.yaml, variables de entorno y API keys",
+          "tags": ["config", "setup"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Configuración inicial</h2>\n<p>Toda la configuración vive en <code>config/config.yaml</code>. Variables sensibles van en <code>.env</code>.</p>\n<h3>Configuración mínima</h3>\n<pre class=\"docs-code\">network:\n  interface: auto\n\nstorage:\n  db_path: data/homenetguard.db\n  retention_days: 30\n\ndashboard:\n  host: 127.0.0.1\n  port: 5000</pre>\n<h3>API keys (en .env)</h3>\n<pre class=\"docs-code\">ABUSEIPDB_API_KEY=tu_clave_aqui\nVIRUSTOTAL_API_KEY=tu_clave_aqui\nHNG_API_KEY=clave_para_api_rest</pre>\n<div class=\"docs-note\">ℹ Las API keys nunca deben ir en config.yaml — van en .env para no exponerlas en el repositorio.</div>\n<h3>Detectar interfaz automáticamente</h3>\n<pre class=\"docs-code\">homenetguard config --detect-interface</pre>"
+        },
+        {
+          "id": "first-launch",
+          "title": "Primer arranque",
+          "description": "Arrancar HomeNetGuard y verificar que funciona",
+          "tags": ["start", "launch", "dashboard"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Primer arranque</h2>\n<pre class=\"docs-code\">sudo homenetguard start --interface en0</pre>\n<p>En los primeros 60 segundos HomeNetGuard detecta la interfaz, inicializa la DB y abre el dashboard.</p>\n<h3>Acceso al dashboard</h3>\n<p>Abre <code>http://127.0.0.1:5000</code> en el navegador.</p>\n<h3>Indicador de captura</h3>\n<p>El LED verde pulsante en el topbar indica captura activa. El label muestra <strong>● MONITORING</strong>.</p>\n<h3>Detener la monitorización</h3>\n<pre class=\"docs-code\">homenetguard stop</pre>\n<p>O clic en el botón <strong>■ STOP</strong> en el topbar del dashboard.</p>"
+        },
+        {
+          "id": "permissions-security",
+          "title": "Permisos y seguridad",
+          "description": "CAP_NET_RAW, sudo vs capabilities, seguridad del dashboard",
+          "tags": ["permissions", "security", "sudo"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Permisos y seguridad</h2>\n<p>HomeNetGuard necesita <code>CAP_NET_RAW</code> para capturar paquetes.</p>\n<h3>Opción A: sudo (más simple)</h3>\n<pre class=\"docs-code\">sudo homenetguard start</pre>\n<h3>Opción B: capabilities de Linux (más seguro)</h3>\n<pre class=\"docs-code\">sudo setcap cap_net_raw+eip $(which python3)</pre>\n<h3>macOS</h3>\n<pre class=\"docs-code\">sudo dseditgroup -o edit -a $USER -t user access_bpf</pre>\n<h3>Seguridad del dashboard</h3>\n<ul><li>Solo escucha en 127.0.0.1 — nunca expuesto a la red</li><li>API key requerida para el servidor REST</li><li>Todos los datos se almacenan localmente</li></ul>\n<div class=\"docs-note\">ℹ Ningún dato sale del equipo salvo consultas a APIs externas configuradas explícitamente (AbuseIPDB, VirusTotal).</div>"
+        }
+      ]
+    },
+    {
+      "id": "user-guide",
+      "icon": "book-open",
+      "title": "User Guide",
+      "description": "Every dashboard view explained",
+      "articles": [
+        {
+          "id": "overview-view",
+          "title": "Overview — Vista principal",
+          "description": "KPI cards, mapa, tabla de flujos y ticker de alertas",
+          "tags": ["overview", "dashboard", "flows"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Overview — Vista principal</h2>\n<p>La vista principal muestra el estado en tiempo real de la red.</p>\n<h3>KPI cards</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Card</th><th>Qué mide</th><th>Normal</th></tr></thead>\n<tbody>\n<tr><td>Paquetes/seg</td><td>Throughput instantáneo</td><td>&lt; 1000 pps en red doméstica</td></tr>\n<tr><td>Amenazas activas</td><td>Alertas sin reconocer</td><td>0</td></tr>\n<tr><td>IPs únicas</td><td>Hosts distintos en la última hora</td><td>Depende del tamaño de la red</td></tr>\n<tr><td>Bytes</td><td>Tráfico total en la sesión</td><td>—</td></tr>\n</tbody></table>\n<h3>Mapa de geolocalización</h3>\n<p>Marcadores coloreados por estado: verde (normal), amarillo (sospechoso), rojo (malicioso). El tamaño es proporcional al volumen de bytes.</p>\n<h3>Tabla de flujos</h3>\n<p>Columnas: TIMESTAMP, SRC IP, DST IP, PROTO, PORTS, BYTES, APP, GEO, STATUS. Filas rojas = flujo marcado como amenaza.</p>\n<h3>Ticker de alertas</h3>\n<p>La barra superior muestra las últimas alertas no reconocidas desfilando.</p>"
+        },
+        {
+          "id": "alerts-view",
+          "title": "Alerts — Gestión de alertas",
+          "description": "Tipos de alerta, severidades, filtros y flujo de respuesta",
+          "tags": ["alerts", "severity", "security"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Alerts — Gestión de alertas</h2>\n<h3>Tipos de alerta</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Tipo</th><th>Descripción</th><th>Severidad típica</th></tr></thead>\n<tbody>\n<tr><td>port_scan</td><td>Escaneo de puertos detectado</td><td>HIGH</td></tr>\n<tr><td>beaconing</td><td>Comunicación periódica sospechosa</td><td>MEDIUM</td></tr>\n<tr><td>flood</td><td>Tráfico masivo desde una IP</td><td>HIGH</td></tr>\n<tr><td>blacklisted_ip</td><td>Conexión a IP en lista negra</td><td>CRITICAL</td></tr>\n<tr><td>dns_anomaly</td><td>Consulta DNS sospechosa</td><td>MEDIUM</td></tr>\n<tr><td>arp_spoofing</td><td>Posible ataque MitM ARP</td><td>HIGH</td></tr>\n<tr><td>cryptomining</td><td>Tráfico a pool de minería</td><td>HIGH</td></tr>\n<tr><td>tls_anomaly</td><td>Certificado o JA3 sospechoso</td><td>MEDIUM</td></tr>\n<tr><td>new_device</td><td>Dispositivo desconocido en la red</td><td>LOW</td></tr>\n</tbody></table>\n<h3>Severidades</h3>\n<ul>\n<li><strong>CRITICAL:</strong> Acción inmediata. Aislar el dispositivo afectado.</li>\n<li><strong>HIGH:</strong> Investigar en las próximas horas.</li>\n<li><strong>MEDIUM:</strong> Revisar en el día.</li>\n<li><strong>LOW:</strong> Informativo, no urgente.</li>\n</ul>\n<h3>Flujo ante CRITICAL</h3>\n<ol>\n<li>Ver la alerta y anotar src_ip y dst_ip</li>\n<li>Ir a Forensics y buscar src_ip</li>\n<li>Si el dispositivo es de la red local, ponerlo en cuarentena desde Devices</li>\n<li>Bloquear dst_ip en Firewall</li>\n<li>Reconocer la alerta cuando el incidente esté resuelto</li>\n</ol>"
+        },
+        {
+          "id": "flows-view",
+          "title": "Flows — Explorador de flujos",
+          "description": "Filtros, drawer de detalle de IP e identificación de tráfico sospechoso",
+          "tags": ["flows", "network", "traffic"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Flows — Explorador de flujos</h2>\n<p>Un flujo agrupa todos los paquetes entre el mismo par src_ip:port → dst_ip:port con el mismo protocolo.</p>\n<h3>Filtros disponibles</h3>\n<ul>\n<li>IP origen o destino</li>\n<li>Protocolo (TCP, UDP, ICMP…)</li>\n<li>Puerto</li>\n<li>Rango de fechas</li>\n<li>Protocolo de aplicación (HTTP, DNS, TLS…)</li>\n<li>Volumen de bytes mínimo</li>\n</ul>\n<h3>Drawer de detalle de IP</h3>\n<p>Clic en cualquier IP abre un panel lateral con: reputación AbuseIPDB, país y ciudad, historial de sesiones.</p>\n<h3>Señales de tráfico sospechoso</h3>\n<ul>\n<li>IPs de países inusuales para el usuario</li>\n<li>Puertos no estándar (no 80/443/22/53)</li>\n<li>Volúmenes muy altos o muy regulares (beaconing)</li>\n<li>Protocolos inesperados a la misma IP</li>\n</ul>"
+        },
+        {
+          "id": "dns-view",
+          "title": "DNS — Análisis de consultas",
+          "description": "Entropía, dominios bloqueados, NXDOMAIN y sinkhole",
+          "tags": ["dns", "security", "sinkhole"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>DNS — Análisis de consultas</h2>\n<p>DNS es el protocolo más explotado para C2, tunneling y phishing. Monitorizarlo revela actividad maliciosa antes que cualquier otro indicador.</p>\n<h3>Columna Entropy</h3>\n<p>Mide la entropía de Shannon del nombre de dominio.</p>\n<ul>\n<li>&lt; 3.0 → normal</li>\n<li>3.0 – 3.5 → observar</li>\n<li>&gt; 3.5 → posible DNS tunneling</li>\n</ul>\n<h3>Dominios en rojo</h3>\n<p>El dominio está en una lista de bloqueo OSINT activa. Investigar qué dispositivo hace la consulta.</p>\n<h3>Consultas NXDOMAIN</h3>\n<p>Muchas NXDOMAIN seguidas desde el mismo dispositivo suele indicar malware intentando conectarse a dominios C2 caídos o DGA (Domain Generation Algorithm).</p>\n<h3>Añadir al sinkhole</h3>\n<p>Clic en el icono 🚫 junto a cualquier dominio para añadirlo al DNS sinkhole y bloquear todas las consultas futuras.</p>"
+        },
+        {
+          "id": "reports-view",
+          "title": "Reports — Centro de informes",
+          "description": "Tipos de informe, generación y exportación",
+          "tags": ["reports", "forensic", "compliance"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Reports — Centro de informes</h2>\n<h3>Tipos de informe</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Tipo</th><th>Contenido</th><th>Uso recomendado</th></tr></thead>\n<tbody>\n<tr><td>Daily</td><td>Resumen del día: flujos, alertas, top IPs</td><td>Revisión diaria</td></tr>\n<tr><td>Weekly</td><td>Tendencias semanales</td><td>Revisión periódica</td></tr>\n<tr><td>Forensic</td><td>Timeline de un incidente para una IP/MAC</td><td>Investigación post-incidente</td></tr>\n<tr><td>Compliance</td><td>Puntuación de cumplimiento y recomendaciones</td><td>Auditoría</td></tr>\n</tbody></table>\n<h3>Generación</h3>\n<p>Clic en <strong>New Report</strong> → seleccionar tipo, rango de fechas y formato (HTML o PDF) → Generate.</p>\n<h3>Informe Forensic</h3>\n<p>Requiere IP o MAC. Genera un timeline completo de todos los eventos del dispositivo en el período seleccionado.</p>"
+        },
+        {
+          "id": "config-view",
+          "title": "Config — Configuración",
+          "description": "Parámetros principales de config.yaml",
+          "tags": ["config", "settings"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Config — Configuración</h2>\n<p>Vista de solo lectura de la configuración activa. Para editar, modifica <code>config/config.yaml</code> y reinicia.</p>\n<h3>Parámetros principales</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Sección</th><th>Parámetro</th><th>Tipo</th><th>Descripción</th></tr></thead>\n<tbody>\n<tr><td>network</td><td>interface</td><td>string</td><td>Interfaz de captura (auto para detección automática)</td></tr>\n<tr><td>network</td><td>capture_filter</td><td>string</td><td>Filtro BPF, p.ej. \"not port 22\"</td></tr>\n<tr><td>storage</td><td>retention_days</td><td>int</td><td>Días que se guardan los datos</td></tr>\n<tr><td>storage</td><td>db_path</td><td>string</td><td>Ruta al fichero SQLite</td></tr>\n<tr><td>dashboard</td><td>port</td><td>int</td><td>Puerto del servidor web (defecto 5000)</td></tr>\n<tr><td>detection</td><td>port_scan.threshold</td><td>int</td><td>Puertos distintos antes de alertar</td></tr>\n<tr><td>firewall</td><td>auto_block</td><td>bool</td><td>Bloquear automáticamente IPs críticas</td></tr>\n<tr><td>sinkhole</td><td>enabled</td><td>bool</td><td>Activar el servidor DNS sinkhole</td></tr>\n<tr><td>ml</td><td>threshold</td><td>float</td><td>Umbral de anomaly_score para alertar (0.0–1.0)</td></tr>\n</tbody></table>\n<div class=\"docs-note\">ℹ Las API keys se muestran como *** por seguridad.</div>"
+        },
+        {
+          "id": "devices-view",
+          "title": "Devices — Inventario",
+          "description": "Descubrimiento, estados, OS fingerprinting y cuarentena",
+          "tags": ["devices", "inventory", "quarantine"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Devices — Inventario de dispositivos</h2>\n<p>HomeNetGuard descubre dispositivos mediante ARP scan pasivo y activo.</p>\n<h3>Estados</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Estado</th><th>Color</th><th>Significado</th></tr></thead>\n<tbody>\n<tr><td>Trusted</td><td>Verde</td><td>Dispositivo conocido y autorizado</td></tr>\n<tr><td>Unknown</td><td>Amarillo</td><td>Visto en la red pero no verificado</td></tr>\n<tr><td>Quarantined</td><td>Rojo</td><td>Tráfico bloqueado excepto al gateway</td></tr>\n</tbody></table>\n<h3>OS Fingerprinting</h3>\n<p>Detección pasiva de sistema operativo por características TCP/IP (TTL, tamaño de ventana, opciones TCP). Precisión ~70%. Si el OS detectado es incorrecto, es porque el dispositivo usa valores por defecto no estándar.</p>\n<h3>Alerta new_device</h3>\n<p>Se genera cuando aparece una MAC nueva en la red. Márcalo como Trusted si lo reconoces, o ponlo en cuarentena si es desconocido.</p>"
+        },
+        {
+          "id": "firewall-view",
+          "title": "Firewall — Gestión de reglas",
+          "description": "Tipos de regla, reglas automáticas y protected_ips",
+          "tags": ["firewall", "blocking", "rules"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Firewall — Gestión de reglas</h2>\n<p>El firewall de HomeNetGuard usa iptables/nftables en Linux y pf en macOS. Es adicional al firewall del router, no lo reemplaza.</p>\n<h3>Tipos de regla</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Tipo</th><th>Ejemplo</th><th>Cuándo usar</th></tr></thead>\n<tbody>\n<tr><td>block_ip</td><td>1.2.3.4</td><td>IP individual sospechosa</td></tr>\n<tr><td>block_cidr</td><td>10.0.0.0/8</td><td>Rango de IPs</td></tr>\n<tr><td>block_port</td><td>6881</td><td>Protocolo peligroso (BitTorrent, etc.)</td></tr>\n<tr><td>block_country</td><td>CN, RU</td><td>Bloqueo geográfico</td></tr>\n</tbody></table>\n<h3>Reglas automáticas</h3>\n<p>Con <code>auto_block: true</code> en config.yaml, las IPs que generan alertas CRITICAL se bloquean automáticamente. Revisar regularmente estas reglas.</p>\n<div class=\"docs-warning\">⚠ Las IPs locales (192.168.x.x) y el gateway nunca pueden bloquearse. La lista <code>protected_ips</code> en config.yaml garantiza esto.</div>"
+        },
+        {
+          "id": "intelligence-view",
+          "title": "Intelligence — Threat Intelligence",
+          "description": "MITRE ATT&CK, feeds OSINT, JA3 hashes y AbuseIPDB",
+          "tags": ["threat-intelligence", "mitre", "feeds"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Intelligence — Threat Intelligence</h2>\n<h3>Matriz MITRE ATT&amp;CK</h3>\n<p>Las celdas coloreadas indican tácticas y técnicas detectadas en tu red. El color indica la frecuencia: más oscuro = más ocurrencias.</p>\n<h3>Feeds OSINT</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Feed</th><th>Contenido</th><th>Actualización</th></tr></thead>\n<tbody>\n<tr><td>Feodo Tracker</td><td>IPs de botnets bancarias</td><td>Diaria</td></tr>\n<tr><td>Abuse.ch SSL Blacklist</td><td>Certificados SSL maliciosos</td><td>Diaria</td></tr>\n<tr><td>URLhaus</td><td>URLs de distribución de malware</td><td>Cada hora</td></tr>\n</tbody></table>\n<h3>JA3 Hashes</h3>\n<p>Fingerprint del cliente TLS. Un JA3 conocido-malicioso indica que el software que inicia la conexión ha sido visto en malware, aunque la IP destino sea legítima.</p>\n<h3>AbuseIPDB</h3>\n<p>Un <code>abuse_score</code> &gt; 50 es motivo de investigación. &gt; 80 justifica bloqueo inmediato.</p>"
+        },
+        {
+          "id": "forensics-view",
+          "title": "Forensics — Análisis forense",
+          "description": "Búsqueda por IP/MAC, timeline y pivoting",
+          "tags": ["forensics", "investigation", "timeline"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Forensics — Análisis forense</h2>\n<p>Usa esta vista para investigar un dispositivo o IP tras una alerta grave.</p>\n<h3>Búsqueda</h3>\n<p>Busca por IP (para hosts externos) o MAC (para dispositivos de la red local). La búsqueda por MAC incluye historial de IPs asignadas.</p>\n<h3>Ejemplo de investigación</h3>\n<ol>\n<li>Alerta CRITICAL de <code>blacklisted_ip</code> con src_ip = 192.168.1.50</li>\n<li>Ir a Forensics → buscar <code>192.168.1.50</code></li>\n<li>Ver el timeline: cuándo empezó la comunicación, con qué IPs</li>\n<li>Ver qué dominios DNS consultó antes de la conexión sospechosa</li>\n<li>Identificar el dispositivo por MAC y su vendor</li>\n<li>Poner el dispositivo en cuarentena desde Devices</li>\n<li>Generar informe Forensic del período para documentar el incidente</li>\n</ol>\n<h3>Pivoting</h3>\n<p>Clic en cualquier evento del timeline → ver flujos relacionados y alertas del mismo período.</p>"
+        },
+        {
+          "id": "wifi-view",
+          "title": "WiFi — Análisis de redes",
+          "description": "Modo monitor, calidad de señal, Evil Twin y cifrado débil",
+          "tags": ["wifi", "wireless", "evil-twin"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>WiFi — Análisis de redes</h2>\n<div class=\"docs-warning\">⚠ Requiere tarjeta WiFi con soporte de modo monitor. Solo usar en redes propias.</div>\n<h3>Activar el scanner</h3>\n<pre class=\"docs-code\">wifi:\n  enabled: true\n  interface: wlan0mon</pre>\n<h3>Calidad de señal</h3>\n<table class=\"docs-table\">\n<thead><tr><th>dBm</th><th>Calidad</th></tr></thead>\n<tbody>\n<tr><td>&gt; -50</td><td>Excelente</td></tr>\n<tr><td>-50 a -60</td><td>Buena</td></tr>\n<tr><td>-60 a -70</td><td>Aceptable</td></tr>\n<tr><td>&lt; -70</td><td>Débil</td></tr>\n</tbody></table>\n<h3>Evil Twin</h3>\n<p>Red con el mismo SSID que tu router pero diferente BSSID. HomeNetGuard alerta cuando detecta dos redes con el mismo nombre. Desconectar de inmediato si aparece.</p>\n<h3>Cifrado débil</h3>\n<p>WEP y WPA-TKIP son vulnerables. Si tu router usa alguno, cambia a WPA2-AES o WPA3 en la configuración del router.</p>"
+        },
+        {
+          "id": "academy-view",
+          "title": "Academy — Sección educativa",
+          "description": "60 tópicos, rutas de aprendizaje, progreso y tooltips",
+          "tags": ["academy", "learning", "education"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Academy — Sección educativa</h2>\n<p>La sección Academy (<a href=\"/learn\">/learn</a>) contiene 60 tópicos de ciberseguridad en 6 categorías y 3 niveles de dificultad.</p>\n<h3>Rutas de aprendizaje</h3>\n<p>Itinerarios guiados que ordenan los tópicos por tema: Fundamentos de Red, Defensa Doméstica, etc.</p>\n<h3>Progreso</h3>\n<p>El progreso se guarda en <code>localStorage</code> del navegador bajo la clave <code>hng_learn_progress</code>. Sin backend, sin cuenta.</p>\n<h3>Tooltips ⓘ</h3>\n<p>Los iconos ⓘ en la UI abren una definición rápida del término. Clic en el enlace del tooltip va al artículo completo en Academy.</p>"
+        },
+        {
+          "id": "api-docs-view",
+          "title": "API Docs — REST API",
+          "description": "URL base, autenticación, ejemplos curl y Swagger UI",
+          "tags": ["api", "rest", "swagger"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>API Docs — REST API</h2>\n<p>URL base: <code>http://127.0.0.1:8080/api/v1</code></p>\n<h3>Autenticación</h3>\n<pre class=\"docs-code\">curl -H \"X-API-Key: $HNG_API_KEY\" http://127.0.0.1:8080/api/v1/alerts</pre>\n<h3>Ejemplos</h3>\n<pre class=\"docs-code\"># Alertas HIGH no reconocidas\ncurl -H \"X-API-Key: $HNG_API_KEY\" \\\n  \"http://127.0.0.1:8080/api/v1/alerts?severity=high&amp;acknowledged=false\"\n\n# Bloquear una IP\ncurl -X POST -H \"X-API-Key: $HNG_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"type\":\"block_ip\",\"target\":\"1.2.3.4\",\"reason\":\"Suspicious\"}' \\\n  \"http://127.0.0.1:8080/api/v1/firewall/rules\"</pre>\n<h3>Swagger UI</h3>\n<p>Documentación interactiva en <a href=\"/api/docs\">/api/docs</a>. Permite probar endpoints directamente desde el navegador.</p>\n<h3>Errores comunes</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Código</th><th>Significado</th></tr></thead>\n<tbody>\n<tr><td>401</td><td>API key inválida o ausente</td></tr>\n<tr><td>429</td><td>Rate limit excedido</td></tr>\n<tr><td>500</td><td>Error interno — revisar logs</td></tr>\n</tbody></table>"
+        }
+      ]
+    },
+    {
+      "id": "cli-reference",
+      "icon": "terminal",
+      "title": "CLI Reference",
+      "description": "All commands, flags, and examples",
+      "articles": [
+        {
+          "id": "cli-reference",
+          "title": "Referencia completa de la CLI",
+          "description": "Todos los comandos, flags y ejemplos de uso",
+          "tags": ["cli", "commands", "terminal"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Referencia completa de la CLI</h2>\n<h3>homenetguard start</h3>\n<pre class=\"docs-code\">homenetguard start [--interface IF] [--duration SECS] [--output PATH]\n                   [--no-dashboard] [--no-tui]\n                   [--enable-sinkhole] [--enable-firewall]</pre>\n<h3>homenetguard status</h3>\n<pre class=\"docs-code\">$ homenetguard status\n┌─────────────────────────────────────────────┐\n│  HomeNetGuard v1.0.0 — System Status        │\n├─────────────────────────────────────────────┤\n│  Interface:     wlan0 (auto-detected)       │\n│  Capture:       ● ACTIVE (00:14:32)         │\n│  Dashboard:     ● http://127.0.0.1:5000     │\n│  API Server:    ● http://127.0.0.1:8080     │\n│  DNS Sinkhole:  ○ DISABLED                  │\n│  ML Model:      ✓ TRAINED (2024-01-15)      │\n│  Flows today:   14,823                      │\n│  Alerts today:  3 (1 HIGH, 2 MEDIUM)        │\n└─────────────────────────────────────────────┘</pre>\n<h3>homenetguard analyze</h3>\n<pre class=\"docs-code\">homenetguard analyze --file PATH [--report] [--dpi] [--ml]</pre>\n<h3>homenetguard report</h3>\n<pre class=\"docs-code\">homenetguard report [--type daily|weekly|forensic|compliance|custom]\n                    [--from YYYY-MM-DD] [--to YYYY-MM-DD]\n                    [--ip IP] [--mac MAC]\n                    [--format html|pdf|both] [--output PATH]</pre>\n<h3>Gestión de dispositivos</h3>\n<pre class=\"docs-code\">homenetguard devices scan\nhomenetguard devices list\nhomenetguard devices trust MAC\nhomenetguard devices quarantine MAC</pre>\n<h3>Gestión del firewall</h3>\n<pre class=\"docs-code\">homenetguard firewall list\nhomenetguard firewall block-ip IP [--reason TEXT]\nhomenetguard firewall block-range CIDR\nhomenetguard firewall block-port PORT\nhomenetguard firewall block-country CODE\nhomenetguard firewall unblock ID\nhomenetguard firewall flush</pre>\n<h3>DNS Sinkhole</h3>\n<pre class=\"docs-code\">homenetguard sinkhole start [--port PORT] [--upstream IP]\nhomenetguard sinkhole stop\nhomenetguard sinkhole add DOMAIN\nhomenetguard sinkhole remove DOMAIN\nhomenetguard sinkhole list</pre>\n<h3>Machine Learning</h3>\n<pre class=\"docs-code\">homenetguard ml train [--days N]\nhomenetguard ml status\nhomenetguard ml threshold FLOAT</pre>\n<h3>Feeds y alertas</h3>\n<pre class=\"docs-code\">homenetguard feeds update\nhomenetguard alerts list [--severity] [--type]\nhomenetguard alerts acknowledge ID\nhomenetguard alerts export</pre>\n<h3>Exportación SIEM</h3>\n<pre class=\"docs-code\">homenetguard export --siem [splunk|elastic|graylog]\n                    [--from DATE] [--to DATE] [--format cef|json]</pre>"
+        }
+      ]
+    },
+    {
+      "id": "advanced",
+      "icon": "settings",
+      "title": "Advanced Configuration",
+      "description": "DNS sinkhole, firewall, ML, SIEM, notifications",
+      "articles": [
+        {
+          "id": "dns-sinkhole-config",
+          "title": "DNS Sinkhole — configuración",
+          "description": "Activar, configurar como DNS del sistema y gestionar dominios",
+          "tags": ["dns", "sinkhole", "config"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>DNS Sinkhole — configuración y uso</h2>\n<p>El DNS sinkhole intercepta consultas DNS y devuelve 0.0.0.0 para dominios maliciosos, impidiendo la conexión.</p>\n<h3>Activar</h3>\n<pre class=\"docs-code\">sinkhole:\n  enabled: true\n  port: 5353\n  upstream_dns: 8.8.8.8</pre>\n<pre class=\"docs-code\">sudo homenetguard start --enable-sinkhole</pre>\n<h3>Configurar como DNS del sistema</h3>\n<p><strong>Linux (NetworkManager):</strong></p>\n<pre class=\"docs-code\">nmcli con mod \"Wired connection 1\" ipv4.dns \"127.0.0.1\"\nnmcli con up \"Wired connection 1\"</pre>\n<p><strong>macOS:</strong> System Preferences → Network → Advanced → DNS → añadir 127.0.0.1</p>\n<p><strong>Router (para toda la red):</strong> Cambiar DNS primario a la IP del equipo con HomeNetGuard en la configuración DHCP del router.</p>\n<h3>Estadísticas</h3>\n<pre class=\"docs-code\">homenetguard sinkhole list</pre>\n<div class=\"docs-warning\">⚠ El sinkhole no funciona con DoH (DNS-over-HTTPS) ni DoT (DNS-over-TLS). El tráfico DNS cifrado no puede interceptarse.</div>"
+        },
+        {
+          "id": "firewall-advanced",
+          "title": "Firewall — configuración avanzada",
+          "description": "iptables, auto_block, bloqueo por país y persistencia",
+          "tags": ["firewall", "iptables", "advanced"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Firewall integrado — configuración avanzada</h2>\n<h3>Ver reglas iptables</h3>\n<pre class=\"docs-code\">sudo iptables -L HNG_INPUT -n --line-numbers\nsudo iptables -L HNG_OUTPUT -n --line-numbers</pre>\n<h3>Auto-block</h3>\n<pre class=\"docs-code\">firewall:\n  auto_block: true\n  auto_block_severity: critical</pre>\n<div class=\"docs-warning\">⚠ Con auto_block activo, un falso positivo CRITICAL puede bloquear tráfico legítimo. Solo activar si los detectores están bien calibrados.</div>\n<h3>Bloqueo por país</h3>\n<pre class=\"docs-code\">homenetguard firewall block-country CN\nhomenetguard firewall block-country RU</pre>\n<h3>Persistencia de reglas</h3>\n<pre class=\"docs-code\"># Debian/Ubuntu\nsudo apt install iptables-persistent\nsudo netfilter-persistent save</pre>\n<h3>Backup y restore</h3>\n<pre class=\"docs-code\">sudo iptables-save &gt; hng_rules_backup.txt\nsudo iptables-restore &lt; hng_rules_backup.txt</pre>"
+        },
+        {
+          "id": "machine-learning",
+          "title": "Machine Learning — detección de anomalías",
+          "description": "Isolation Forest, features, entrenamiento y ajuste de umbrales",
+          "tags": ["ml", "anomaly", "isolation-forest"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Machine Learning — detección de anomalías</h2>\n<p>HomeNetGuard usa un modelo Isolation Forest entrenado sobre el comportamiento normal de la red.</p>\n<h3>Features del modelo</h3>\n<ul>\n<li>bytes por flujo</li>\n<li>duración del flujo</li>\n<li>puertos destino únicos por IP (ventana 5 min)</li>\n<li>frecuencia de conexiones (beaconing score)</li>\n<li>entropía del nombre de dominio DNS</li>\n<li>proporción de flujos a IPs públicas vs privadas</li>\n</ul>\n<h3>Entrenamiento</h3>\n<pre class=\"docs-code\">homenetguard ml train --days 7</pre>\n<p>Mínimo 3 días de datos. Recomendado 7. El modelo se guarda en <code>data/models/isolation_forest.pkl</code>.</p>\n<h3>Interpretar anomaly_score</h3>\n<ul>\n<li>0.0 – 0.5 → normal</li>\n<li>0.5 – 0.7 → inusual, observar</li>\n<li>0.7 – 1.0 → anómalo, investigar</li>\n</ul>\n<h3>Ajustar umbral</h3>\n<pre class=\"docs-code\">homenetguard ml threshold 0.75</pre>\n<p>Umbral más alto = menos falsos positivos, más falsos negativos.</p>\n<h3>Cuándo re-entrenar</h3>\n<p>Si cambias de router, añades dispositivos fijos nuevos, o el patrón de uso de la red cambia significativamente.</p>"
+        },
+        {
+          "id": "siem-export",
+          "title": "Exportación a SIEM",
+          "description": "Splunk, Elasticsearch, Graylog y formato CEF",
+          "tags": ["siem", "splunk", "elastic", "graylog"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Exportación a SIEM</h2>\n<h3>Splunk</h3>\n<pre class=\"docs-code\">siem:\n  enabled: true\n  backend: splunk\n  host: 192.168.1.100\n  port: 514\n  protocol: udp\n  format: cef</pre>\n<h3>Elasticsearch + Kibana</h3>\n<pre class=\"docs-code\">siem:\n  enabled: true\n  backend: elastic\n  host: localhost\n  port: 9200\n  protocol: http\n  format: json</pre>\n<p>En Kibana: Management → Index Patterns → crear patrón <code>homenetguard-*</code>.</p>\n<h3>Graylog</h3>\n<pre class=\"docs-code\">siem:\n  enabled: true\n  backend: graylog\n  host: localhost\n  port: 12201\n  protocol: udp\n  format: gelf</pre>\n<h3>Exportación histórica</h3>\n<pre class=\"docs-code\">homenetguard export --siem elastic --from 2024-01-01 --to 2024-01-31 --format json</pre>\n<h3>Formato CEF</h3>\n<pre class=\"docs-code\">CEF:0|HomeNetGuard|HNG|1.0|port_scan|Port scan detected|7|src=1.2.3.4 dst=192.168.1.1 dpt=22</pre>"
+        },
+        {
+          "id": "notifications",
+          "title": "Notificaciones y alertas externas",
+          "description": "Email, Telegram, Apprise (Slack/Discord) y test de notificaciones",
+          "tags": ["notifications", "telegram", "email", "slack"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Notificaciones y alertas externas</h2>\n<h3>Email</h3>\n<pre class=\"docs-code\">alerts:\n  email:\n    enabled: true\n    smtp_host: smtp.gmail.com\n    smtp_port: 587\n    username: tu@gmail.com\n    min_severity: critical</pre>\n<div class=\"docs-note\">ℹ La contraseña SMTP va en .env como SMTP_PASSWORD.</div>\n<h3>Telegram</h3>\n<ol>\n<li>Crear bot con @BotFather en Telegram → obtener token</li>\n<li>Enviar un mensaje al bot → obtener chat_id via la API de Telegram</li>\n<li>Añadir al .env:<pre class=\"docs-code\">TELEGRAM_BOT_TOKEN=1234567890:ABCdef...\nTELEGRAM_CHAT_ID=-1001234567890</pre></li>\n</ol>\n<h3>Apprise (Slack, Discord, Webhook)</h3>\n<pre class=\"docs-code\">alerts:\n  apprise:\n    enabled: true\n    urls:\n      - \"slack://TokenA/TokenB/TokenC/#canal\"\n      - \"discord://webhook_id/webhook_token\"\n    min_severity: medium</pre>\n<h3>Test de notificaciones</h3>\n<pre class=\"docs-code\">homenetguard alerts test</pre>"
+        },
+        {
+          "id": "data-retention",
+          "title": "Retención de datos y mantenimiento",
+          "description": "Almacenamiento, retención automática, backup y optimización",
+          "tags": ["maintenance", "storage", "backup", "sqlite"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Retención de datos y mantenimiento</h2>\n<h3>Dónde se almacenan los datos</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Tipo</th><th>Ruta</th><th>Tamaño típico</th></tr></thead>\n<tbody>\n<tr><td>Base de datos</td><td>data/homenetguard.db</td><td>10–500 MB según retención</td></tr>\n<tr><td>Capturas PCAP</td><td>data/captures/</td><td>Variable</td></tr>\n<tr><td>Logs</td><td>logs/homenetguard.log</td><td>~10 MB/semana</td></tr>\n<tr><td>Modelos ML</td><td>data/models/</td><td>~5 MB</td></tr>\n<tr><td>Informes</td><td>data/reports/</td><td>~1 MB/informe</td></tr>\n</tbody></table>\n<h3>Retención automática</h3>\n<pre class=\"docs-code\">storage:\n  retention_days: 30</pre>\n<h3>Limpieza manual</h3>\n<pre class=\"docs-code\">make clean\nhomenetguard purge --older-than 30</pre>\n<h3>Backup de la DB</h3>\n<pre class=\"docs-code\">sqlite3 data/homenetguard.db \".backup backup_$(date +%Y%m%d).db\"</pre>\n<h3>Optimización SQLite</h3>\n<pre class=\"docs-code\">sqlite3 data/homenetguard.db \"VACUUM; ANALYZE;\"</pre>"
+        }
+      ]
+    },
+    {
+      "id": "technical",
+      "icon": "cpu",
+      "title": "Technical Docs",
+      "description": "Architecture, DB schema, detection internals, API",
+      "articles": [
+        {
+          "id": "architecture",
+          "title": "Arquitectura del sistema",
+          "description": "Diagrama por capas, flujo de datos y threading model",
+          "tags": ["architecture", "design", "internals"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Arquitectura del sistema</h2>\n<pre class=\"docs-code\">┌─────────────────────────────────────────────────────┐\n│                  PRESENTACIÓN                       │\n│   CLI (Click)  │  TUI (Rich)  │  Dashboard (Flask)  │\n│   API REST (Flask-RESTX)  │  Informes (Jinja2)     │\n├─────────────────────────────────────────────────────┤\n│               SERVICIOS ACTIVOS                     │\n│   Firewall  │  DNS Sinkhole  │  Rate Limiter        │\n│   Quarantine Manager                                │\n├─────────────────────────────────────────────────────┤\n│                   ANÁLISIS                          │\n│   Traffic Analyzer  │  Threat Detector              │\n│   DPI  │  TLS Fingerprint  │  OS Fingerprint        │\n│   Beaconing  │  Cryptomining  │  ML Anomaly         │\n├─────────────────────────────────────────────────────┤\n│                 PERSISTENCIA                        │\n│   SQLite  │  PCAP Files  │  ML Models               │\n├─────────────────────────────────────────────────────┤\n│                   CAPTURA                           │\n│   Scapy Sniffer  │  PyShark  │  Device Scanner      │\n│   Gateway Monitor  │  WiFi Scanner                  │\n└─────────────────────────────────────────────────────┘</pre>\n<h3>Flujo de datos</h3>\n<ol>\n<li>Scapy captura el paquete en la interfaz</li>\n<li>El paquete pasa por el pipeline de análisis (DPI, TLS, OS fingerprint)</li>\n<li>Se almacena como flujo en SQLite</li>\n<li>Los detectores de amenazas analizan el flujo</li>\n<li>Si se detecta una amenaza, se crea una alerta y se notifica</li>\n<li>El dashboard muestra el flujo y la alerta en tiempo real via Socket.IO</li>\n</ol>\n<h3>Threading model</h3>\n<ul>\n<li>Hilo principal: Flask dashboard + Socket.IO</li>\n<li>Daemon threads: sniffer, detectores, feed updater, device scanner</li>\n</ul>"
+        },
+        {
+          "id": "database-schema",
+          "title": "Esquema de base de datos",
+          "description": "Tablas, relaciones y consultas SQLite directas",
+          "tags": ["database", "sqlite", "schema"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Esquema de base de datos</h2>\n<h3>Tablas principales</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Tabla</th><th>Descripción</th><th>Registros típicos</th></tr></thead>\n<tbody>\n<tr><td>flows</td><td>Flujos de red capturados</td><td>Millones</td></tr>\n<tr><td>alerts</td><td>Alertas de seguridad</td><td>Miles</td></tr>\n<tr><td>dns_queries</td><td>Consultas DNS</td><td>Cientos de miles</td></tr>\n<tr><td>devices</td><td>Dispositivos de la red</td><td>Decenas</td></tr>\n<tr><td>device_ip_history</td><td>Historial de IPs por MAC</td><td>Cientos</td></tr>\n<tr><td>ip_reputation</td><td>Caché de reputación de IPs</td><td>Miles</td></tr>\n<tr><td>firewall_rules</td><td>Reglas del firewall</td><td>Decenas</td></tr>\n<tr><td>sinkhole_rules</td><td>Dominios bloqueados</td><td>Miles</td></tr>\n<tr><td>reports</td><td>Metadatos de informes generados</td><td>Decenas</td></tr>\n</tbody></table>\n<h3>Consultas directas</h3>\n<pre class=\"docs-code\">sqlite3 data/homenetguard.db\n.tables\n.schema flows\nSELECT * FROM alerts WHERE severity='critical' LIMIT 10;\nSELECT src_ip, COUNT(*) as cnt FROM flows\n  GROUP BY src_ip ORDER BY cnt DESC LIMIT 10;</pre>"
+        },
+        {
+          "id": "detection-system",
+          "title": "Sistema de detección de amenazas",
+          "description": "Algoritmos de cada detector, umbrales y falsos positivos",
+          "tags": ["detection", "algorithms", "security"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Sistema de detección de amenazas</h2>\n<h3>Port Scan</h3>\n<p>Ventana deslizante de 60s. Si una IP contacta &gt; N puertos distintos del mismo destino, se genera una alerta. N configurable en <code>detection.port_scan.threshold</code>.</p>\n<h3>Beaconing</h3>\n<p>Analiza la desviación estándar de los intervalos entre conexiones a la misma IP. Baja desviación + intervalos regulares = comportamiento automatizado (C2).</p>\n<h3>Flood</h3>\n<p>Contador de bytes por IP en ventana temporal. Superar el umbral (<code>detection.flood.bytes_threshold</code>) genera alerta HIGH.</p>\n<h3>ARP Spoofing</h3>\n<p>Tabla IP↔MAC en memoria. Si una IP cambia de MAC, se genera alerta HIGH (posible MitM).</p>\n<h3>DNS Anomaly</h3>\n<p>Entropía de Shannon de subdominios &gt; umbral. Detección de DGA y DNS tunneling.</p>\n<h3>TLS Anomaly</h3>\n<p>Comparación de JA3 hash del cliente contra lista de hashes conocidos maliciosos.</p>\n<h3>Cryptomining</h3>\n<p>Matching de puertos Stratum (3333, 4444, 14444) y dominios de mining pools conocidos.</p>\n<h3>ML Anomaly</h3>\n<p>Isolation Forest sobre un vector de features por ventana de 5 minutos. Score &gt; threshold → alerta MEDIUM.</p>"
+        },
+        {
+          "id": "api-technical",
+          "title": "API REST — referencia técnica",
+          "description": "Endpoints completos, schemas JSON y códigos de error",
+          "tags": ["api", "rest", "reference", "openapi"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>API REST — referencia técnica</h2>\n<p>URL base: <code>http://127.0.0.1:8080/api/v1</code>. Autenticación: header <code>X-API-Key</code>.</p>\n<h3>Endpoints principales</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Método</th><th>Ruta</th><th>Descripción</th></tr></thead>\n<tbody>\n<tr><td>GET</td><td>/api/stats</td><td>Estadísticas del sistema</td></tr>\n<tr><td>GET</td><td>/api/flows</td><td>Flujos recientes (limit, offset)</td></tr>\n<tr><td>GET</td><td>/api/alerts</td><td>Alertas (severity, type)</td></tr>\n<tr><td>POST</td><td>/api/alerts/{id}/acknowledge</td><td>Reconocer alerta</td></tr>\n<tr><td>GET</td><td>/api/v2/devices</td><td>Lista de dispositivos</td></tr>\n<tr><td>POST</td><td>/api/v2/devices/{mac}/trust</td><td>Marcar como trusted</td></tr>\n<tr><td>POST</td><td>/api/v2/devices/{mac}/quarantine</td><td>Poner en cuarentena</td></tr>\n<tr><td>GET</td><td>/api/v2/firewall/rules</td><td>Reglas del firewall</td></tr>\n<tr><td>POST</td><td>/api/v2/firewall/rules</td><td>Añadir regla</td></tr>\n<tr><td>DELETE</td><td>/api/v2/firewall/rules/{id}</td><td>Eliminar regla</td></tr>\n<tr><td>GET</td><td>/api/v2/forensics</td><td>Timeline forense por IP o MAC</td></tr>\n<tr><td>GET</td><td>/api/v2/intelligence/mitre</td><td>Datos MITRE ATT&amp;CK</td></tr>\n</tbody></table>\n<h3>Códigos de error</h3>\n<table class=\"docs-table\">\n<thead><tr><th>Código</th><th>Significado</th></tr></thead>\n<tbody>\n<tr><td>400</td><td>Parámetros inválidos</td></tr>\n<tr><td>401</td><td>API key inválida</td></tr>\n<tr><td>404</td><td>Recurso no encontrado</td></tr>\n<tr><td>429</td><td>Rate limit excedido</td></tr>\n<tr><td>500</td><td>Error interno</td></tr>\n</tbody></table>"
+        },
+        {
+          "id": "project-structure",
+          "title": "Estructura del proyecto",
+          "description": "Árbol de directorios, convenciones y pipeline CI",
+          "tags": ["structure", "codebase", "contributing"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Estructura del proyecto</h2>\n<pre class=\"docs-code\">homenetguard/\n├── capture/          # Captura de paquetes (Scapy, PyShark)\n│   ├── sniffer.py    # Sniffer principal\n│   ├── pcap_reader.py\n│   └── interface_detector.py\n├── analysis/         # Análisis de tráfico y DPI\n│   ├── traffic_analyzer.py\n│   ├── threat_detector.py\n│   ├── dpi_analyzer.py\n│   ├── dns_analyzer.py\n│   ├── tls_fingerprint.py\n│   └── anomaly_detector.py\n├── active/           # Acciones defensivas\n│   ├── firewall.py\n│   ├── dns_sinkhole.py\n│   └── quarantine.py\n├── intelligence/     # Threat intelligence\n│   ├── feed_manager.py\n│   └── mitre_mapper.py\n├── storage/          # Persistencia SQLite\n├── dashboard/        # Flask web app\n│   ├── routes.py\n│   ├── templates/\n│   └── static/\n└── reports/          # Generación de informes</pre>\n<h3>Tests</h3>\n<pre class=\"docs-code\">pytest tests/ -v\npytest tests/ --cov=homenetguard --cov-report=html</pre>\n<h3>Linting</h3>\n<pre class=\"docs-code\">ruff check .\nmypy homenetguard/</pre>"
+        },
+        {
+          "id": "contributing",
+          "title": "Cómo contribuir",
+          "description": "Fork, branches, conventional commits y proceso de PR",
+          "tags": ["contributing", "opensource", "git"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Cómo contribuir</h2>\n<h3>Proceso</h3>\n<ol>\n<li>Fork del repositorio en GitHub</li>\n<li>Crear branch: <code>git checkout -b feature/mi-feature</code></li>\n<li>Implementar con tests</li>\n<li>Asegurarse de que pasan todos los tests: <code>pytest tests/ -v</code></li>\n<li>Abrir PR describiendo el cambio</li>\n</ol>\n<h3>Naming de branches</h3>\n<ul>\n<li><code>feature/</code> — nueva funcionalidad</li>\n<li><code>fix/</code> — corrección de bug</li>\n<li><code>docs/</code> — documentación</li>\n</ul>\n<h3>Conventional Commits</h3>\n<pre class=\"docs-code\">feat: add WiFi evil twin detection\nfix: handle NXDOMAIN responses in dns_analyzer\ndocs: add sinkhole configuration guide</pre>\n<h3>Añadir un detector nuevo</h3>\n<ol>\n<li>Crear <code>homenetguard/analysis/mi_detector.py</code></li>\n<li>Implementar método <code>analyze(flow: dict) -&gt; Alert | None</code></li>\n<li>Registrar en <code>threat_detector.py</code></li>\n<li>Añadir tests en <code>tests/unit/test_mi_detector.py</code></li>\n</ol>\n<h3>Licencia</h3>\n<p>MIT. Permite uso, modificación y distribución libre, incluyendo uso comercial, con atribución.</p>"
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "icon": "alert-circle",
+      "title": "Troubleshooting",
+      "description": "Common problems and solutions",
+      "articles": [
+        {
+          "id": "troubleshooting",
+          "title": "Solución de problemas",
+          "description": "Tabla de problemas comunes, logs y modo DEBUG",
+          "tags": ["troubleshooting", "debug", "errors"],
+          "updated_at": "2026-05-19",
+          "content": "<h2>Solución de problemas</h2>\n<table class=\"docs-table\">\n<thead><tr><th>Problema</th><th>Causa probable</th><th>Solución</th></tr></thead>\n<tbody>\n<tr><td>Permission denied al arrancar</td><td>Sin CAP_NET_RAW</td><td>sudo homenetguard start</td></tr>\n<tr><td>No se captura tráfico</td><td>Interfaz incorrecta</td><td>homenetguard config --detect-interface</td></tr>\n<tr><td>Dashboard no carga</td><td>Puerto 5000 ocupado</td><td>Cambiar port en config.yaml</td></tr>\n<tr><td>DB crece demasiado</td><td>retention_days alto</td><td>Reducir retention_days y ejecutar purge</td></tr>\n<tr><td>Muchos falsos positivos</td><td>Umbrales bajos</td><td>Ajustar threshold en detection.*</td></tr>\n<tr><td>ML no detecta anomalías</td><td>Modelo no entrenado</td><td>homenetguard ml train</td></tr>\n<tr><td>DNS sinkhole no bloquea</td><td>No es el DNS del sistema</td><td>Configurar 127.0.0.1 como DNS primario</td></tr>\n<tr><td>Feeds no se actualizan</td><td>Sin acceso a Internet</td><td>Verificar conectividad</td></tr>\n<tr><td>Alto consumo de CPU</td><td>Interfaz de alto volumen</td><td>Añadir capture_filter en config.yaml</td></tr>\n<tr><td>Alertas no llegan a Telegram</td><td>Token o chat_id incorrectos</td><td>Verificar .env, homenetguard alerts test</td></tr>\n</tbody></table>\n<h3>Logs</h3>\n<pre class=\"docs-code\">tail -f logs/homenetguard.log</pre>\n<h3>Modo DEBUG</h3>\n<pre class=\"docs-code\">logging:\n  level: DEBUG</pre>\n<h3>Reportar un bug</h3>\n<p>Incluir en el issue: versión de HomeNetGuard (<code>homenetguard --version</code>), OS, interfaz de red, primeras 50 líneas del log con nivel DEBUG, y pasos para reproducir.</p>"
+        }
+      ]
+    }
+  ]
+}
