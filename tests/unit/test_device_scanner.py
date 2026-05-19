@@ -1,6 +1,8 @@
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from homenetguard.network.device_scanner import DeviceScanner, lookup_vendor, _detect_subnet
+
+from homenetguard.network.device_scanner import DeviceScanner, _detect_subnet, lookup_vendor
 from homenetguard.storage import database
 
 

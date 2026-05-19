@@ -1,4 +1,5 @@
 import pytest
+
 from homenetguard.analysis.dns_analyzer import DNSAnalyzer
 from homenetguard.analysis.threat_detector import ThreatDetector
 from homenetguard.storage import database, repository

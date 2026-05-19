@@ -1,4 +1,5 @@
 import pytest
+
 from homenetguard.storage import database
 
 

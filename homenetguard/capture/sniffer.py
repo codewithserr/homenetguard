@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 
 from homenetguard.analysis.dns_analyzer import DNSAnalyzer
 from homenetguard.analysis.geo_lookup import GeoLookup
@@ -15,7 +16,7 @@ from homenetguard.utils.logger import get_logger
 logger = get_logger(__name__)
 
 try:
-    from scapy.all import ARP, DNS, DNSQR, ICMP, IP, TCP, UDP, Packet, sniff  # type: ignore[import]
+    from scapy.all import ARP, DNS, DNSQR, ICMP, IP, TCP, UDP, Packet, sniff  # type: ignore[import]  # noqa: F401
     _SCAPY_AVAILABLE = True
 except ImportError:
     _SCAPY_AVAILABLE = False

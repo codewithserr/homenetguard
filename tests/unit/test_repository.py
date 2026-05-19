@@ -1,5 +1,7 @@
-import pytest
 from datetime import UTC, datetime, timedelta
+
+import pytest
+
 from homenetguard.storage import database, repository
 
 
@@ -106,8 +108,10 @@ def test_get_flow_stats():
 
 def test_get_top_ips():
     now = datetime.now(UTC)
-    repository.insert_flow({"timestamp": now.isoformat(), "src_ip": "1.1.1.1", "dst_ip": "8.8.8.8", "protocol": "TCP", "bytes": 5000})
-    repository.insert_flow({"timestamp": now.isoformat(), "src_ip": "2.2.2.2", "dst_ip": "8.8.8.8", "protocol": "TCP", "bytes": 1000})
+    repository.insert_flow({"timestamp": now.isoformat(), "src_ip": "1.1.1.1", "dst_ip": "8.8.8.8",
+                             "protocol": "TCP", "bytes": 5000})
+    repository.insert_flow({"timestamp": now.isoformat(), "src_ip": "2.2.2.2", "dst_ip": "8.8.8.8",
+                             "protocol": "TCP", "bytes": 1000})
     top = repository.get_top_ips(limit=5)
     assert top[0]["ip"] == "1.1.1.1"
     assert top[0]["total_bytes"] == 5000

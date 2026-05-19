@@ -1,4 +1,5 @@
 import pytest
+
 from homenetguard.active.dns_sinkhole import DNSSinkhole
 from homenetguard.storage import database
 

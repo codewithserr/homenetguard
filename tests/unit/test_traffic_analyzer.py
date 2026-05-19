@@ -1,5 +1,7 @@
+from datetime import UTC, datetime
+
 import pytest
-from datetime import UTC, datetime, timedelta
+
 from homenetguard.analysis.traffic_analyzer import TrafficAnalyzer
 from homenetguard.storage import database, repository
 

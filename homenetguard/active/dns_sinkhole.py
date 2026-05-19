@@ -100,7 +100,7 @@ class DNSSinkhole:
                     response = self._handle_query(data, addr)
                     if response:
                         self._sock.sendto(response, addr)
-                except socket.timeout:
+                except TimeoutError:
                     continue
                 except Exception as exc:
                     if self._running:

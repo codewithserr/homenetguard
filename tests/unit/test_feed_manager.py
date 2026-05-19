@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from homenetguard.intelligence.feed_manager import FeedManager, FEEDS, _valid_ip
+
+from homenetguard.intelligence.feed_manager import FEEDS, FeedManager, _valid_ip
 from homenetguard.storage import database
 
 
@@ -23,7 +25,7 @@ def _mock_response(text: str) -> MagicMock:
 
 def test_feeds_dict_not_empty():
     assert len(FEEDS) >= 2
-    for name, feed in FEEDS.items():
+    for _, feed in FEEDS.items():
         assert "url" in feed
         assert "type" in feed
 

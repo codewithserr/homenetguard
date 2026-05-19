@@ -1,5 +1,5 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from homenetguard.analysis.beaconing_detector import analyze_beaconing
 
 
@@ -8,7 +8,7 @@ def _make_flows(timestamps_iso: list[str]) -> list[dict]:
 
 
 def _iso(base_epoch: float, offset: float) -> str:
-    return datetime.fromtimestamp(base_epoch + offset, tz=timezone.utc).isoformat()
+    return datetime.fromtimestamp(base_epoch + offset, tz=UTC).isoformat()
 
 
 BASE = 1_700_000_000.0

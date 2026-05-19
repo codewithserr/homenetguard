@@ -1,7 +1,8 @@
-import pytest
 from homenetguard.analysis.tls_fingerprint import (
-    extract_ja3, extract_ja3s, is_known_malicious_ja3,
-    MALICIOUS_JA3, _parse_client_hello_ja3,
+    MALICIOUS_JA3,
+    _parse_client_hello_ja3,
+    extract_ja3,
+    is_known_malicious_ja3,
 )
 
 

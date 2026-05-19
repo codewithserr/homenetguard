@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -25,7 +24,7 @@ def _load_config(config_path: str | None) -> dict:
 @click.option("--config", "-c", default=None, help="Path to config.yaml")
 @click.option("--log-level", default=None, help="Override log level (DEBUG/INFO/WARNING/ERROR)")
 @click.pass_context
-def cli(ctx: click.Context, config: Optional[str], log_level: Optional[str]) -> None:
+def cli(ctx: click.Context, config: str | None, log_level: str | None) -> None:
     """HomeNetGuard — Open-source network security monitor."""
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config
@@ -38,7 +37,7 @@ def cli(ctx: click.Context, config: Optional[str], log_level: Optional[str]) -> 
 @click.option("--output", "-o", default=None, type=click.Path(), help="Save capture to .pcap file")
 @click.option("--no-dashboard", is_flag=True, help="Don't start the web dashboard")
 @click.pass_context
-def start(ctx: click.Context, interface: Optional[str], duration: int, output: Optional[str], no_dashboard: bool) -> None:
+def start(ctx: click.Context, interface: str | None, duration: int, output: str | None, no_dashboard: bool) -> None:
     """Start real-time network monitoring."""
     click.echo(_LEGAL_NOTICE)
     cfg = _load_config(ctx.obj.get("config_path"))
@@ -111,10 +110,10 @@ def analyze(ctx: click.Context, pcap_file: str, report: bool) -> None:
     click.echo(f"\nResults for {stats['file']}:")
     click.echo(f"  Packets : {stats['total_packets']}")
     click.echo(f"  Bytes   : {stats['total_bytes']:,}")
-    click.echo(f"\nTop protocols:")
+    click.echo("\nTop protocols:")
     for proto, count in sorted(stats["protocols"].items(), key=lambda x: -x[1])[:10]:
         click.echo(f"  {proto:15s} {count}")
-    click.echo(f"\nTop source IPs:")
+    click.echo("\nTop source IPs:")
     for ip, count in list(stats["top_src_ips"].items())[:10]:
         click.echo(f"  {ip:20s} {count} packets")
 
@@ -134,9 +133,11 @@ def analyze(ctx: click.Context, pcap_file: str, report: bool) -> None:
 @click.option("--format", "fmt", default="html", type=click.Choice(["html", "pdf", "both"]))
 @click.option("--output", "-o", default=None, type=click.Path(), help="Output directory")
 @click.pass_context
-def report(ctx: click.Context, report_type: str, date_from: Optional[str], date_to: Optional[str], fmt: str, output: Optional[str]) -> None:
+def report(
+    ctx: click.Context, report_type: str, date_from: str | None, date_to: str | None, fmt: str, output: str | None
+) -> None:
     """Generate a traffic report."""
-    from datetime import UTC, datetime
+    from datetime import datetime
     cfg = _load_config(ctx.obj.get("config_path"))
     setup_logger(level=cfg.get("logging", {}).get("level", "INFO"))
 
@@ -181,7 +182,7 @@ def dashboard(ctx: click.Context, port: int, host: str) -> None:
 @click.option("--acknowledge", "ack_id", default=None, type=int, help="Acknowledge alert by ID")
 @click.option("--clear-all", is_flag=True, help="Clear all alerts")
 @click.pass_context
-def alerts(ctx: click.Context, list_alerts: bool, ack_id: Optional[int], clear_all: bool) -> None:
+def alerts(ctx: click.Context, list_alerts: bool, ack_id: int | None, clear_all: bool) -> None:
     """Manage alerts."""
     from tabulate import tabulate
     cfg = _load_config(ctx.obj.get("config_path"))
@@ -218,8 +219,9 @@ def status(ctx: click.Context) -> None:
     """Show system status."""
     from tabulate import tabulate
     cfg = _load_config(ctx.obj.get("config_path"))
-    from homenetguard.storage.database import init_db
     from datetime import UTC, datetime, timedelta
+
+    from homenetguard.storage.database import init_db
     init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
     from homenetguard.storage import repository
 
@@ -327,8 +329,9 @@ def devices_scan(ctx: click.Context) -> None:
     cfg = _load_config(ctx.obj.get("config_path"))
     from homenetguard.storage.database import init_db
     init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
-    from homenetguard.network.device_scanner import DeviceScanner
     from tabulate import tabulate
+
+    from homenetguard.network.device_scanner import DeviceScanner
     click.echo("Scanning network...")
     found = DeviceScanner(cfg).scan()
     if not found:
@@ -343,16 +346,20 @@ def devices_scan(ctx: click.Context) -> None:
 def devices_list(ctx: click.Context) -> None:
     """Lista dispositivos conocidos."""
     cfg = _load_config(ctx.obj.get("config_path"))
-    from homenetguard.storage.database import init_db, get_connection
+    from homenetguard.storage.database import get_connection, init_db
     init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
     from tabulate import tabulate
     with get_connection() as conn:
-        rows = conn.execute("SELECT mac_address, vendor, ip_address, is_trusted, is_quarantined, last_seen FROM devices ORDER BY last_seen DESC").fetchall()
+        rows = conn.execute(
+            "SELECT mac_address, vendor, ip_address, is_trusted, is_quarantined, last_seen"
+            " FROM devices ORDER BY last_seen DESC"
+        ).fetchall()
     if not rows:
         click.echo("No devices in database yet. Run: homenetguard devices scan")
         return
     click.echo(tabulate(
-        [[r[0], r[1] or "?", r[2] or "?", "✓" if r[3] else "", "🔒" if r[4] else "", r[5][:19] if r[5] else ""] for r in rows],
+        [[r[0], r[1] or "?", r[2] or "?", "✓" if r[3] else "", "🔒" if r[4] else "", r[5][:19] if r[5] else ""]
+         for r in rows],
         headers=["MAC", "VENDOR", "IP", "TRUSTED", "QUARANTINE", "LAST SEEN"],
     ))
 
@@ -363,7 +370,7 @@ def devices_list(ctx: click.Context) -> None:
 def devices_trust(ctx: click.Context, mac: str) -> None:
     """Marca dispositivo como confiable."""
     cfg = _load_config(ctx.obj.get("config_path"))
-    from homenetguard.storage.database import init_db, get_connection
+    from homenetguard.storage.database import get_connection, init_db
     init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
     with get_connection() as conn:
         conn.execute("UPDATE devices SET is_trusted=1 WHERE mac_address=?", (mac.upper(),))
@@ -397,8 +404,9 @@ def firewall_list(ctx: click.Context) -> None:
     cfg = _load_config(ctx.obj.get("config_path"))
     from homenetguard.storage.database import init_db
     init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
-    from homenetguard.active.firewall import FirewallManager
     from tabulate import tabulate
+
+    from homenetguard.active.firewall import FirewallManager
     rules = FirewallManager().list_rules()
     if not rules:
         click.echo("No active firewall rules.")
@@ -465,8 +473,9 @@ def sinkhole_list(ctx: click.Context) -> None:
     cfg = _load_config(ctx.obj.get("config_path"))
     from homenetguard.storage.database import init_db
     init_db(cfg.get("storage", {}).get("db_path", "data/homenetguard.db"))
-    from homenetguard.active.dns_sinkhole import DNSSinkhole
     from tabulate import tabulate
+
+    from homenetguard.active.dns_sinkhole import DNSSinkhole
     rules = DNSSinkhole().list_rules()
     if not rules:
         click.echo("No sinkhole rules.")
@@ -503,8 +512,9 @@ def feeds_update(ctx: click.Context) -> None:
 @click.pass_context
 def feeds_status(ctx: click.Context) -> None:
     """Muestra estado de los feeds."""
-    from homenetguard.intelligence.feed_manager import FeedManager, FEEDS
     from tabulate import tabulate
+
+    from homenetguard.intelligence.feed_manager import FEEDS, FeedManager
     status = FeedManager().get_status()
     if not status:
         click.echo(f"No feeds updated yet. Available: {', '.join(FEEDS.keys())}")

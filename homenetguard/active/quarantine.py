@@ -15,9 +15,9 @@ class QuarantineManager:
     def quarantine(self, mac: str) -> bool:
         """Block all outbound traffic from device except to gateway."""
         try:
-            from homenetguard.storage.database import get_connection
             from homenetguard.network.gateway_monitor import GatewayMonitor
-            gw = GatewayMonitor().get_gateway_ip()
+            from homenetguard.storage.database import get_connection
+            _gw = GatewayMonitor().get_gateway_ip()
 
             with get_connection() as conn:
                 row = conn.execute(

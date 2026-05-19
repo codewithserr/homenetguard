@@ -28,7 +28,7 @@ def _export_direct(html_content: str, output_path: str) -> str:
     try:
         from weasyprint import HTML  # type: ignore[import]
     except ImportError:
-        raise RuntimeError("weasyprint not installed — run: pip install weasyprint")
+        raise RuntimeError("weasyprint not installed — run: pip install weasyprint") from None
     except OSError as exc:
         raise RuntimeError(
             f"WeasyPrint system libs missing: {exc}\n"

@@ -27,10 +27,10 @@ class AnomalyDetector:
     def train(self, days: int = 7) -> dict[str, Any]:
         from homenetguard.storage.database import get_connection
         try:
-            from sklearn.ensemble import IsolationForest
             import numpy as np
+            from sklearn.ensemble import IsolationForest
         except ImportError:
-            raise RuntimeError("scikit-learn and numpy required for ML training")
+            raise RuntimeError("scikit-learn and numpy required for ML training") from None
 
         since = datetime.now(UTC) - timedelta(days=days)
         with get_connection() as conn:

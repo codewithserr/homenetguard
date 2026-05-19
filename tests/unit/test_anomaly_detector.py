@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+
 from homenetguard.analysis.anomaly_detector import AnomalyDetector, _row_to_features
 from homenetguard.storage import database
 
@@ -10,8 +10,9 @@ def in_memory_db(tmp_path):
 
 
 def _insert_metrics(n: int = 30, anomalous: bool = False) -> None:
-    from homenetguard.storage.database import get_connection
     from datetime import UTC, datetime, timedelta
+
+    from homenetguard.storage.database import get_connection
     base = datetime.now(UTC)
     with get_connection() as conn:
         for i in range(n):

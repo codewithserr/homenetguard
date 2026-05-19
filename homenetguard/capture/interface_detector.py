@@ -35,7 +35,7 @@ def get_active_interface() -> str:
 
 def _ip_to_interface(ip: str) -> str | None:
     try:
-        import netifaces  # type: ignore[import]
+        import netifaces  # type: ignore[import]  # noqa: F401
         import netifaces as ni
         for iface in ni.interfaces():
             addrs = ni.ifaddresses(iface)

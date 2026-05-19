@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import MagicMock
-from homenetguard.analysis.os_fingerprint import fingerprint_os, _normalize_ttl
+
+from homenetguard.analysis.os_fingerprint import _normalize_ttl, fingerprint_os
 
 
 def _make_syn_packet(ttl: int, window: int) -> MagicMock:

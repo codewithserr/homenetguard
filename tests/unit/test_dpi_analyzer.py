@@ -1,5 +1,4 @@
-import pytest
-from homenetguard.analysis.dpi_analyzer import identify_application, _is_bittorrent, _is_stratum
+from homenetguard.analysis.dpi_analyzer import _is_bittorrent, _is_stratum, identify_application
 
 
 def test_identify_http_by_port():

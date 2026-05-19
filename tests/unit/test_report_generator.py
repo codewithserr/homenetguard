@@ -1,8 +1,10 @@
-import pytest
 from pathlib import Path
-from homenetguard.storage import database, repository
-from homenetguard.reports.report_generator import ReportGenerator, _build_recommendations
+
+import pytest
+
 from homenetguard.reports.html_renderer import render_report_html
+from homenetguard.reports.report_generator import ReportGenerator, _build_recommendations
+from homenetguard.storage import database, repository
 
 
 @pytest.fixture(autouse=True)

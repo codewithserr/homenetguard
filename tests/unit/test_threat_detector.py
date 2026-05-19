@@ -1,5 +1,7 @@
-import pytest
 from datetime import UTC, datetime
+
+import pytest
+
 from homenetguard.analysis.threat_detector import ThreatDetector
 from homenetguard.storage import database, repository
 

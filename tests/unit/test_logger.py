@@ -1,6 +1,6 @@
 import logging
-import pytest
-from homenetguard.utils.logger import setup_logger, get_logger
+
+from homenetguard.utils.logger import get_logger, setup_logger
 
 
 def test_setup_logger_creates_handlers(tmp_path):

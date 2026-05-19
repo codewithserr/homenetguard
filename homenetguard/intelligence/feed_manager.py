@@ -56,7 +56,7 @@ class FeedManager:
         resp.raise_for_status()
         lines = resp.text.splitlines()
         comment = feed.get("comment_char", "#")
-        entries = [l.strip() for l in lines if l.strip() and not l.startswith(comment)]
+        entries = [line.strip() for line in lines if line.strip() and not line.startswith(comment)]
 
         count = 0
         if feed["type"] == "ip_list":

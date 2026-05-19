@@ -20,7 +20,7 @@ class PcapReader:
         try:
             import pyshark  # type: ignore[import]
         except ImportError:
-            raise RuntimeError("pyshark not installed — install with: pip install pyshark")
+            raise RuntimeError("pyshark not installed — install with: pip install pyshark") from None
 
         stats: dict[str, Any] = {
             "file": str(path),

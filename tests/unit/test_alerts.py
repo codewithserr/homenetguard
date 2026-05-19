@@ -1,8 +1,8 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from homenetguard.alerts.email_alert import EmailAlert
-from homenetguard.alerts.telegram_alert import TelegramAlert
 from homenetguard.alerts.notifier import Notifier
+from homenetguard.alerts.telegram_alert import TelegramAlert
 
 
 # ─── EmailAlert ─────────────────────────────────────────────────
