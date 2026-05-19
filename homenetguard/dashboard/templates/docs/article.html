@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ article.title }} — HomeNetGuard Docs{% endblock %}
-{% block content %}
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">
+{% endblock %}
+{% block content %}
 
 <div class="docs-layout">
   <nav class="docs-nav">

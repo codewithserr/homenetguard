@@ -78,9 +78,10 @@ html { font-size: 14px; }
   --text-mono:         var(--on-surface);
 
   /* Accent aliases */
-  --accent-primary:    var(--surface-tint);
-  --accent-cyan:       var(--secondary);
-  --accent-glow:       var(--glow-primary);
+  --accent-primary:     var(--surface-tint);
+  --accent-primary-dim: rgba(0, 230, 57, 0.35);
+  --accent-cyan:        var(--secondary);
+  --accent-glow:        var(--glow-primary);
 
   /* Severity aliases */
   --severity-critical: var(--error);

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ topic.title if topic else slug }} — Cyber Academy{% endblock %}
-{% block content %}
-
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">
+{% endblock %}
+{% block content %}
 <!-- highlight.js para code blocks -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
