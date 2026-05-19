@@ -1,6 +1,5 @@
-import os
 import pytest
-from pathlib import Path
+
 from homenetguard.utils import config_loader
 
 
@@ -100,7 +99,11 @@ def test_get_config_caches(tmp_path):
 
 def test_inject_env_secrets(tmp_path, monkeypatch):
     cfg_file = tmp_path / "config.yaml"
-    cfg_file.write_text("threat_intelligence:\n  abuseipdb:\n    enabled: true\n    api_key: \"\"\nalerts:\n  email:\n    enabled: false\n    smtp_password: \"\"\n  telegram:\n    enabled: false\n    bot_token: \"\"\n")
+    cfg_file.write_text(
+        "threat_intelligence:\n  abuseipdb:\n    enabled: true\n    api_key: \"\"\n"
+        "alerts:\n  email:\n    enabled: false\n    smtp_password: \"\"\n"
+        "  telegram:\n    enabled: false\n    bot_token: \"\"\n"
+    )
     monkeypatch.setenv("ABUSEIPDB_API_KEY", "test_key_123")
     cfg = config_loader.load_config(cfg_file)
     assert cfg["threat_intelligence"]["abuseipdb"]["api_key"] == "test_key_123"

@@ -1,6 +1,7 @@
-import pytest
 from homenetguard.analysis.cryptomining_detector import (
-    is_cryptomining_traffic, STRATUM_PORTS, MINING_POOL_DOMAINS,
+    MINING_POOL_DOMAINS,
+    STRATUM_PORTS,
+    is_cryptomining_traffic,
 )
 
 

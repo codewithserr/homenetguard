@@ -1,5 +1,7 @@
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from homenetguard.active.firewall import FirewallManager
 from homenetguard.storage import database
 
@@ -61,6 +63,6 @@ def test_list_rules_initially_empty(fw):
 
 def test_save_rule_cidr(fw):
     with patch.object(fw, "_apply_block"):
-        rule_id = fw.block_cidr("10.0.0.0/8", reason="block subnet")
+        _rule_id = fw.block_cidr("10.0.0.0/8", reason="block subnet")
     rules = fw.list_rules()
     assert any(r["rule_type"] == "cidr" and "10.0.0.0" in r["target"] for r in rules)

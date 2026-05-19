@@ -1,6 +1,9 @@
-import pytest
 from homenetguard.intelligence.mitre_mapper import (
-    map_alert, enrich_alert, get_all_tactics, get_techniques_by_tactic, MITRE_MAPPING,
+    MITRE_MAPPING,
+    enrich_alert,
+    get_all_tactics,
+    get_techniques_by_tactic,
+    map_alert,
 )
 
 

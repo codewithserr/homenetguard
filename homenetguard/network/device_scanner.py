@@ -134,7 +134,9 @@ class DeviceScanner:
                     )
                 else:
                     conn.execute(
-                        "INSERT INTO devices (mac_address, ip_address, vendor, hostname, first_seen, last_seen) VALUES (?,?,?,?,?,?)",
+                        "INSERT INTO devices"
+                        " (mac_address, ip_address, vendor, hostname, first_seen, last_seen)"
+                        " VALUES (?,?,?,?,?,?)",
                         (mac, d["ip"], d.get("vendor"), d.get("hostname"), now, now),
                     )
                     new_macs.append(mac)

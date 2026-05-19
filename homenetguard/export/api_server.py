@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from flask import request
-from flask_restx import Api, Namespace, Resource, fields
+from flask_restx import Api, Namespace, Resource
 
 from homenetguard.storage import repository
 from homenetguard.utils.logger import get_logger
@@ -196,8 +196,9 @@ def create_api(app: Any) -> Api:
     @ns_intel.route("/feeds/update")
     class FeedsUpdate(Resource):
         def post(self):
-            from homenetguard.intelligence.feed_manager import FeedManager
             import threading
+
+            from homenetguard.intelligence.feed_manager import FeedManager
             fm = FeedManager()
             t = threading.Thread(target=fm.update_all, daemon=True)
             t.start()
@@ -216,8 +217,9 @@ def create_api(app: Any) -> Api:
     @ns_ml.route("/train")
     class MLTrain(Resource):
         def post(self):
-            from homenetguard.analysis.anomaly_detector import get_detector
             import threading
+
+            from homenetguard.analysis.anomaly_detector import get_detector
             def _train():
                 try:
                     get_detector().train()

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -345,6 +344,7 @@ def api_v2_feeds():
 @bp.route("/api/v2/intelligence/feeds/update", methods=["POST"])
 def api_v2_feeds_update():
     import threading
+
     from homenetguard.intelligence.feed_manager import FeedManager
     threading.Thread(target=FeedManager().update_all, daemon=True).start()
     return jsonify({"ok": True, "message": "Update started"})
@@ -494,9 +494,10 @@ def api_report_content(report_id: int):
     fmt = report.get("format", "html")
     if fmt != "html" or not file_path:
         # For PDF reports, regenerate HTML on-the-fly for viewing
-        from homenetguard.reports.report_generator import ReportGenerator
-        from homenetguard.reports.html_renderer import render_report_html
         from datetime import UTC, datetime
+
+        from homenetguard.reports.html_renderer import render_report_html
+        from homenetguard.reports.report_generator import ReportGenerator
         cfg = current_app.config.get("HNG_CONFIG", {})
         period_start = report.get("period_start")
         period_end = report.get("period_end")
@@ -510,6 +511,7 @@ def api_report_content(report_id: int):
         return Response(html, mimetype="text/html")
 
     from pathlib import Path
+
     from flask import Response
     path = Path(file_path)
     if not path.exists():
@@ -550,7 +552,7 @@ def api_alert_detail(alert_id: int):
 
 @bp.route("/api/geo-data")
 def api_geo_data():
-    from homenetguard.analysis.geo_lookup import GeoLookup, COUNTRY_CENTROIDS
+    from homenetguard.analysis.geo_lookup import COUNTRY_CENTROIDS, GeoLookup
     from homenetguard.analysis.reputation import is_private_ip
 
     cfg = current_app.config.get("HNG_CONFIG", {})
@@ -613,6 +615,7 @@ def api_geo_data():
 def _enrich_via_ipapi(ips: list[str], geo_points: dict[str, dict]) -> None:
     """Batch-query ip-api.com for geo + ownership data (free tier, no API key)."""
     import requests as req
+
     from homenetguard.analysis.geo_lookup import COUNTRY_CENTROIDS
 
     fields = "query,country,countryCode,city,lat,lon,isp,org,as,status"
@@ -660,8 +663,9 @@ def _enrich_via_ipapi(ips: list[str], geo_points: dict[str, dict]) -> None:
 @bp.route("/api/ip-ownership")
 def api_ip_ownership():
     """Return org/ISP/ASN for all unique public IPs seen in recent flows."""
-    from homenetguard.analysis.reputation import is_private_ip
     import requests as req
+
+    from homenetguard.analysis.reputation import is_private_ip
 
     flows = repository.get_recent_flows(limit=500)
     seen: set[str] = set()

@@ -1,6 +1,7 @@
 import pytest
+
 from homenetguard.analysis.geo_lookup import GeoLookup
-from homenetguard.analysis.reputation import is_private_ip, ReputationChecker
+from homenetguard.analysis.reputation import ReputationChecker, is_private_ip
 from homenetguard.storage import database, repository
 
 

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 from homenetguard.storage.models import SCHEMA_SQL
 from homenetguard.utils.logger import get_logger

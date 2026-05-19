@@ -106,7 +106,7 @@ CREATE INDEX IF NOT EXISTS idx_metrics_window ON traffic_metrics(window_start);
 
 def run_migrations(conn: sqlite3.Connection) -> None:
     """Idempotent — safe to call on every startup."""
-    for table, sql in _V2_COLUMNS:
+    for _, sql in _V2_COLUMNS:
         try:
             conn.execute(sql)
             logger.debug("Migration applied: %s", sql[:60])

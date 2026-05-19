@@ -1,6 +1,7 @@
 import pytest
-from homenetguard.storage import database, repository
+
 from homenetguard.dashboard.app import create_app
+from homenetguard.storage import database, repository
 
 
 @pytest.fixture

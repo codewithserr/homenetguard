@@ -24,9 +24,9 @@ class LiveMonitor:
     def run(self) -> None:
         try:
             from rich.console import Console
+            from rich.layout import Layout  # noqa: F401
             from rich.live import Live
-            from rich.layout import Layout
-            from rich.panel import Panel
+            from rich.panel import Panel  # noqa: F401
         except ImportError:
             print("rich not installed — run: pip install rich")
             return
@@ -46,12 +46,10 @@ class LiveMonitor:
                     self._running = False
 
     def _render(self) -> Any:
+        from rich import box
         from rich.layout import Layout
         from rich.panel import Panel
         from rich.table import Table
-        from rich.text import Text
-        from rich.columns import Columns
-        from rich import box
 
         layout = Layout()
         layout.split_column(
@@ -138,7 +136,6 @@ class LiveMonitor:
                 self._fmt_bytes(f.get("bytes", 0)),
             )
 
-        from rich.layout import Layout as L2
         body_bottom = Panel(flow_table, title="[bold]LIVE FLOWS[/]")
         layout["body"].update(body_bottom)
 

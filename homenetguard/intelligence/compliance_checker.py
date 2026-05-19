@@ -38,7 +38,7 @@ class ComplianceChecker:
 
     def _check_unencrypted_traffic(self) -> dict[str, Any]:
         from homenetguard.storage import repository
-        since = datetime.now(UTC) - timedelta(hours=24)
+        _since = datetime.now(UTC) - timedelta(hours=24)
         flows = repository.get_recent_flows(limit=1000)
         insecure = [f for f in flows if f.get("dst_port") in _INSECURE_PORTS]
         return {
