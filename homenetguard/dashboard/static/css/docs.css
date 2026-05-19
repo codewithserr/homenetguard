@@ -22,7 +22,7 @@
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Geist', sans-serif;
 }
 
 .docs-nav-item {
@@ -53,7 +53,7 @@
 }
 
 .docs-content h1 {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Geist', sans-serif;
   font-size: 22px;
   color: var(--text-primary);
   margin-bottom: 8px;
@@ -117,7 +117,7 @@
   font-size: 10px;
   color: var(--text-muted);
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Geist', sans-serif;
   background: var(--bg-elevated);
   border: 1px solid var(--bg-border);
   padding: 2px 6px;
@@ -231,7 +231,7 @@
   font-size: 12px;
   color: var(--text-muted);
   margin-bottom: 24px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Geist', sans-serif;
 }
 
 .docs-breadcrumb a { color: var(--accent-cyan); text-decoration: none; }
@@ -288,7 +288,7 @@
   border: 1px solid var(--bg-border);
   color: var(--text-primary);
   font-size: 13px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Geist', sans-serif;
   box-sizing: border-box;
 }
 

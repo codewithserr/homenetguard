@@ -3,19 +3,21 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">CONFIGURATION</span>
-  <span class="text-muted" style="font-size:0.72rem;">Read-only — edit config/config.yaml to change</span>
+  <div>
+    <h1 class="page-title">Configuration</h1>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);margin-top:2px;">Read-only — edit config/config.yaml to change</p>
+  </div>
 </div>
 
 {% macro render_section(title, data) %}
-<div class="panel config-section">
+<div class="panel corner-bracket config-section">
   <div class="panel-header"><span class="panel-title">{{ title }}</span></div>
   <table class="data-table">
     <thead><tr><th>KEY</th><th>VALUE</th></tr></thead>
     <tbody>
     {% for k, v in data.items() %}
       {% if v is mapping %}
-        <tr><td class="config-key" colspan="2" style="padding-top:10px;color:var(--text-secondary);">{{ k }}</td></tr>
+        <tr><td class="config-key" colspan="2" style="padding-top:10px;color:var(--on-surface-variant);">{{ k }}</td></tr>
         {% for sk, sv in v.items() %}
         <tr>
           <td class="config-key" style="padding-left:24px;">{{ sk }}</td>
@@ -31,6 +33,7 @@
     {% endfor %}
     </tbody>
   </table>
+  <div class="cb-bottom"></div>
 </div>
 {% endmacro %}
 
@@ -46,32 +49,33 @@
   {% if config.get('logging') %}{{ render_section('LOGGING', config.logging) }}{% endif %}
 </div>
 
-<div class="panel mt-gap">
-  <div class="panel-header"><span class="panel-title">INTEGRATIONS STATUS</span></div>
-  <div style="display:flex;gap:24px;padding:8px 0;flex-wrap:wrap;">
+<div class="panel corner-bracket mt-gap" style="padding:16px 24px;">
+  <div style="margin-bottom:16px;"><span class="panel-title">INTEGRATIONS STATUS</span></div>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;">
     {% set ti = config.get('threat_intelligence', {}) %}
+    {% set al = config.get('alerts', {}) %}
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="indicator {% if ti.get('abuseipdb',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
-      <span style="font-size:0.78rem;">AbuseIPDB</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--on-surface-variant);">AbuseIPDB</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="indicator {% if ti.get('virustotal',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
-      <span style="font-size:0.78rem;">VirusTotal</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--on-surface-variant);">VirusTotal</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="indicator {% if config.get('geoip',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
-      <span style="font-size:0.78rem;">GeoIP</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--on-surface-variant);">GeoIP</span>
     </div>
-    {% set al = config.get('alerts', {}) %}
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="indicator {% if al.get('email',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
-      <span style="font-size:0.78rem;">Email Alerts</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--on-surface-variant);">Email Alerts</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="indicator {% if al.get('telegram',{}).get('enabled') %}indicator-live{% else %}indicator-offline{% endif %}"></span>
-      <span style="font-size:0.78rem;">Telegram Alerts</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--on-surface-variant);">Telegram Alerts</span>
     </div>
   </div>
+  <div class="cb-bottom"></div>
 </div>
 
 {% endblock %}

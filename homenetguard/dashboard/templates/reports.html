@@ -3,59 +3,56 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">REPORTS</span>
-  <button class="btn btn-primary" onclick="document.getElementById('new-report-modal').classList.remove('hidden')">
-    + Generate Report
-  </button>
+  <h1 class="page-title">Reports</h1>
+  <button class="btn" onclick="document.getElementById('new-report-modal').classList.remove('hidden')">+ Generate Report</button>
 </div>
 
-<div class="grid-2" style="align-items: start;">
+<div class="grid-2" style="align-items:start;">
 
-  <!-- Left: Report list -->
-  <div class="panel" style="min-width:0;">
+  <div class="panel corner-bracket" style="min-width:0;">
     <div class="panel-header">
       <span class="panel-title">GENERATED REPORTS</span>
-      <span class="text-muted" id="report-count" style="font-size:0.65rem;"></span>
+      <span class="text-muted" id="report-count" style="font-size:11px;"></span>
     </div>
     <div id="reports-list">
       <div class="empty-state"><span class="empty-state-icon">📋</span>No reports yet</div>
     </div>
+    <div class="cb-bottom"></div>
   </div>
 
-  <!-- Right: Inline viewer -->
-  <div class="panel" id="viewer-panel" style="min-width:0;">
+  <div class="panel corner-bracket" id="viewer-panel" style="min-width:0;">
     <div class="panel-header">
       <span class="panel-title" id="viewer-title">REPORT VIEWER</span>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" id="viewer-download-btn" style="display:none;font-size:0.65rem;padding:3px 8px;"
+        <button class="btn-ghost" id="viewer-download-btn" style="display:none;font-size:10px;padding:3px 8px;"
                 onclick="downloadReport()">↓ Download</button>
-        <button class="btn btn-ghost" style="font-size:0.65rem;padding:3px 8px;"
+        <button class="btn-ghost" style="font-size:10px;padding:3px 8px;"
                 onclick="clearViewer()">✕ Close</button>
       </div>
     </div>
-    <div id="viewer-placeholder" style="padding:40px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
+    <div id="viewer-placeholder" style="padding:60px;text-align:center;color:var(--outline);">
       <div style="font-size:2rem;opacity:0.2;margin-bottom:8px;">📄</div>
-      Select a report from the list to preview it here
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;">Select a report to preview</div>
     </div>
     <iframe id="report-iframe"
             style="display:none;width:100%;height:75vh;border:none;border-radius:3px;background:#fff;"
             sandbox="allow-same-origin allow-scripts">
     </iframe>
+    <div class="cb-bottom"></div>
   </div>
 
 </div>
 
-<!-- Generate report modal -->
 <div class="modal-overlay hidden" id="new-report-modal"
      onclick="if(event.target===this)this.classList.add('hidden')">
-  <div class="modal">
+  <div class="modal" style="width:420px;">
     <div class="modal-header">
       <span class="modal-title">GENERATE REPORT</span>
       <button class="modal-close" onclick="document.getElementById('new-report-modal').classList.add('hidden')">✕</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
       <div>
-        <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">TYPE</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--outline);display:block;margin-bottom:6px;">TYPE</label>
         <select class="filter-select" id="rpt-type" style="width:100%;">
           <option value="daily">Daily (last 24h)</option>
           <option value="weekly">Weekly (last 7d)</option>
@@ -64,53 +61,30 @@
       </div>
       <div id="custom-dates" style="display:none;gap:8px;flex-direction:column;">
         <div>
-          <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">FROM</label>
+          <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--outline);display:block;margin-bottom:6px;">FROM</label>
           <input type="date" class="filter-input" id="rpt-from" style="width:100%;">
         </div>
         <div>
-          <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">TO</label>
+          <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--outline);display:block;margin-bottom:6px;">TO</label>
           <input type="date" class="filter-input" id="rpt-to" style="width:100%;">
         </div>
       </div>
       <div>
-        <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">FORMAT</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--outline);display:block;margin-bottom:6px;">FORMAT</label>
         <select class="filter-select" id="rpt-format" style="width:100%;">
           <option value="html">HTML only</option>
           <option value="pdf">PDF only</option>
           <option value="both">HTML + PDF</option>
         </select>
       </div>
-      <div id="gen-status" style="display:none;font-size:0.75rem;color:var(--accent-primary);font-family:'JetBrains Mono',monospace;">
-        ⟳ Generating...
-      </div>
+      <div id="gen-status" style="display:none;font-size:12px;color:var(--surface-tint);font-family:'JetBrains Mono',monospace;">⟳ Generating...</div>
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <button class="btn btn-primary" onclick="generateReport()" style="flex:1;" id="gen-btn">Generate</button>
-        <button class="btn btn-ghost"
-                onclick="document.getElementById('new-report-modal').classList.add('hidden')">Cancel</button>
+        <button class="btn" onclick="generateReport()" style="flex:1;justify-content:center;" id="gen-btn">Generate</button>
+        <button class="btn-ghost" onclick="document.getElementById('new-report-modal').classList.add('hidden')">Cancel</button>
       </div>
     </div>
   </div>
 </div>
-
-<style>
-.report-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--bg-border);
-  cursor: pointer;
-  transition: background 0.12s;
-  gap: 10px;
-}
-.report-item:hover { background: var(--bg-elevated); }
-.report-item.active { background: var(--bg-elevated); border-left: 3px solid var(--accent-primary); }
-.report-item:last-child { border-bottom: none; }
-.report-meta { flex:1; min-width:0; }
-.report-name { font-size:0.78rem; color:var(--text-primary); font-weight:600; }
-.report-sub  { font-size:0.68rem; color:var(--text-muted); font-family:'JetBrains Mono',monospace; margin-top:2px; }
-.report-actions { display:flex; gap:6px; flex-shrink:0; }
-</style>
 
 <script>
 let _currentReportId = null;
@@ -147,11 +121,11 @@ async function loadReports() {
         </div>
       </div>
       <div class="report-actions">
-        <button class="btn btn-primary" style="font-size:0.65rem;padding:3px 8px;"
+        <button class="btn" style="font-size:0.65rem;padding:3px 8px;"
                 onclick="event.stopPropagation();viewReport(${r.id}, ${JSON.stringify(r.file_path || '')}, ${JSON.stringify(r.report_type)}, ${JSON.stringify(r.format || 'html')})">
           👁 View
         </button>
-        ${r.file_path ? `<button class="btn btn-ghost" style="font-size:0.65rem;padding:3px 8px;"
+        ${r.file_path ? `<button class="btn-ghost" style="font-size:0.65rem;padding:3px 8px;"
                 onclick="event.stopPropagation();window.open('/api/reports/${r.id}/download', '_blank')">↓</button>` : ''}
       </div>
     </div>
@@ -162,7 +136,6 @@ function viewReport(reportId, filePath, reportType, fmt) {
   _currentReportId = reportId;
   _currentFilePath = filePath;
 
-  // Highlight active item
   document.querySelectorAll('.report-item').forEach(el => el.classList.remove('active'));
   const item = document.getElementById(`report-item-${reportId}`);
   if (item) item.classList.add('active');
@@ -175,10 +148,7 @@ function viewReport(reportId, filePath, reportType, fmt) {
   title.textContent = `REPORT — ${reportType.toUpperCase()}`;
   placeholder.style.display = 'none';
   iframe.style.display = 'block';
-
-  // Load HTML content via API (works for both HTML and PDF reports)
   iframe.src = `/api/reports/${reportId}/content`;
-
   dlBtn.style.display = filePath ? 'flex' : 'none';
 }
 
@@ -224,7 +194,6 @@ async function generateReport() {
 
     if (data.ok) {
       await loadReports();
-      // Auto-preview the first generated file
       const reports = await (await fetch('/api/reports')).json();
       if (reports.length) {
         const newest = reports[0];
@@ -239,7 +208,6 @@ async function generateReport() {
   }
 }
 
-// Load on page open
 loadReports();
 </script>
 {% endblock %}

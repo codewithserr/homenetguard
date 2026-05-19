@@ -3,16 +3,14 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">DEVICES</span>
-  <div style="display:flex;gap:8px;">
-    <button class="btn btn-primary" onclick="scanNow()">⟳ Scan Now</button>
-  </div>
+  <h1 class="page-title">Devices</h1>
+  <button class="btn" onclick="scanNow()">⟳ Scan Now</button>
 </div>
 
-<div class="panel">
+<div class="panel corner-bracket">
   <div class="panel-header">
     <span class="panel-title">NETWORK DEVICES</span>
-    <span class="text-muted" id="device-count" style="font-size:0.65rem;"></span>
+    <span class="text-muted" id="device-count" style="font-size:11px;"></span>
   </div>
   <div class="table-scroll" style="max-height:70vh;">
     <table class="data-table">
@@ -28,6 +26,7 @@
       <tbody id="devices-tbody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
     </table>
   </div>
+  <div class="cb-bottom"></div>
 </div>
 
 <script>
@@ -41,22 +40,24 @@ async function loadDevices() {
     return;
   }
   tbody.innerHTML = devices.map(d => {
-    const statusClass = d.is_quarantined ? 'badge-critical' : d.is_trusted ? 'badge-low' : 'badge-tcp';
-    const statusLabel = d.is_quarantined ? '🔒 Quarantine' : d.is_trusted ? '✓ Trusted' : 'Unknown';
+    const statusClass = d.is_quarantined ? 'badge-quarantined' : d.is_trusted ? 'badge-verified' : 'badge-low';
+    const statusLabel = d.is_quarantined ? 'Quarantine' : d.is_trusted ? 'Trusted' : 'Unknown';
     return `
       <tr>
-        <td class="ip-address" style="font-size:0.72rem;" data-learn-term="ARP">${d.mac_address || '—'}</td>
-        <td style="font-size:0.74rem;">${d.vendor || 'Unknown'}</td>
+        <td class="ip-address" data-learn-term="ARP">${d.mac_address || '—'}</td>
+        <td>${d.vendor || 'Unknown'}</td>
         <td class="ip-address">${d.ip_address || '—'}</td>
-        <td style="font-size:0.72rem;" data-learn-term="fingerprint">${d.os_guess ? `${d.os_guess} (${Math.round((d.os_confidence||0)*100)}%)` : '—'}</td>
-        <td class="text-mono" style="font-size:0.68rem;">${(d.first_seen||'').slice(0,16).replace('T',' ')}</td>
-        <td class="text-mono" style="font-size:0.68rem;">${(d.last_seen||'').slice(0,16).replace('T',' ')}</td>
+        <td data-learn-term="fingerprint">${d.os_guess ? `${d.os_guess} (${Math.round((d.os_confidence||0)*100)}%)` : '—'}</td>
+        <td class="text-mono" style="font-size:11px;">${(d.first_seen||'').slice(0,16).replace('T',' ')}</td>
+        <td class="text-mono" style="font-size:11px;">${(d.last_seen||'').slice(0,16).replace('T',' ')}</td>
         <td><span class="badge ${statusClass}">${statusLabel}</span></td>
         <td>
           <div style="display:flex;gap:4px;">
-            ${!d.is_trusted ? `<button class="btn btn-ghost" style="font-size:0.62rem;padding:2px 6px;" onclick="trustDevice('${d.mac_address}')">Trust</button>` : ''}
-            ${!d.is_quarantined ? `<button class="btn btn-danger" style="font-size:0.62rem;padding:2px 6px;" onclick="quarantineDevice('${d.mac_address}')">Quarantine</button>` : `<button class="btn btn-ghost" style="font-size:0.62rem;padding:2px 6px;" onclick="releaseDevice('${d.mac_address}')">Release</button>`}
-            <a href="/forensics?ip=${d.ip_address||''}" class="btn btn-ghost" style="font-size:0.62rem;padding:2px 6px;">Forensics</a>
+            ${!d.is_trusted ? `<button class="btn-ghost" style="font-size:10px;padding:2px 6px;" onclick="trustDevice('${d.mac_address}')">Trust</button>` : ''}
+            ${!d.is_quarantined
+              ? `<button class="btn-danger" style="font-size:10px;padding:2px 6px;" onclick="quarantineDevice('${d.mac_address}')">Quarantine</button>`
+              : `<button class="btn-ghost" style="font-size:10px;padding:2px 6px;" onclick="releaseDevice('${d.mac_address}')">Release</button>`}
+            <a href="/forensics?ip=${d.ip_address||''}" class="btn-ghost" style="font-size:10px;padding:2px 6px;">Forensics</a>
           </div>
         </td>
       </tr>`;

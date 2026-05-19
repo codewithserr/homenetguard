@@ -3,18 +3,19 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">DNS ANALYSIS <a href="/learn/dns" class="learn-link" title="Learn about DNS">?</a></span>
+  <h1 class="page-title">DNS Analysis <a href="/learn/dns" class="learn-link" title="Learn about DNS">?</a></h1>
 </div>
 
-<div class="grid-2">
-  <div class="panel">
+<div class="grid-2" style="margin-bottom:var(--gutter);">
+  <div class="panel corner-bracket">
     <div class="panel-header"><span class="panel-title">TOP DOMAINS</span></div>
     <table class="data-table">
       <thead><tr><th>#</th><th>DOMAIN</th><th>QUERIES</th></tr></thead>
       <tbody id="top-domains-tbody"><tr><td colspan="3" class="empty-state">Loading...</td></tr></tbody>
     </table>
+    <div class="cb-bottom"></div>
   </div>
-  <div class="panel">
+  <div class="panel corner-bracket">
     <div class="panel-header">
       <span class="panel-title">SUSPICIOUS DOMAINS</span>
       <span class="badge badge-medium" id="suspicious-count">0</span>
@@ -22,10 +23,11 @@
     <div id="suspicious-list">
       <div class="empty-state"><span class="empty-state-icon">✓</span>No suspicious domains</div>
     </div>
+    <div class="cb-bottom"></div>
   </div>
 </div>
 
-<div class="panel mt-gap">
+<div class="panel corner-bracket mt-gap">
   <div class="panel-header"><span class="panel-title">RECENT DNS QUERIES</span></div>
   <div class="table-scroll">
     <table class="data-table">
@@ -35,6 +37,7 @@
       <tbody id="dns-tbody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody>
     </table>
   </div>
+  <div class="cb-bottom"></div>
 </div>
 
 <script>
@@ -44,35 +47,31 @@ async function loadDNS() {
 
   const tbody = document.getElementById('dns-tbody');
   tbody.innerHTML = queries.slice(0, 200).map(q => `
-    <tr class="${q.is_suspicious ? 'row-malicious' : ''}">
-      <td class="text-mono" style="font-size:0.7rem;">${(q.timestamp||'').slice(11,19)}</td>
+    <tr class="${q.is_suspicious ? 'row-danger' : ''}">
+      <td class="text-mono" style="font-size:11px;">${(q.timestamp||'').slice(11,19)}</td>
       <td class="ip-address">${q.src_ip||'—'}</td>
-      <td class="text-mono" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-        ${q.queried_domain||'—'}
-      </td>
+      <td class="text-mono" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.queried_domain||'—'}</td>
       <td><span class="badge badge-tcp" data-learn-term="DNS">${q.query_type||'?'}</span></td>
       <td class="ip-address">${q.response_ip||'—'}</td>
       <td>${q.is_suspicious
         ? '<span class="badge badge-high">SUSPICIOUS</span>'
-        : '<span class="badge" style="color:var(--text-muted)">OK</span>'
+        : '<span class="badge badge-resolved">OK</span>'
       }</td>
     </tr>
   `).join('');
   if (window.initLearnTooltips) window.initLearnTooltips();
 
-  // Top domains
   const counts = {};
   queries.forEach(q => { counts[q.queried_domain] = (counts[q.queried_domain]||0)+1; });
   const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,15);
   document.getElementById('top-domains-tbody').innerHTML = top.map(([d,c], i) => `
     <tr>
       <td class="text-mono">${i+1}</td>
-      <td class="text-mono" style="font-size:0.75rem;">${d}</td>
+      <td class="text-mono" style="font-size:12px;">${d}</td>
       <td class="text-mono">${c}</td>
     </tr>
   `).join('') || `<tr><td colspan="3" class="empty-state">No queries</td></tr>`;
 
-  // Suspicious
   const susp = queries.filter(q => q.is_suspicious);
   document.getElementById('suspicious-count').textContent = susp.length;
   const suspList = document.getElementById('suspicious-list');
@@ -80,10 +79,10 @@ async function loadDNS() {
     suspList.innerHTML = `<div class="empty-state"><span class="empty-state-icon">✓</span>None found</div>`;
   } else {
     suspList.innerHTML = susp.slice(0,20).map(q => `
-      <div class="alert-item sev-medium" style="margin-bottom:4px;">
-        <div class="alert-body">
-          <div class="alert-type text-mono">${q.queried_domain}</div>
-          <div class="alert-meta">from <span class="ip-address">${q.src_ip}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--outline-variant);">
+        <div>
+          <div class="text-mono" style="font-size:12px;">${q.queried_domain}</div>
+          <div class="text-muted" style="font-size:11px;">from <span class="ip-address">${q.src_ip}</span></div>
         </div>
         <span class="badge badge-medium">${q.query_type||'?'}</span>
       </div>

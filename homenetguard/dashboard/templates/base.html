@@ -1,136 +1,295 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}HomeNetGuard{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/leaflet.css') }}">
-  <script src="{{ url_for('static', filename='js/vendor/leaflet.js') }}" defer></script>
-  <!-- Chart.js -->
-  <script src="{{ url_for('static', filename='js/vendor/chart.umd.min.js') }}" defer></script>
-  <!-- Socket.IO -->
-  <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
-  <!-- Main JS -->
-  <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
-</head>
-<body>
-<div class="app-shell">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HomeNetGuard | {% block title %}Mission Control{% endblock %}</title>
 
-  <!-- TOPBAR -->
-  <header class="topbar">
-    <div class="topbar-brand">
-      <span class="indicator indicator-live" id="connection-indicator"></span>
-      <span class="brand-title">HOMENETGUARD</span>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Fonts: Material Symbols + JetBrains Mono + Geist -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Geist:wght@400;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Design system CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/effects.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}"/>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/leaflet.css') }}"/>
+  {% block styles %}{% endblock %}
+
+  <!-- Tailwind config with design tokens -->
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-tint":              "#00e639",
+            "surface-dim":               "#131313",
+            "surface":                   "#131313",
+            "surface-container-lowest":  "#0e0e0e",
+            "surface-container-low":     "#1c1b1b",
+            "surface-container":         "#201f1f",
+            "surface-container-high":    "#2a2a2a",
+            "surface-container-highest": "#353534",
+            "surface-variant":           "#353534",
+            "primary":                   "#ebffe2",
+            "primary-container":         "#00ff41",
+            "primary-fixed":             "#72ff70",
+            "primary-fixed-dim":         "#00e639",
+            "on-primary":                "#003907",
+            "secondary":                 "#98cbff",
+            "secondary-container":       "#00a2fd",
+            "error":                     "#ffb4ab",
+            "error-container":           "#93000a",
+            "on-error":                  "#690005",
+            "on-surface":                "#e5e2e1",
+            "on-surface-variant":        "#b9ccb2",
+            "outline":                   "#84967e",
+            "outline-variant":           "#3b4b37",
+            "background":                "#131313",
+          },
+          fontFamily: {
+            "sans": ["Geist", "sans-serif"],
+            "mono": ["JetBrains Mono", "monospace"],
+          },
+          spacing: { "margin": "24px", "gutter": "16px" }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="dark overflow-x-hidden" style="font-family:'Geist',sans-serif;">
+
+  <!-- CRT atmospheric overlay -->
+  <div class="crt-overlay"></div>
+
+  <!-- ═══════════════════════════════════
+       SIDEBAR — Fixed left navigation
+       ═══════════════════════════════════ -->
+  <aside style="width:256px;height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;padding:24px 0;background:var(--surface-dim);border-right:1px solid var(--outline-variant);z-index:60;overflow-y:auto;">
+
+    <!-- Brand -->
+    <div style="padding:0 24px;margin-bottom:32px;">
+      <div style="font-family:'Geist',sans-serif;font-size:20px;font-weight:700;color:var(--surface-tint);display:flex;align-items:center;gap:8px;">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;font-size:22px;">security</span>
+        HomeNetGuard
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--outline);margin-top:4px;">
+        PROTOCOL: SECURE <span class="terminal-cursor"></span>
+      </div>
     </div>
-    <div class="topbar-ticker">
-      <span class="ticker-content" id="ticker-content"></span>
+
+    <!-- Primary nav -->
+    <nav style="flex:1;padding:0 8px;display:flex;flex-direction:column;gap:2px;">
+
+      <a href="/" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">dashboard</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Dashboard</span>
+      </a>
+
+      <a href="/alerts" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/alerts' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">security</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Threat Center</span>
+      </a>
+
+      <a href="/flows" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/flows' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">analytics</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Analysis</span>
+      </a>
+
+      <a href="/devices" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/devices' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">devices</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Devices</span>
+      </a>
+
+      <a href="/dns" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/dns' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">public</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">DNS</span>
+      </a>
+
+      <a href="/firewall" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/firewall' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">shield</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Firewall</span>
+      </a>
+
+      <a href="/intelligence" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/intelligence' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">radar</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Intelligence</span>
+      </a>
+
+      <a href="/forensics" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/forensics' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">manage_search</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Forensics</span>
+      </a>
+
+      <a href="/reports" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/reports' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">description</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Reports</span>
+      </a>
+
+      <a href="/wifi" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path == '/wifi' %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">wifi</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">WiFi</span>
+      </a>
+
+      <a href="/learn" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path.startswith('/learn') %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">school</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Edu Portal</span>
+      </a>
+
+      <a href="/docs" style="display:flex;align-items:center;gap:12px;padding:10px 16px;text-decoration:none;transition:all 0.2s;
+         {% if request.path.startswith('/docs') %}color:var(--primary-container);border-right:2px solid var(--primary-container);background:rgba(235,255,226,0.05);
+         {% else %}color:var(--on-surface-variant);border-right:2px solid transparent;{% endif %}">
+        <span class="material-symbols-outlined" style="font-size:20px;">menu_book</span>
+        <span style="font-family:'Geist',sans-serif;font-size:15px;">Docs</span>
+      </a>
+
+    </nav>
+
+    <!-- INITIATE SCAN CTA -->
+    <div style="padding:0 16px;margin-bottom:12px;">
+      <button id="btn-initiate-scan" class="glow-sm"
+              style="width:100%;padding:10px;border:1px solid var(--surface-tint);color:var(--surface-tint);
+                     background:transparent;font-family:'JetBrains Mono',monospace;font-size:10px;
+                     font-weight:700;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;">
+        INITIATE SCAN
+      </button>
     </div>
-    <div class="topbar-right">
-      <span class="iface-badge" id="iface-label">● MONITORING</span>
-      <span class="clock" id="utc-clock">00:00:00 UTC</span>
-      <button class="btn-stop" onclick="stopCapture()">■ STOP</button>
+
+    <!-- Secondary nav -->
+    <div style="padding:0 8px;border-top:1px solid rgba(59,75,55,0.3);padding-top:12px;display:flex;flex-direction:column;gap:2px;">
+      <a href="/config" style="display:flex;align-items:center;gap:12px;padding:8px 16px;text-decoration:none;
+         color:var(--on-surface-variant);transition:color 0.2s;">
+        <span class="material-symbols-outlined" style="font-size:18px;">settings</span>
+        <span style="font-family:'Geist',sans-serif;font-size:14px;">Settings</span>
+      </a>
+      <a href="/api/docs" style="display:flex;align-items:center;gap:12px;padding:8px 16px;text-decoration:none;
+         color:var(--on-surface-variant);transition:color 0.2s;">
+        <span class="material-symbols-outlined" style="font-size:18px;">api</span>
+        <span style="font-family:'Geist',sans-serif;font-size:14px;">API Docs ↗</span>
+      </a>
+    </div>
+
+    <!-- System stats (updated by dashboard.js) -->
+    <div style="margin-top:8px;border-top:1px solid rgba(59,75,55,0.3);padding-top:8px;">
+      <div class="sys-stat"><span class="sys-stat-label">SNIFFER</span><span class="sys-stat-value" id="sys-sniffer">IDLE</span></div>
+      <div class="sys-stat"><span class="sys-stat-label">BPS</span><span class="sys-stat-value" id="sys-bps">0 B/s</span></div>
+      <div class="sys-stat"><span class="sys-stat-label">PACKETS</span><span class="sys-stat-value" id="sys-packets">0</span></div>
+    </div>
+
+  </aside>
+
+  <!-- ═══════════════════════════════════
+       TOPBAR — Fixed top bar
+       ═══════════════════════════════════ -->
+  <header style="position:fixed;top:0;left:256px;right:0;height:64px;
+                 background:rgba(19,19,19,0.85);backdrop-filter:blur(12px);
+                 border-bottom:1px solid var(--outline-variant);z-index:50;
+                 display:flex;justify-content:space-between;align-items:center;padding:0 24px;">
+
+    <!-- Left: system status + ticker -->
+    <div style="display:flex;gap:24px;align-items:center;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+                   letter-spacing:0.1em;color:var(--surface-tint);display:flex;align-items:center;gap:8px;">
+        <span class="indicator indicator-live" id="connection-indicator"></span>
+        System: SECURE
+      </span>
+      <span class="ticker-content" id="ticker-content" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);"></span>
+    </div>
+
+    <!-- Right: search + clock + stop -->
+    <div style="display:flex;align-items:center;gap:20px;">
+
+      <div style="position:relative;">
+        <input type="text" placeholder="CMD_SEARCH..."
+               style="background:var(--surface-container-low);border:none;border-bottom:1px solid var(--outline);
+                      color:var(--primary);font-family:'JetBrains Mono',monospace;font-size:12px;
+                      padding:4px 28px 4px 10px;outline:none;width:180px;transition:border-color 0.2s;"
+               onfocus="this.style.borderColor='var(--surface-tint)'"
+               onblur="this.style.borderColor='var(--outline)'"/>
+        <span class="material-symbols-outlined" style="position:absolute;right:4px;top:4px;font-size:16px;color:var(--outline);pointer-events:none;">search</span>
+      </div>
+
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);" id="utc-clock">00:00:00 UTC</span>
+
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);" id="iface-label">● MONITORING</span>
+
+      <button class="btn-danger" style="font-size:10px;padding:4px 10px;" onclick="stopCapture()">■ STOP</button>
     </div>
   </header>
 
-  <!-- SIDEBAR -->
-  <nav class="sidebar">
-    <div class="sidebar-nav">
-      <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        Overview
-      </a>
-      <a href="/alerts" class="nav-item {% if request.path == '/alerts' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Alerts
-      </a>
-      <a href="/flows" class="nav-item {% if request.path == '/flows' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Flows
-      </a>
-      <a href="/dns" class="nav-item {% if request.path == '/dns' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        DNS
-      </a>
-      <a href="/reports" class="nav-item {% if request.path == '/reports' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Reports
-      </a>
-      <a href="/config" class="nav-item {% if request.path == '/config' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Config
-      </a>
-      <!-- v2 nav items -->
-      <div style="height:1px;background:var(--bg-border);margin:8px 0;"></div>
-      <a href="/devices" class="nav-item {% if request.path == '/devices' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        Devices
-      </a>
-      <a href="/firewall" class="nav-item {% if request.path == '/firewall' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Firewall
-      </a>
-      <a href="/intelligence" class="nav-item {% if request.path == '/intelligence' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-        Intelligence
-      </a>
-      <a href="/forensics" class="nav-item {% if request.path == '/forensics' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Forensics
-      </a>
-      <a href="/wifi" class="nav-item {% if request.path == '/wifi' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
-        WiFi
-      </a>
-      <a href="/docs" class="nav-item {% if request.path.startswith('/docs') %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
-        Docs
-      </a>
-      <a href="/learn" class="nav-item {% if request.path.startswith('/learn') %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        Academy
-      </a>
-      <a href="/api/docs" class="nav-item">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
-        API Docs ↗
-      </a>
-    </div>
-    <div class="sidebar-footer">
-      <div class="sys-stat">
-        <span class="sys-stat-label">SNIFFER</span>
-        <span class="sys-stat-value" id="sys-sniffer">IDLE</span>
-      </div>
-      <div class="sys-stat">
-        <span class="sys-stat-label">BPS</span>
-        <span class="sys-stat-value" id="sys-bps">0 B/s</span>
-      </div>
-      <div class="sys-stat">
-        <span class="sys-stat-label">PACKETS</span>
-        <span class="sys-stat-value" id="sys-packets">0</span>
-      </div>
-    </div>
-  </nav>
-
-  <!-- MAIN -->
-  <main class="main-content">
+  <!-- ═══════════════════════════════════
+       MAIN CONTENT AREA
+       ═══════════════════════════════════ -->
+  <main style="margin-left:256px;padding-top:80px;padding-bottom:72px;padding-left:24px;padding-right:24px;min-height:100vh;">
     {% block content %}{% endblock %}
   </main>
 
-</div>
-
-<!-- Alert Detail Modal -->
-<div class="modal-overlay hidden" id="alert-modal" onclick="if(event.target===this)closeAlertModal()">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">ALERT DETAIL</span>
-      <button class="modal-close" onclick="closeAlertModal()">✕</button>
+  <!-- ═══════════════════════════════════
+       FOOTER — Fixed bottom bar
+       ═══════════════════════════════════ -->
+  <footer style="position:fixed;bottom:0;left:256px;right:0;
+                 background:var(--surface-container-lowest);border-top:1px solid rgba(59,75,55,0.3);
+                 padding:6px 24px;display:flex;justify-content:space-between;align-items:center;z-index:50;">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);">
+      v{{ app_version | default('1.0.0') }}-STABLE | KERNEL: HNG_CORE_READY
+    </span>
+    <div style="display:flex;gap:24px;">
+      <a href="/docs" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);text-decoration:none;">Docs</a>
+      <a href="/api/docs" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);text-decoration:none;">API</a>
     </div>
-    <div id="modal-body"></div>
-  </div>
-</div>
+  </footer>
 
-<script src="{{ url_for('static', filename='js/learn.js') }}" defer></script>
+  <!-- Alert Detail Modal (used by dashboard.js) -->
+  <div class="modal-overlay hidden" id="alert-modal" onclick="if(event.target===this)closeAlertModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">ALERT DETAIL</span>
+        <button class="modal-close" onclick="closeAlertModal()">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Vendor scripts -->
+  <script src="{{ url_for('static', filename='js/vendor/socket.io.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/vendor/chart.umd.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/vendor/leaflet.js') }}" defer></script>
+
+  <!-- App scripts -->
+  <script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/ui.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/learn.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+
 </body>
 </html>

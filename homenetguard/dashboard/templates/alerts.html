@@ -3,34 +3,40 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">ALERTS <a href="/learn/anomaly-detection" class="learn-link" title="Learn about threat detection">?</a></span>
+  <div>
+    <h1 class="page-title">Threat Center <a href="/learn/anomaly-detection" class="learn-link" title="Learn about threat detection">?</a></h1>
+  </div>
   <div style="display:flex;gap:8px;">
-    <button class="btn btn-danger" onclick="clearAllAlerts()">Clear All</button>
-    <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
+    <button class="btn-danger" onclick="clearAllAlerts()">Clear All</button>
+    <button class="btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
   </div>
 </div>
 
-<!-- Summary badges -->
-<div class="grid-4" style="margin-bottom:var(--gap);">
-  <div class="kpi-card kpi-danger">
+<!-- Severity KPIs -->
+<div class="grid-4" style="margin-bottom:var(--gutter);">
+  <div class="kpi-card kpi-danger corner-bracket">
     <div class="kpi-label">CRITICAL</div>
-    <div class="kpi-value danger" id="cnt-critical">—</div>
+    <div class="kpi-value" id="cnt-critical">—</div>
+    <div class="cb-bottom"></div>
   </div>
-  <div class="kpi-card kpi-warn">
+  <div class="kpi-card kpi-warn corner-bracket">
     <div class="kpi-label">HIGH</div>
-    <div class="kpi-value" style="color:var(--severity-high);" id="cnt-high">—</div>
+    <div class="kpi-value" style="color:#ffb400;" id="cnt-high">—</div>
+    <div class="cb-bottom"></div>
   </div>
-  <div class="kpi-card">
+  <div class="kpi-card corner-bracket">
     <div class="kpi-label">MEDIUM</div>
-    <div class="kpi-value" style="color:var(--severity-medium);font-size:1.4rem;" id="cnt-medium">—</div>
+    <div class="kpi-value" style="color:#ffcc00;" id="cnt-medium">—</div>
+    <div class="cb-bottom"></div>
   </div>
-  <div class="kpi-card kpi-cyan">
+  <div class="kpi-card kpi-cyan corner-bracket">
     <div class="kpi-label">LOW</div>
-    <div class="kpi-value" style="color:var(--severity-low);font-size:1.4rem;" id="cnt-low">—</div>
+    <div class="kpi-value" style="color:var(--secondary);" id="cnt-low">—</div>
+    <div class="cb-bottom"></div>
   </div>
 </div>
 
-<div class="panel">
+<div class="panel corner-bracket">
   <div class="filter-bar">
     <select class="filter-select" id="filter-severity" onchange="loadAlerts()">
       <option value="">All severities</option>
@@ -52,7 +58,7 @@
       <option value="unacked">Unacknowledged</option>
       <option value="all">All alerts</option>
     </select>
-    <span class="text-muted" id="alert-count" style="align-self:center;font-size:0.72rem;"></span>
+    <span class="text-muted" id="alert-count" style="align-self:center;font-size:11px;margin-left:auto;"></span>
   </div>
   <div class="table-scroll" style="max-height:65vh;">
     <table class="data-table">
@@ -67,6 +73,7 @@
       </tbody>
     </table>
   </div>
+  <div class="cb-bottom"></div>
 </div>
 
 <!-- Threat Detail Modal -->
@@ -76,7 +83,7 @@
     <div class="modal-header">
       <span class="modal-title" id="threat-modal-title">THREAT DETAIL</span>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-ghost" style="font-size:0.7rem;padding:3px 10px;"
+        <button class="btn-ghost" style="font-size:10px;padding:3px 10px;"
                 id="threat-ack-btn" onclick="ackCurrentAlert()">✓ Acknowledge</button>
         <button class="modal-close" onclick="closeThreatModal()">✕</button>
       </div>

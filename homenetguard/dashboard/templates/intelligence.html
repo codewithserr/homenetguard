@@ -3,39 +3,39 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">THREAT INTELLIGENCE</span>
+  <h1 class="page-title">Threat Intelligence</h1>
 </div>
 
-<div class="grid-2" style="align-items:start;">
-
-  <!-- MITRE ATT&CK -->
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">MITRE ATT&CK COVERAGE <a href="/learn/mitre-attack" class="learn-link" title="Learn about MITRE ATT&CK">?</a></span></div>
-    <div id="mitre-matrix">Loading...</div>
+<div class="grid-2" style="align-items:start;margin-bottom:var(--gutter);">
+  <div class="panel corner-bracket">
+    <div class="panel-header">
+      <span class="panel-title">MITRE ATT&CK <a href="/learn/mitre-attack" class="learn-link" title="Learn about MITRE ATT&CK">?</a></span>
+    </div>
+    <div id="mitre-matrix" style="padding:16px;">Loading...</div>
+    <div class="cb-bottom"></div>
   </div>
 
-  <!-- Feeds status -->
-  <div class="panel">
+  <div class="panel corner-bracket">
     <div class="panel-header">
       <span class="panel-title">THREAT FEEDS <a href="/learn/threat-feeds" class="learn-link" title="Learn about threat feeds">?</a></span>
-      <button class="btn btn-primary" style="font-size:0.65rem;padding:3px 8px;" onclick="updateFeeds()">↻ Update All</button>
+      <button class="btn" style="font-size:10px;padding:3px 8px;" onclick="updateFeeds()">↻ Update All</button>
     </div>
-    <div id="feeds-list">Loading...</div>
+    <div id="feeds-list" style="padding:0 16px;">Loading...</div>
 
-    <div class="panel-header" style="margin-top:16px;"><span class="panel-title">COMPLIANCE SCORE</span></div>
-    <!-- DNS Sinkhole learn link rendered below in panel -->
-    <div id="compliance-panel">Loading...</div>
+    <div class="panel-header" style="margin-top:16px;">
+      <span class="panel-title">COMPLIANCE SCORE</span>
+    </div>
+    <div id="compliance-panel" style="padding:16px;">Loading...</div>
+    <div class="cb-bottom"></div>
   </div>
-
 </div>
 
-<!-- DNS Sinkhole panel -->
-<div class="panel mt-gap">
+<div class="panel corner-bracket mt-gap">
   <div class="panel-header">
     <span class="panel-title">DNS SINKHOLE RULES <a href="/learn/dns-sinkhole" class="learn-link" title="Learn about DNS sinkholes">?</a></span>
     <div style="display:flex;gap:8px;">
       <input class="filter-input" id="sink-domain" placeholder="domain.com" style="width:180px;">
-      <button class="btn btn-primary" style="font-size:0.65rem;padding:3px 8px;" onclick="addSinkhole()">+ Block Domain</button>
+      <button class="btn" style="font-size:10px;padding:3px 8px;" onclick="addSinkhole()">+ Block Domain</button>
     </div>
   </div>
   <div class="table-scroll" style="max-height:30vh;">
@@ -44,6 +44,7 @@
       <tbody id="sinkhole-tbody"><tr><td colspan="4" class="empty-state">No blocked domains</td></tr></tbody>
     </table>
   </div>
+  <div class="cb-bottom"></div>
 </div>
 
 <script>
@@ -106,7 +107,7 @@ async function loadCompliance() {
   const el = document.getElementById('compliance-panel');
   el.innerHTML = `
     <div style="text-align:center;padding:16px 0;">
-      <div style="font-family:'Orbitron',monospace;font-size:2.5rem;color:${color};">${score}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:2.5rem;color:${color};">${score}</div>
       <div class="text-muted" style="font-size:0.72rem;">/ 100</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:4px;">
@@ -137,7 +138,7 @@ async function loadSinkhole() {
       <td class="text-mono" style="font-size:0.74rem;">${r.domain}</td>
       <td style="font-size:0.7rem;">${r.source||'manual'}</td>
       <td class="text-mono">${r.hits}</td>
-      <td><button class="btn btn-ghost" style="font-size:0.62rem;" onclick="removeSinkhole(${r.id})">✕</button></td>
+      <td><button class="btn-ghost" style="font-size:0.62rem;" onclick="removeSinkhole(${r.id})">✕</button></td>
     </tr>`).join('');
 }
 

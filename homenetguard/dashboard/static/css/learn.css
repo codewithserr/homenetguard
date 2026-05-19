@@ -95,7 +95,7 @@
 }
 .stat-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .stat-value {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Geist', sans-serif;
   font-size: 1.1rem;
   color: var(--accent-primary);
 }
@@ -162,7 +162,7 @@
   border-bottom: 1px solid var(--bg-border);
 }
 .cat-label-big {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Geist', sans-serif;
   font-size: 0.75rem;
   width: 22px;
   height: 22px;
@@ -242,7 +242,7 @@
 .article-breadcrumb span { color: var(--text-muted); }
 
 .article-title {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Geist', sans-serif;
   font-size: 1.1rem;
   color: var(--accent-primary);
   margin-bottom: 6px;
@@ -327,7 +327,7 @@
   gap: 6px;
 }
 .live-data-value {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Geist', sans-serif;
   font-size: 1.4rem;
   color: var(--accent-primary);
 }

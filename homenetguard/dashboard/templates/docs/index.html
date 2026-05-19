@@ -4,11 +4,13 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">
 
 <div class="page-header">
-  <span class="page-title">DOCUMENTATION</span>
-  <span class="docs-version">v{{ docs.version }}</span>
+  <div>
+    <h1 class="page-title">Documentation</h1>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--outline);">v{{ docs.version }}</span>
+  </div>
 </div>
 
-<div style="padding: 0 32px 40px;">
+<div style="padding: 0 0 40px;">
   <div class="docs-search-wrap">
     <input id="docs-search-input" class="docs-search-input"
            type="search" placeholder="Search documentation…" autocomplete="off">

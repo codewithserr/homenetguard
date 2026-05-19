@@ -3,17 +3,17 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">FLOW EXPLORER</span>
+  <h1 class="page-title">Flow Explorer</h1>
 </div>
 
-<div class="panel">
+<div class="panel corner-bracket">
   <div class="filter-bar">
-    <input class="filter-input" id="f-ip" placeholder="Filter IP..." oninput="loadFlows()">
+    <input class="filter-input" id="f-ip" placeholder="Filter IP..." oninput="loadFlows()" style="width:180px;">
     <select class="filter-select" id="f-proto" onchange="loadFlows()">
       <option value="">All protocols</option>
       <option>TCP</option><option>UDP</option><option>ICMP</option><option>DNS</option>
     </select>
-    <span class="text-muted" id="flow-count" style="align-self:center;font-size:0.72rem;"></span>
+    <span class="text-muted" id="flow-count" style="align-self:center;font-size:11px;margin-left:auto;"></span>
   </div>
   <div class="table-scroll" style="max-height:70vh;">
     <table class="data-table">
@@ -26,7 +26,9 @@
           <th>SRC PORT <a href="/learn/tcp" class="learn-link" title="Learn about ports">?</a></th>
           <th>DST PORT</th>
           <th>BYTES <a href="/learn/network-flows" class="learn-link" title="Learn about network flows">?</a></th>
-          <th>DIR</th><th>SRC GEO <a href="/learn/ip-reputation" class="learn-link" title="Learn about IP geo-location">?</a></th><th>DST GEO</th>
+          <th>DIR</th>
+          <th>SRC GEO <a href="/learn/ip-reputation" class="learn-link" title="Learn about IP geo-location">?</a></th>
+          <th>DST GEO</th>
         </tr>
       </thead>
       <tbody id="flows-explorer-tbody">
@@ -34,6 +36,7 @@
       </tbody>
     </table>
   </div>
+  <div class="cb-bottom"></div>
 </div>
 
 <script>
@@ -61,17 +64,17 @@ function renderFlows() {
     return;
   }
   tbody.innerHTML = flows.slice(0, 200).map(f => `
-    <tr class="row-${(f.protocol||'').toLowerCase()}">
-      <td class="text-mono" style="font-size:0.7rem;">${(f.timestamp||'').slice(11,19)}</td>
+    <tr>
+      <td class="text-mono" style="font-size:11px;">${(f.timestamp||'').slice(11,19)}</td>
       <td class="ip-address">${f.src_ip||'—'}</td>
       <td class="ip-address">${f.dst_ip||'—'}</td>
       <td><span class="badge badge-${(f.protocol||'').toLowerCase()}" data-learn-term="${f.protocol||''}">${f.protocol||'?'}</span></td>
       <td class="port">${f.src_port||'—'}</td>
       <td class="port">${f.dst_port||'—'}</td>
       <td class="text-mono">${fmtBytes(f.bytes||0)}</td>
-      <td style="font-size:0.7rem;color:var(--text-muted);">${f.direction||'—'}</td>
-      <td style="font-size:0.7rem;">${f.src_country||'—'}</td>
-      <td style="font-size:0.7rem;">${f.dst_country||'—'}</td>
+      <td style="font-size:11px;color:var(--outline);">${f.direction||'—'}</td>
+      <td style="font-size:11px;">${f.src_country||'—'}</td>
+      <td style="font-size:11px;">${f.dst_country||'—'}</td>
     </tr>
   `).join('');
   if (window.initLearnTooltips) window.initLearnTooltips();

@@ -3,14 +3,14 @@
 {% block content %}
 
 <div class="page-header">
-  <span class="page-title">FIREWALL <a href="/learn/firewall" class="learn-link" title="Learn about firewalls">?</a></span>
+  <h1 class="page-title">Firewall <a href="/learn/firewall" class="learn-link" title="Learn about firewalls">?</a></h1>
 </div>
 
 <div class="grid-2" style="align-items:start;">
-  <div class="panel">
+  <div class="panel corner-bracket">
     <div class="panel-header">
       <span class="panel-title">ACTIVE RULES</span>
-      <button class="btn btn-ghost" style="font-size:0.65rem;padding:3px 8px;" onclick="loadRules()">Refresh</button>
+      <button class="btn-ghost" style="font-size:10px;padding:3px 8px;" onclick="loadRules()">Refresh</button>
     </div>
     <div class="table-scroll" style="max-height:50vh;">
       <table class="data-table">
@@ -18,17 +18,18 @@
         <tbody id="rules-tbody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody>
       </table>
     </div>
+    <div class="cb-bottom"></div>
   </div>
 
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">ADD RULE</span></div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
+  <div class="panel corner-bracket" style="padding:24px;">
+    <div style="margin-bottom:20px;"><span class="panel-title">ADD RULE</span></div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
       <div>
-        <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">TARGET IP</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--outline);display:block;margin-bottom:6px;letter-spacing:0.08em;">TARGET IP</label>
         <input class="filter-input" id="rule-target" placeholder="e.g. 1.2.3.4" style="width:100%;">
       </div>
       <div>
-        <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">DIRECTION</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--outline);display:block;margin-bottom:6px;letter-spacing:0.08em;">DIRECTION</label>
         <select class="filter-select" id="rule-direction" style="width:100%;">
           <option value="both">Both</option>
           <option value="inbound">Inbound</option>
@@ -36,11 +37,12 @@
         </select>
       </div>
       <div>
-        <label style="font-size:0.72rem;color:var(--text-secondary);display:block;margin-bottom:4px;">REASON</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--outline);display:block;margin-bottom:6px;letter-spacing:0.08em;">REASON</label>
         <input class="filter-input" id="rule-reason" placeholder="Reason for block" style="width:100%;">
       </div>
-      <button class="btn btn-danger" onclick="addRule()">Block IP</button>
+      <button class="btn-danger" onclick="addRule()" style="width:100%;justify-content:center;">Block IP</button>
     </div>
+    <div class="cb-bottom"></div>
   </div>
 </div>
 
@@ -58,9 +60,9 @@ async function loadRules() {
       <td class="text-mono">${r.id}</td>
       <td><span class="badge badge-tcp">${r.rule_type}</span></td>
       <td class="ip-address">${r.target}</td>
-      <td style="font-size:0.72rem;">${r.direction||'—'}</td>
-      <td style="font-size:0.72rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;">${r.reason||'—'}</td>
-      <td><button class="btn btn-danger" style="font-size:0.62rem;padding:2px 6px;" onclick="deleteRule(${r.id})">✕</button></td>
+      <td style="font-size:12px;">${r.direction||'—'}</td>
+      <td style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;">${r.reason||'—'}</td>
+      <td><button class="btn-danger" style="font-size:10px;padding:2px 6px;" onclick="deleteRule(${r.id})">✕</button></td>
     </tr>`).join('');
 }
 
