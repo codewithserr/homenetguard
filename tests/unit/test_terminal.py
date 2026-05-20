@@ -94,3 +94,49 @@ def test_router_help_returns_commands():
     assert "commands" in result
     assert "block" in result["commands"]
     assert "ping" in result["commands"]
+
+
+from unittest.mock import patch, MagicMock
+from homenetguard.dashboard.terminal import NetUtilRunner, ParseError
+
+def test_netutil_ping_yields_lines():
+    runner = NetUtilRunner()
+    mock_proc = MagicMock()
+    mock_proc.stdout = iter(["PING 8.8.8.8\n", "64 bytes\n"])
+    mock_proc.returncode = 0
+    mock_proc.__enter__ = lambda s: s
+    mock_proc.__exit__ = MagicMock(return_value=False)
+    with patch("homenetguard.dashboard.terminal.subprocess.Popen", return_value=mock_proc):
+        lines = list(runner.run({"cmd": "ping", "args": ["8.8.8.8", "-c", "2"]}))
+    assert any("PING" in l["line"] for l in lines)
+
+def test_netutil_rejects_unknown_binary():
+    runner = NetUtilRunner()
+    with pytest.raises(ParseError, match="not allowed"):
+        list(runner.run({"cmd": "curl", "args": ["http://evil.com"]}))
+
+def test_netutil_ping_count_capped_at_10():
+    runner = NetUtilRunner()
+    cmd = runner._build_argv({"cmd": "ping", "args": ["8.8.8.8", "-c", "999"]})
+    c_idx = cmd.index("-c")
+    assert int(cmd[c_idx + 1]) <= 10
+
+def test_netutil_nmap_rejects_range():
+    runner = NetUtilRunner()
+    with pytest.raises(ParseError, match="single IP"):
+        runner._build_argv({"cmd": "nmap", "args": ["192.168.1.0/24"]})
+
+def test_netutil_nmap_rejects_bad_flag():
+    runner = NetUtilRunner()
+    with pytest.raises(ParseError, match="flag not allowed"):
+        runner._build_argv({"cmd": "nmap", "args": ["192.168.1.1", "--script", "vuln"]})
+
+def test_netutil_dig_allows_valid_type():
+    runner = NetUtilRunner()
+    cmd = runner._build_argv({"cmd": "dig", "args": ["example.com", "MX"]})
+    assert "MX" in cmd
+
+def test_netutil_dig_rejects_invalid_type():
+    runner = NetUtilRunner()
+    with pytest.raises(ParseError, match="record type"):
+        runner._build_argv({"cmd": "dig", "args": ["example.com", "AXFR"]})

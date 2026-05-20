@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import re
 import shlex
+import subprocess
+import shutil
+from collections.abc import Generator
 from typing import Any
 
 # ─── Known commands ───────────────────────────────────────────
@@ -204,3 +207,96 @@ class AppCommandRouter:
 
     def _help(self, _args: list[str]) -> dict[str, Any]:
         return {"ok": True, "commands": _HELP_COMMANDS}
+
+
+# ─── Network utility runner ───────────────────────────────────
+
+_NET_BINARIES = {"ping", "dig", "nslookup", "traceroute", "nmap"}
+_DIG_RECORD_TYPES = {"A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA", "PTR"}
+_NMAP_FLAGS = {"-sn", "-sV", "-sT", "-O", "-p"}
+_TIMEOUTS = {"ping": 15, "dig": 15, "nslookup": 15, "traceroute": 30, "nmap": 60}
+
+
+class NetUtilRunner:
+    def _build_argv(self, parsed: dict[str, Any]) -> list[str]:
+        cmd = parsed["cmd"]
+        args = list(parsed["args"])
+        if cmd not in _NET_BINARIES:
+            raise ParseError(f"{cmd!r} not allowed")
+
+        # ── Argument validation (before binary check so tests don't need nmap/etc installed) ──
+
+        if cmd == "ping":
+            if "-c" in args:
+                idx = args.index("-c")
+                count = min(int(args[idx + 1]), 10)
+                args[idx + 1] = str(count)
+
+        elif cmd == "nmap":
+            if not args:
+                raise ParseError("usage: nmap <ip> [flags]")
+            ip = args[0]
+            # Reject CIDR ranges
+            if "/" in ip:
+                raise ParseError("nmap accepts single IP only (no CIDR ranges)")
+            # Validate flags
+            flags = args[1:]
+            i = 0
+            while i < len(flags):
+                flag = flags[i]
+                if flag not in _NMAP_FLAGS:
+                    raise ParseError(f"flag not allowed: {flag!r}")
+                if flag == "-p":
+                    i += 2  # skip the ports argument
+                else:
+                    i += 1
+
+        elif cmd == "dig":
+            if len(args) >= 2:
+                rtype = args[1].upper()
+                if rtype not in _DIG_RECORD_TYPES:
+                    raise ParseError(f"record type {rtype!r} not allowed. Use: {', '.join(sorted(_DIG_RECORD_TYPES))}")
+                args[1] = rtype
+
+        # ── Binary lookup (after validation) ──
+        binary = shutil.which(cmd)
+        if not binary:
+            raise ParseError(f"{cmd} not found on this system")
+
+        if cmd == "ping":
+            argv = [binary]
+            if "-c" not in args and len(args) >= 1:
+                # Default -c 4 if not specified
+                argv += ["-c", "4"]
+            argv += args
+            return argv
+
+        if cmd in ("nslookup", "traceroute"):
+            # pass args as-is (host only, no flags)
+            return [binary, args[0]] if args else [binary]
+
+        return [binary] + args
+
+    def run(self, parsed: dict[str, Any]) -> Generator[dict[str, Any], None, None]:
+        cmd = parsed["cmd"]
+        if cmd not in _NET_BINARIES:
+            raise ParseError(f"{cmd!r} not allowed")
+
+        argv = self._build_argv(parsed)
+        timeout = _TIMEOUTS.get(cmd, 30)
+
+        with subprocess.Popen(
+            argv,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            shell=False,
+            env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"},
+        ) as proc:
+            try:
+                for line in proc.stdout:
+                    yield {"line": line.rstrip(), "type": "stdout"}
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                yield {"line": f"[timeout: {cmd} killed after {timeout}s]", "type": "error"}
