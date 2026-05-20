@@ -41,6 +41,7 @@ HomeNetGuard gives you full visibility into what's happening on your network: wh
 - 🔎 **Deep Packet Inspection** — App-layer protocol identification (HTTP, TLS, SSH, BitTorrent, Stratum)
 - 🔐 **JA3/JA3S fingerprinting** — TLS client/server fingerprinting with malicious hash detection
 - 🏠 **IP Ownership** — Org/ISP/ASN shown inline via ip-api.com (no API key needed)
+- ⌨️ **Dashboard Terminal** — Slide-up command terminal in the web UI. Execute firewall, quarantine, sinkhole, and network diagnostic commands directly from any dashboard page. Click any IP/MAC to pre-fill commands. `Ctrl+\`` to open.
 
 ---
 
@@ -222,6 +223,49 @@ Access at `http://127.0.0.1:5000` after starting.
 - **Config** — Active configuration viewer + integration status
 
 The dashboard uses a dark "Cyber SOC" theme with real-time WebSocket updates every 2 seconds.
+
+---
+
+## Dashboard Terminal
+
+Press **`Ctrl+\``** (or click the `CMD_SEARCH` bar) on any dashboard page to open the terminal overlay.
+
+### App commands
+
+| Command | Description |
+|---------|-------------|
+| `block <ip> [reason]` | Add firewall block rule |
+| `unblock <ip\|rule_id>` | Remove firewall rule |
+| `quarantine <mac>` | Quarantine a device |
+| `release <mac>` | Release device from quarantine |
+| `sinkhole <domain>` | Block domain at DNS level |
+| `unsinkhole <domain>` | Remove domain from sinkhole |
+| `flows <ip>` | Show recent flows for an IP |
+| `alerts [ip]` | Show active alerts |
+| `whois <ip>` | Show geo, org, and reputation data |
+| `devices` | List all known devices |
+| `help` | Show all commands |
+
+### Network utilities
+
+| Command | Description |
+|---------|-------------|
+| `ping <host> [-c N]` | Ping (max 10 packets) |
+| `dig <domain> [type]` | DNS lookup (A/AAAA/MX/TXT/NS) |
+| `nslookup <domain>` | DNS name resolution |
+| `traceroute <host>` | Trace network path |
+| `nmap <ip> [-sn\|-sV\|-p ports]` | Port scan (single IPs only) |
+
+### Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+\`` | Open / close terminal |
+| `Escape` | Close terminal |
+| `Tab` | Autocomplete IP / MAC / domain from live DB |
+| `↑ / ↓` | Navigate command history |
+
+Click any **IP address**, **MAC address**, or **domain** in the dashboard tables to pre-fill a command in the terminal.
 
 ---
 

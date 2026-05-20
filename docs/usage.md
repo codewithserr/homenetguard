@@ -93,3 +93,44 @@ sudo dseditgroup -o edit -a $USER -t user access_bpf
 # Log out and back in, then:
 homenetguard start   # no sudo needed
 ```
+
+## Terminal de Comandos
+
+El terminal de HomeNetGuard es un panel de comandos accesible desde cualquier página del dashboard.
+
+### Abrir el terminal
+
+- **Atajo de teclado:** `Ctrl+\``
+- **Barra de búsqueda:** Haz clic en `CMD_SEARCH...` en la barra superior
+- **Click-to-fill:** Haz clic en cualquier IP, MAC o dominio en las tablas del dashboard
+
+### Comandos de aplicación
+
+```
+block 192.168.1.50 malicious host    # Bloquea IP en el firewall
+unblock 192.168.1.50                 # Elimina regla por IP o ID
+quarantine aa:bb:cc:dd:ee:ff         # Pone dispositivo en cuarentena
+release aa:bb:cc:dd:ee:ff            # Libera cuarentena
+sinkhole evil.com                    # Bloquea dominio en DNS sinkhole
+unsinkhole evil.com                  # Elimina del sinkhole
+flows 192.168.1.50                   # Últimos flows de esa IP
+alerts 192.168.1.50                  # Alertas activas (filtradas por IP)
+whois 8.8.8.8                        # Geo + organización + reputación
+devices                              # Lista dispositivos conocidos
+help                                 # Muestra todos los comandos
+```
+
+### Utilidades de red
+
+```
+ping 8.8.8.8 -c 4                   # Ping (máx. 10 paquetes)
+dig example.com MX                   # DNS lookup (A/AAAA/MX/TXT/NS)
+nslookup example.com                 # Resolución DNS
+traceroute 1.1.1.1                   # Ruta de red
+nmap 192.168.1.1 -sn                 # Ping scan (solo IPs individuales)
+nmap 192.168.1.1 -p 80,443           # Scan de puertos específicos
+```
+
+### Seguridad
+
+El terminal nunca ejecuta comandos de shell directamente. El servidor valida cada comando contra una lista cerrada de operaciones permitidas antes de ejecutar nada. Los caracteres de shell (`&&`, `|`, `;`, `>`, `$(`, `` ` ``) son rechazados tanto en el navegador como en el servidor. Los comandos de red se ejecutan con `subprocess(shell=False)` con argumentos tipados, sin herencia de variables de entorno.
