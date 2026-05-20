@@ -287,6 +287,32 @@
     });
   }
 
+  // ── Resize handle ─────────────────────────
+  function initResize() {
+    var handle = document.getElementById('hng-terminal-resize');
+    if (!handle) return;
+    var startY, startH;
+
+    handle.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      startY = e.clientY;
+      startH = _panel.offsetHeight;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    function onMouseMove(e) {
+      var delta = startY - e.clientY;
+      var newH = Math.min(Math.max(startH + delta, 160), window.innerHeight * 0.9);
+      _panel.style.height = newH + 'px';
+    }
+
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+  }
+
   // ── Global click-to-fill handler ──────────
   function initClickToFill() {
     document.addEventListener('click', function(e) {
@@ -314,5 +340,6 @@
     initQuickBtns();
     wireCmdSearch();
     initClickToFill();
+    initResize();
   });
 })();

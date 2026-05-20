@@ -8,9 +8,10 @@
   left: 0;
   right: 0;
   height: 40vh;
-  min-height: 240px;
-  background: var(--surface-container-lowest);
-  border-top: 1px solid var(--outline-variant);
+  min-height: 160px;
+  max-height: 90vh;
+  background: #0a0a0a;
+  border-top: 1px solid #00e639;
   display: flex;
   flex-direction: column;
   z-index: 1000;
@@ -30,23 +31,38 @@
   background: transparent;
 }
 
+/* ── Resize handle (top edge) ── */
+.hng-terminal-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 10;
+}
+
+.hng-terminal-resize-handle:hover {
+  background: rgba(0, 230, 57, 0.15);
+}
+
 /* ── Header ── */
 .hng-terminal-header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 6px 12px;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid #1a3a1a;
   flex-shrink: 0;
-  background: var(--surface-container-low);
+  background: #0d0d0d;
 }
 
 .hng-terminal-drag-handle {
   width: 32px;
   height: 3px;
-  background: var(--outline-variant);
+  background: #00e639;
   border-radius: 2px;
-  cursor: ns-resize;
+  opacity: 0.4;
   flex-shrink: 0;
 }
 
@@ -54,7 +70,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--primary);
+  color: #00e639;
   flex-shrink: 0;
 }
 
@@ -66,8 +82,8 @@
 
 .hng-qbtn {
   background: transparent;
-  border: 1px solid var(--outline-variant);
-  color: var(--outline);
+  border: 1px solid #1a3a1a;
+  color: #00a030;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   padding: 2px 8px;
@@ -76,14 +92,14 @@
 }
 
 .hng-qbtn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: #00e639;
+  color: #00e639;
 }
 
 .hng-terminal-close {
   background: transparent;
   border: none;
-  color: var(--outline);
+  color: #00a030;
   font-size: 14px;
   cursor: pointer;
   padding: 2px 6px;
@@ -100,16 +116,17 @@
   padding: 8px 14px;
   font-size: 12px;
   line-height: 1.6;
+  background: #0a0a0a;
 }
 
 .hng-line              { white-space: pre-wrap; word-break: break-all; }
-.hng-line--stdout      { color: var(--on-surface-variant); }
-.hng-line--success     { color: var(--primary); }
-.hng-line--error       { color: var(--error); }
-.hng-line--info        { color: var(--secondary); }
-.hng-line--header      { color: var(--outline); font-weight: 700; }
-.hng-line--cmd         { color: var(--surface-tint); margin-top: 6px; }
-.hng-line--timeout     { color: var(--error); }
+.hng-line--stdout      { color: #00c830; }
+.hng-line--success     { color: #00e639; }
+.hng-line--error       { color: #ff4444; }
+.hng-line--info        { color: #00a030; }
+.hng-line--header      { color: #00e639; font-weight: 700; }
+.hng-line--cmd         { color: #00e639; margin-top: 6px; opacity: 0.6; }
+.hng-line--timeout     { color: #ff8800; }
 
 /* ── Input row ── */
 .hng-terminal-input-row {
@@ -117,13 +134,14 @@
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  border-top: 1px solid var(--outline-variant);
+  border-top: 1px solid #1a3a1a;
   flex-shrink: 0;
   position: relative;
+  background: #0d0d0d;
 }
 
 .hng-terminal-prompt {
-  color: var(--primary);
+  color: #00e639;
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
@@ -134,10 +152,10 @@
   background: transparent;
   border: none;
   outline: none;
-  color: var(--on-surface);
+  color: #00e639;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  caret-color: var(--primary);
+  caret-color: #00e639;
 }
 
 /* ── Autocomplete dropdown ── */
@@ -146,8 +164,8 @@
   bottom: 100%;
   left: 54px;
   right: 14px;
-  background: var(--surface-container-high);
-  border: 1px solid var(--outline-variant);
+  background: #0d1a0d;
+  border: 1px solid #1a3a1a;
   max-height: 160px;
   overflow-y: auto;
   z-index: 1001;
@@ -156,14 +174,14 @@
 .hng-autocomplete-item {
   padding: 5px 12px;
   font-size: 11px;
-  color: var(--on-surface-variant);
+  color: #00a030;
   cursor: pointer;
 }
 
 .hng-autocomplete-item.is-active,
 .hng-autocomplete-item:hover {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-  color: var(--primary);
+  background: rgba(0, 230, 57, 0.08);
+  color: #00e639;
 }
 
 /* ── Click-to-fill cells ── */
