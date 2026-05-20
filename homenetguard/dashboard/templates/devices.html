@@ -44,9 +44,9 @@ async function loadDevices() {
     const statusLabel = d.is_quarantined ? 'Quarantine' : d.is_trusted ? 'Trusted' : 'Unknown';
     return `
       <tr>
-        <td class="ip-address" data-learn-term="ARP">${d.mac_address || '—'}</td>
+        <td class="ip-address hng-fillable" data-learn-term="ARP" data-hng-fill="quarantine ${d.mac_address}" title="Click to quarantine in terminal">${d.mac_address || '—'}</td>
         <td>${d.vendor || 'Unknown'}</td>
-        <td class="ip-address">${d.ip_address || '—'}</td>
+        <td class="ip-address hng-fillable" data-hng-fill="whois ${d.ip_address}" title="Inspect in terminal">${d.ip_address || '—'}</td>
         <td data-learn-term="fingerprint">${d.os_guess ? `${d.os_guess} (${Math.round((d.os_confidence||0)*100)}%)` : '—'}</td>
         <td class="text-mono" style="font-size:11px;">${(d.first_seen||'').slice(0,16).replace('T',' ')}</td>
         <td class="text-mono" style="font-size:11px;">${(d.last_seen||'').slice(0,16).replace('T',' ')}</td>

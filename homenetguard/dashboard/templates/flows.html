@@ -66,8 +66,8 @@ function renderFlows() {
   tbody.innerHTML = flows.slice(0, 200).map(f => `
     <tr>
       <td class="text-mono" style="font-size:11px;">${(f.timestamp||'').slice(11,19)}</td>
-      <td class="ip-address">${f.src_ip||'—'}</td>
-      <td class="ip-address">${f.dst_ip||'—'}</td>
+      <td class="ip-address hng-fillable" data-hng-fill="whois ${f.src_ip}" title="Inspect in terminal">${f.src_ip||'—'}</td>
+      <td class="ip-address hng-fillable" data-hng-fill="whois ${f.dst_ip}" title="Inspect in terminal">${f.dst_ip||'—'}</td>
       <td><span class="badge badge-${(f.protocol||'').toLowerCase()}" data-learn-term="${f.protocol||''}">${f.protocol||'?'}</span></td>
       <td class="port">${f.src_port||'—'}</td>
       <td class="port">${f.dst_port||'—'}</td>

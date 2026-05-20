@@ -207,8 +207,8 @@ async function loadAlerts() {
         <span style="font-size:0.72rem;" data-learn-term="${a.alert_type}">${TYPE_LABELS[a.alert_type] || a.alert_type.replace(/_/g,' ')}</span>
       </td>
       <td><span class="badge badge-${a.severity}">${a.severity}</span></td>
-      <td class="ip-address">${a.src_ip || '—'}</td>
-      <td class="ip-address">${a.dst_ip || '—'}</td>
+      <td class="ip-address hng-fillable" data-hng-fill="whois ${a.src_ip}" title="Inspect in terminal">${a.src_ip || '—'}</td>
+      <td class="ip-address hng-fillable" data-hng-fill="whois ${a.dst_ip}" title="Inspect in terminal">${a.dst_ip || '—'}</td>
       <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.74rem;">
         ${a.description}
       </td>
