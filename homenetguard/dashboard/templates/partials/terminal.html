@@ -1,0 +1,30 @@
+<!-- HNG Terminal Overlay -->
+<div id="hng-terminal" class="hng-terminal" aria-hidden="true">
+  <div class="hng-terminal-header">
+    <div class="hng-terminal-drag-handle" id="hng-terminal-drag"></div>
+    <span class="hng-terminal-title">HNG TERMINAL</span>
+    <div class="hng-terminal-quick-btns">
+      <button class="hng-qbtn" data-cmd="ping 8.8.8.8 -c 4">ping</button>
+      <button class="hng-qbtn" data-cmd="block ">block</button>
+      <button class="hng-qbtn" data-cmd="nmap ">nmap</button>
+      <button class="hng-qbtn" data-cmd="devices">devices</button>
+      <button class="hng-qbtn" data-cmd="help">help</button>
+    </div>
+    <button class="hng-terminal-close" id="hng-terminal-close" aria-label="Close terminal">✕</button>
+  </div>
+  <div class="hng-terminal-output" id="hng-terminal-output" role="log" aria-live="polite"></div>
+  <div class="hng-terminal-input-row">
+    <span class="hng-terminal-prompt">HNG&gt;</span>
+    <input
+      type="text"
+      id="hng-terminal-input"
+      class="hng-terminal-input"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="type a command or press Tab to autocomplete..."
+      aria-label="Terminal input"
+    />
+    <div id="hng-autocomplete-list" class="hng-autocomplete-list" hidden></div>
+  </div>
+</div>
+<div id="hng-terminal-backdrop" class="hng-terminal-backdrop" hidden></div>

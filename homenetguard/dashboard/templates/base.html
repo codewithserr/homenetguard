@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}"/>
   <!-- Leaflet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/leaflet.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}"/>
   {% block styles %}{% endblock %}
 
   <!-- Tailwind config with design tokens -->
@@ -290,6 +291,8 @@
   <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/learn.js') }}" defer></script>
   {% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='js/terminal.js') }}" defer></script>
+  {% include "partials/terminal.html" %}
 
 </body>
 </html>
