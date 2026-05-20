@@ -229,6 +229,8 @@ class NetUtilRunner:
         if cmd == "ping":
             if "-c" in args:
                 idx = args.index("-c")
+                if idx + 1 >= len(args):
+                    raise ParseError("ping -c requires a count value")
                 count = min(int(args[idx + 1]), 10)
                 args[idx + 1] = str(count)
 
@@ -247,7 +249,14 @@ class NetUtilRunner:
                 if flag not in _NMAP_FLAGS:
                     raise ParseError(f"flag not allowed: {flag!r}")
                 if flag == "-p":
-                    i += 2  # skip the ports argument
+                    if i + 1 >= len(flags):
+                        raise ParseError("nmap -p requires a port specification")
+                    port_spec = flags[i + 1]
+                    # Allow digits, commas, hyphens, T: U: prefixes only
+                    import re as _re
+                    if not _re.match(r'^[0-9,\-TU:]{1,100}$', port_spec):
+                        raise ParseError(f"invalid port specification: {port_spec!r}")
+                    i += 2
                 else:
                     i += 1
 
@@ -278,6 +287,7 @@ class NetUtilRunner:
         return [binary] + args
 
     def run(self, parsed: dict[str, Any]) -> Generator[dict[str, Any], None, None]:
+        import threading
         cmd = parsed["cmd"]
         if cmd not in _NET_BINARIES:
             raise ParseError(f"{cmd!r} not allowed")
@@ -285,18 +295,28 @@ class NetUtilRunner:
         argv = self._build_argv(parsed)
         timeout = _TIMEOUTS.get(cmd, 30)
 
-        with subprocess.Popen(
+        proc = subprocess.Popen(
             argv,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             shell=False,
             env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"},
-        ) as proc:
-            try:
-                for line in proc.stdout:
-                    yield {"line": line.rstrip(), "type": "stdout"}
-                proc.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                proc.kill()
+        )
+        timer = threading.Timer(timeout, proc.kill)
+        timer.start()
+        try:
+            for line in proc.stdout:
+                yield {"line": line.rstrip(), "type": "stdout"}
+            proc.wait()
+            if proc.returncode == -9:  # killed by timer
                 yield {"line": f"[timeout: {cmd} killed after {timeout}s]", "type": "error"}
+        except GeneratorExit:
+            proc.kill()
+            proc.wait()
+            return
+        finally:
+            timer.cancel()
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait()
