@@ -140,3 +140,38 @@ def test_netutil_dig_rejects_invalid_type():
     runner = NetUtilRunner()
     with pytest.raises(ParseError, match="record type"):
         runner._build_argv({"cmd": "dig", "args": ["example.com", "AXFR"]})
+
+
+import pytest
+from homenetguard.dashboard.app import create_app
+from homenetguard.storage import database, repository
+
+@pytest.fixture
+def cfg_with_db(tmp_path):
+    return {
+        "storage": {"db_path": str(tmp_path / "test.db"), "reports_path": str(tmp_path / "reports")},
+        "dashboard": {"host": "127.0.0.1", "port": 5000, "auto_open_browser": False},
+        "geoip": {"enabled": False},
+        "threat_intelligence": {"abuseipdb": {"enabled": False}, "virustotal": {"enabled": False}},
+        "alerts": {"email": {"enabled": False}, "telegram": {"enabled": False}},
+        "logging": {"level": "ERROR", "file": str(tmp_path / "test.log")},
+    }
+
+@pytest.fixture
+def client_with_db(cfg_with_db, tmp_path):
+    database.init_db(str(tmp_path / "test.db"))
+    app = create_app(cfg_with_db)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        yield c
+
+def test_suggest_returns_ips(client_with_db):
+    res = client_with_db.get("/api/v1/terminal/suggest?q=192&type=ip")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert "suggestions" in data
+    assert isinstance(data["suggestions"], list)
+
+def test_suggest_requires_q_param(client_with_db):
+    res = client_with_db.get("/api/v1/terminal/suggest")
+    assert res.status_code == 400

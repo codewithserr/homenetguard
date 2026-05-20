@@ -735,6 +735,47 @@ def api_ip_ownership():
     return jsonify(result)
 
 
+@bp.route("/api/v1/terminal/suggest")
+def api_terminal_suggest():
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"error": "q parameter required"}), 400
+    suggest_type = request.args.get("type", "ip")
+    suggestions: list[str] = []
+    try:
+        from homenetguard.storage.database import get_connection
+        with get_connection() as conn:
+            if suggest_type == "ip":
+                rows = conn.execute(
+                    "SELECT DISTINCT src_ip FROM flows WHERE src_ip LIKE ? LIMIT 10",
+                    (f"{q}%",)
+                ).fetchall()
+                suggestions = [r[0] for r in rows if r[0]]
+                if len(suggestions) < 10:
+                    rows2 = conn.execute(
+                        "SELECT DISTINCT ip_address FROM devices WHERE ip_address LIKE ? LIMIT 10",
+                        (f"{q}%",)
+                    ).fetchall()
+                    for r in rows2:
+                        if r[0] and r[0] not in suggestions:
+                            suggestions.append(r[0])
+            elif suggest_type == "mac":
+                rows = conn.execute(
+                    "SELECT DISTINCT mac_address FROM devices WHERE mac_address LIKE ? LIMIT 10",
+                    (f"{q}%",)
+                ).fetchall()
+                suggestions = [r[0] for r in rows if r[0]]
+            elif suggest_type == "domain":
+                rows = conn.execute(
+                    "SELECT DISTINCT domain FROM dns_queries WHERE domain LIKE ? LIMIT 10",
+                    (f"%{q}%",)
+                ).fetchall()
+                suggestions = [r[0] for r in rows if r[0]]
+    except Exception:
+        pass
+    return jsonify({"suggestions": suggestions[:10]})
+
+
 def _sanitize_config(cfg: dict) -> dict:
     safe = copy.deepcopy(cfg)
     for section in ("threat_intelligence", "alerts"):

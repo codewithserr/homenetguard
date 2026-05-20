@@ -320,3 +320,83 @@ class NetUtilRunner:
             if proc.poll() is None:
                 proc.kill()
                 proc.wait()
+
+
+from homenetguard.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+# ─── SocketIO terminal handler ────────────────────────────────
+
+def register_terminal_handlers(socketio: Any) -> None:
+    """Call from app.py after socketio is initialized."""
+
+    @socketio.on("terminal:exec")
+    def handle_terminal_exec(data: dict) -> None:
+        from flask_socketio import emit
+        raw = (data or {}).get("raw", "").strip()
+        if not raw:
+            emit("terminal:done", {"code": 1, "duration": 0})
+            return
+
+        try:
+            parsed = CommandParser.parse(raw)
+        except ParseError as exc:
+            emit("terminal:out", {"line": f"Error: {exc}", "type": "error"})
+            emit("terminal:done", {"code": 1, "duration": 0})
+            return
+
+        cmd = parsed["cmd"]
+        import time
+        t0 = time.monotonic()
+
+        if cmd in _NET_BINARIES:
+            runner = NetUtilRunner()
+            try:
+                for event in runner.run(parsed):
+                    emit("terminal:out", event)
+            except ParseError as exc:
+                emit("terminal:out", {"line": f"Error: {exc}", "type": "error"})
+                emit("terminal:done", {"code": 1, "duration": round(time.monotonic() - t0, 2)})
+                return
+        else:
+            router = AppCommandRouter()
+            result = router.execute(parsed)
+            if cmd == "help" and result.get("ok"):
+                lines = ["Available commands:", ""]
+                for syntax, desc in result["commands"].items():
+                    lines.append(f"  {syntax:<35} {desc}")
+                for line in lines:
+                    emit("terminal:out", {"line": line, "type": "stdout"})
+            elif cmd == "devices" and result.get("ok"):
+                devs = result.get("devices", [])
+                emit("terminal:out", {"line": f"{'MAC':<20} {'IP':<18} {'HOSTNAME':<25} VENDOR", "type": "header"})
+                for d in devs:
+                    line = f"{d.get('mac_address','--'):<20} {d.get('ip_address','--'):<18} {d.get('hostname') or '--':<25} {d.get('vendor') or '--'}"
+                    emit("terminal:out", {"line": line, "type": "stdout"})
+            elif cmd == "flows" and result.get("ok"):
+                flows = result.get("flows", [])
+                emit("terminal:out", {"line": f"{result['count']} flows for that IP", "type": "info"})
+                for f in flows:
+                    ts = (f.get("timestamp") or "")[:19]
+                    line = f"  {ts}  {f.get('src_ip','--')} → {f.get('dst_ip','--')}  {f.get('protocol','--')}  {f.get('bytes',0)}B"
+                    emit("terminal:out", {"line": line, "type": "stdout"})
+            elif cmd == "alerts" and result.get("ok"):
+                alerts = result.get("alerts", [])
+                emit("terminal:out", {"line": f"{result['count']} active alerts", "type": "info"})
+                for a in alerts:
+                    line = f"  [{a.get('severity','?').upper()}] {a.get('alert_type','--')} — {a.get('src_ip','--')}"
+                    emit("terminal:out", {"line": line, "type": "stdout"})
+            elif cmd == "whois" and result.get("ok"):
+                data_out = result.get("data") or {}
+                if data_out:
+                    for k, v in data_out.items():
+                        emit("terminal:out", {"line": f"  {k}: {v}", "type": "stdout"})
+                else:
+                    emit("terminal:out", {"line": result.get("msg", "no data"), "type": "info"})
+            else:
+                msg = result.get("msg") or result.get("error") or str(result)
+                out_type = "success" if result.get("ok") else "error"
+                emit("terminal:out", {"line": msg, "type": out_type})
+
+        emit("terminal:done", {"code": 0, "duration": round(time.monotonic() - t0, 2)})

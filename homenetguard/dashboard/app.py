@@ -25,6 +25,8 @@ def create_app(config: dict[str, Any], sniffer: Any = None) -> Flask:
     app.register_blueprint(bp)
 
     from homenetguard.dashboard import events  # noqa: F401
+    from homenetguard.dashboard import terminal as _terminal_module  # noqa: F401
+    _terminal_module.register_terminal_handlers(socketio)
 
     # Mount REST API
     try:
