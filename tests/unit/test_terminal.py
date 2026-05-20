@@ -33,3 +33,15 @@ def test_parse_help():
 def test_parse_devices():
     result = CommandParser.parse("devices")
     assert result == {"cmd": "devices", "args": []}
+
+def test_parse_case_insensitive():
+    result = CommandParser.parse("Block 192.168.1.1")
+    assert result["cmd"] == "block"
+
+def test_parse_unmatched_quote_raises():
+    with pytest.raises(ParseError, match="parse error"):
+        CommandParser.parse('block "unterminated')
+
+def test_parse_newline_rejected():
+    with pytest.raises(ParseError, match="invalid"):
+        CommandParser.parse("block 192.168.1.1\nevil command")

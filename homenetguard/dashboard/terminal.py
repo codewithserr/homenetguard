@@ -15,7 +15,7 @@ _NET_COMMANDS = {"ping", "dig", "nslookup", "traceroute", "nmap"}
 _ALL_COMMANDS = _APP_COMMANDS | _NET_COMMANDS
 
 # Characters that suggest shell injection attempts
-_SHELL_META = re.compile(r'[;&|><`$\\]|\$\(')
+_SHELL_META = re.compile(r'[;&|><`$\\\n\r]')
 
 
 class ParseError(ValueError):
