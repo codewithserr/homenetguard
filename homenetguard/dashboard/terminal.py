@@ -83,8 +83,8 @@ except Exception:
 
 
 class AppCommandRouter:
-    def __init__(self, db_path: str | None = None) -> None:
-        self._db_path = db_path
+    def __init__(self) -> None:
+        pass
 
     def execute(self, parsed: dict[str, Any]) -> dict[str, Any]:
         cmd = parsed["cmd"]
@@ -165,11 +165,16 @@ class AppCommandRouter:
     def _flows(self, args: list[str]) -> dict[str, Any]:
         if not args:
             return {"ok": False, "error": "usage: flows <ip>"}
-        from homenetguard.storage import repository
-        flows = repository.get_recent_flows(limit=10)
         ip = args[0]
-        filtered = [f for f in flows if f.get("src_ip") == ip or f.get("dst_ip") == ip]
-        return {"ok": True, "flows": filtered, "count": len(filtered)}
+        from homenetguard.storage.database import get_connection
+        with get_connection() as conn:
+            rows = conn.execute(
+                "SELECT timestamp, src_ip, dst_ip, protocol, bytes FROM flows "
+                "WHERE src_ip = ? OR dst_ip = ? ORDER BY timestamp DESC LIMIT 20",
+                (ip, ip)
+            ).fetchall()
+        flows = [dict(r) for r in rows]
+        return {"ok": True, "flows": flows, "count": len(flows)}
 
     def _alerts(self, args: list[str]) -> dict[str, Any]:
         from homenetguard.storage import repository

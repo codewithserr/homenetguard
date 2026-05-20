@@ -50,45 +50,45 @@ def test_parse_newline_rejected():
 from unittest.mock import MagicMock, patch
 from homenetguard.dashboard.terminal import AppCommandRouter
 
-def test_router_block_calls_firewall(tmp_db):
+def test_router_block_calls_firewall():
     with patch("homenetguard.dashboard.terminal.FirewallManager") as MockFW:
         instance = MockFW.return_value
         instance.block_ip.return_value = 42
-        router = AppCommandRouter(db_path=tmp_db)
+        router = AppCommandRouter()
         result = router.execute({"cmd": "block", "args": ["192.168.1.5", "test reason"]})
     assert result["ok"] is True
     assert result["rule_id"] == 42
     instance.block_ip.assert_called_once_with("192.168.1.5", reason="test reason")
 
-def test_router_unblock_by_ip(tmp_db):
+def test_router_unblock_by_ip():
     with patch("homenetguard.dashboard.terminal.FirewallManager") as MockFW:
         instance = MockFW.return_value
         instance.list_rules.return_value = [{"id": 7, "target": "10.0.0.1"}]
         instance.unblock.return_value = True
-        router = AppCommandRouter(db_path=tmp_db)
+        router = AppCommandRouter()
         result = router.execute({"cmd": "unblock", "args": ["10.0.0.1"]})
     assert result["ok"] is True
     instance.unblock.assert_called_once_with(7)
 
-def test_router_quarantine_calls_manager(tmp_db):
+def test_router_quarantine_calls_manager():
     with patch("homenetguard.dashboard.terminal.QuarantineManager") as MockQM:
         instance = MockQM.return_value
         instance.quarantine.return_value = True
-        router = AppCommandRouter(db_path=tmp_db)
+        router = AppCommandRouter()
         result = router.execute({"cmd": "quarantine", "args": ["aa:bb:cc:dd:ee:ff"]})
     assert result["ok"] is True
     instance.quarantine.assert_called_once_with("aa:bb:cc:dd:ee:ff")
 
-def test_router_sinkhole_calls_dns(tmp_db):
+def test_router_sinkhole_calls_dns():
     with patch("homenetguard.dashboard.terminal.DNSSinkhole") as MockDS:
         instance = MockDS.return_value
-        router = AppCommandRouter(db_path=tmp_db)
+        router = AppCommandRouter()
         result = router.execute({"cmd": "sinkhole", "args": ["evil.com"]})
     assert result["ok"] is True
     instance.add_domain.assert_called_once_with("evil.com", reason="terminal")
 
-def test_router_help_returns_commands(tmp_db):
-    router = AppCommandRouter(db_path=tmp_db)
+def test_router_help_returns_commands():
+    router = AppCommandRouter()
     result = router.execute({"cmd": "help", "args": []})
     assert result["ok"] is True
     assert "commands" in result
