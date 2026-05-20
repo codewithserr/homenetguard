@@ -314,15 +314,34 @@ async function loadProtocolChart() {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'right', labels: { color: '#8899aa', font: { size: 11 }, padding: 12 }},
+          legend: { display: false },
           tooltip: {
             backgroundColor: '#0e1319', borderColor: '#1e2a38', borderWidth: 1,
             titleColor: '#8899aa', bodyColor: '#e8f0fe',
+            callbacks: {
+              label: ctx => ` ${ctx.label}: ${ctx.parsed} pkts`
+            }
           }
         }
       }
     });
+
+    // Custom HTML legend
+    const total = data.reduce((s, d) => s + d.count, 0);
+    const legendEl = document.getElementById('proto-legend');
+    if (legendEl) {
+      legendEl.innerHTML = data.map((d, i) => {
+        const pct = total ? Math.round(d.count / total * 100) : 0;
+        const color = colors[i % colors.length];
+        return `<div style="display:flex;align-items:center;gap:8px;min-width:0;">
+          <span style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0;"></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8899aa;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.protocol}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#e8f0fe;">${pct}%</span>
+        </div>`;
+      }).join('');
+    }
   } catch (e) { console.error('Protocol chart error', e); }
 }
 

@@ -201,10 +201,16 @@
 /* ══════════════════════════════════════
    GRID HELPERS
    ══════════════════════════════════════ */
-.grid-2  { display: grid; grid-template-columns: 1fr 1fr;          gap: var(--gutter); }
-.grid-4  { display: grid; grid-template-columns: repeat(4, 1fr);   gap: var(--gutter); }
-.mt-gap  { margin-top: var(--gutter); }
-.table-scroll { overflow-x: auto; }
+.grid-2      { display: grid; grid-template-columns: 1fr 1fr;          gap: var(--gutter); }
+.grid-flows  { display: grid; grid-template-columns: 3fr 1fr;          gap: var(--gutter); }
+.grid-4      { display: grid; grid-template-columns: repeat(4, 1fr);   gap: var(--gutter); }
+.mt-gap      { margin-top: var(--gutter); }
+.table-scroll { overflow-x: auto; overflow-y: auto; max-height: 260px; }
+
+/* Compact rows for live-flows panel */
+.panel-flows .data-table { font-size: 11px; }
+.panel-flows .data-table thead th { padding: 7px 10px; font-size: 10px; }
+.panel-flows .data-table tbody td { padding: 5px 10px; line-height: 1.2; }
 
 /* ══════════════════════════════════════
    CHART CONTAINER
