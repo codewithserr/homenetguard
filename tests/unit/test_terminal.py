@@ -175,3 +175,29 @@ def test_suggest_returns_ips(client_with_db):
 def test_suggest_requires_q_param(client_with_db):
     res = client_with_db.get("/api/v1/terminal/suggest")
     assert res.status_code == 400
+
+
+def test_suggest_returns_seeded_ip(cfg_with_db, tmp_path):
+    from homenetguard.storage import database, repository
+    db_path = str(tmp_path / "test.db")
+    database.init_db(db_path)
+    # Seed a flow with a known src_ip
+    repository.insert_flow({
+        "src_ip": "10.20.30.40",
+        "dst_ip": "8.8.8.8",
+        "src_port": 12345,
+        "dst_port": 443,
+        "protocol": "TCP",
+        "bytes": 100,
+        "packets": 1,
+        "timestamp": "2026-05-20T00:00:00",
+        "interface": "en0",
+    })
+    from homenetguard.dashboard.app import create_app
+    app = create_app(cfg_with_db)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        res = c.get("/api/v1/terminal/suggest?q=10.20&type=ip")
+        assert res.status_code == 200
+        data = res.get_json()
+        assert "10.20.30.40" in data["suggestions"]
